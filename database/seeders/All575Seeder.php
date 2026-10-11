@@ -41,10 +41,10 @@ class All575Seeder extends Seeder
                     'title_en' => $row['title_en'],
                 ], $row);
             }
-            $this->createAdminIfConfigured();
+            $this->createAccounts($sellerIds['demo-seller-1']);
         });
 
-        $this->command?->info('All575 sample catalog seeded. Existing matching records were preserved.');
+        $this->command?->info('All575 sample catalog and configured accounts seeded. Existing matching records were preserved.');
     }
 
     private function insertIfMissing(string $table, array $identity, array $row): int
@@ -60,35 +60,61 @@ class All575Seeder extends Seeder
         ]));
     }
 
-    private function createAdminIfConfigured(): void
+    private function createAccounts(int $sellerId): void
     {
-        // getenv reads Railway service variables even with Laravel config cached.
-        $email = trim((string) getenv('ALL575_ADMIN_EMAIL'));
-        $password = (string) getenv('ALL575_ADMIN_PASSWORD');
-        if ($email === '' && $password === '') {
-            return;
-        }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 12) {
-            throw new RuntimeException('Set ALL575_ADMIN_EMAIL and ALL575_ADMIN_PASSWORD (minimum 12 characters), or leave both unset.');
-        }
-        if (!Schema::hasTable('users') || !Schema::hasColumn('users', 'role') || !Schema::hasColumn('users', 'is_active')) {
-            throw new RuntimeException('Run the users and role/status migrations before creating an admin.');
-        }
-        $existing = DB::table('users')->where('email', $email)->first();
-        if ($existing !== null) {
-            if ($existing->role !== 'admin' || !$existing->is_active) {
-                throw new RuntimeException('The requested admin email belongs to an existing non-admin or inactive account. Choose another email.');
+        foreach (['admin', 'seller', 'customer'] as $role) {
+            $prefix = 'ALL575_'.strtoupper($role);
+            // Service variables override cached config; config also supports .env files.
+            $emailValue = getenv($prefix.'_EMAIL');
+            $passwordValue = getenv($prefix.'_PASSWORD');
+            $email = strtolower(trim((string) ($emailValue !== false ? $emailValue : config("all575.accounts.{$role}.email"))));
+            $password = (string) ($passwordValue !== false ? $passwordValue : config("all575.accounts.{$role}.password"));
+
+            if ($email === '' && $password === '' && app()->environment(['local', 'testing'])) {
+                $email = "{$role}@all575.test";
+                $password = 'All575Demo!2026';
             }
-            return; // Never reset an existing password.
+            if ($email === '' && $password === '') {
+                continue;
+            }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 12) {
+                throw new RuntimeException("Set {$prefix}_EMAIL and {$prefix}_PASSWORD (minimum 12 characters), or leave both unset.");
+            }
+            if (!Schema::hasTable('users') || !Schema::hasColumn('users', 'role') || !Schema::hasColumn('users', 'is_active')) {
+                throw new RuntimeException('Run the users and role/status migrations before creating accounts.');
+            }
+            $existing = DB::table('users')->where('email', $email)->first();
+            if ($existing !== null && ($existing->role !== $role || !$existing->is_active)) {
+                throw new RuntimeException("The requested {$role} email belongs to an existing account with another role or an inactive account. Choose another email.");
+            }
+            // Never reset an existing password or change an existing account's role.
+            $userId = $existing !== null ? (int) $existing->id : $this->insertIfMissing('users', ['email' => $email], [
+                'name' => 'All 575 '.ucfirst($role),
+                'email' => $email,
+                'password' => Hash::make($password),
+                'role' => $role,
+                'is_active' => true,
+                'email_verified_at' => null,
+            ]);
+
+            if ($role === 'seller') {
+                $seller = DB::table('sellers')->where('id', $sellerId)->first();
+                $otherStore = DB::table('sellers')->where('user_id', $userId)->where('id', '!=', $sellerId)->exists();
+                if (($seller->user_id !== null && (int) $seller->user_id !== $userId) || $otherStore) {
+                    throw new RuntimeException('The demo store or requested seller account is already linked to another account or store.');
+                }
+                if ($seller->status !== 'approved' || !$seller->is_active) {
+                    throw new RuntimeException('The demo seller store must be approved and active before linking the seller account.');
+                }
+                if ($seller->user_id === null) {
+                    DB::table('sellers')->where('id', $sellerId)->update([
+                        'user_id' => $userId,
+                        'email' => $email,
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
         }
-        $this->insertIfMissing('users', ['email' => $email], [
-            'name' => 'All 575 Administrator',
-            'email' => $email,
-            'password' => Hash::make($password),
-            'role' => 'admin',
-            'is_active' => true,
-            'email_verified_at' => null,
-        ]);
     }
 
     private function categories(): array
