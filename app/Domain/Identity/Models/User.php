@@ -2,6 +2,7 @@
 
 namespace App\Domain\Identity\Models;
 
+use App\Domain\Addressing\Models\Address;
 use App\Domain\Identity\Enums\ConsentType;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -27,6 +28,12 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'is_active' => 'boolean',
         ];
+    }
+
+    /** @return HasMany<Address, $this> */
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(Address::class);
     }
 
     /** @return HasMany<Consent, $this> */
