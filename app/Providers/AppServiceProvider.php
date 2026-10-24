@@ -5,6 +5,9 @@ namespace App\Providers;
 use App\Domain\Identity\Contracts\OtpSender;
 use App\Domain\Identity\Services\LogOtpSender;
 use App\Domain\Identity\Services\UnconfiguredOtpSender;
+use App\Domain\Payments\Contracts\PaymentGateway;
+use App\Domain\Payments\Gateways\FakeGateway;
+use App\Domain\Payments\Gateways\UnconfiguredGateway;
 use App\Domain\Pricing\VatCalculator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
             default => new UnconfiguredOtpSender,
         });
 
+        $this->app->bind(PaymentGateway::class, fn (): PaymentGateway => match (config('store.payments.driver')) {
+            'fake' => $this->guardFakeGateway(),
+            default => new UnconfiguredGateway,
+        });
+
         $this->app->singleton(VatCalculator::class, fn (): VatCalculator => new VatCalculator(
             (int) config('store.vat_rate_basis_points'),
         ));
@@ -33,6 +41,15 @@ class AppServiceProvider extends ServiceProvider
         Model::shouldBeStrict(! $this->app->isProduction());
 
         $this->configureRateLimiting();
+    }
+
+    private function guardFakeGateway(): PaymentGateway
+    {
+        if ($this->app->isProduction()) {
+            throw new LogicException('The fake payment gateway must never run in production.');
+        }
+
+        return new FakeGateway((string) config('store.payments.fake_webhook_secret'));
     }
 
     private function guardLogDriver(): OtpSender
@@ -53,6 +70,10 @@ class AppServiceProvider extends ServiceProvider
             // Each guess at a promo code counts extra, so the code space cannot be brute-forced.
             ...($request->filled('promo_code') ? [Limit::perMinute(10)->by('promo:'.$request->user()?->id)] : []),
         ]);
+
+        RateLimiter::for('checkout', fn (Request $request): Limit => Limit::perMinute(10)->by('checkout:'.$request->user()?->id));
+
+        RateLimiter::for('webhooks', fn (Request $request): Limit => Limit::perMinute(300)->by('webhooks:'.$request->ip()));
 
         RateLimiter::for('otp-request', fn (Request $request): array => [
             Limit::perMinute(10)->by('otp-ip:'.$request->ip()),

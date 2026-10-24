@@ -29,6 +29,29 @@ return [
         'ttl_minutes' => 10,
     ],
 
+    'checkout' => [
+        // How long unpaid items stay held. After this the order is cancelled and the stock released.
+        'reservation_minutes' => (int) env('CHECKOUT_RESERVATION_MINUTES', 15),
+        'order_number_prefix' => 'A575',
+    ],
+
+    'slots' => [
+        'timezone' => 'Asia/Riyadh',
+        'first_hour' => 9,
+        'last_hour' => 23,
+        'length_minutes' => 120,
+        'capacity' => 20,
+        'lead_minutes' => 60,
+        'days_ahead' => 3,
+    ],
+
+    'payments' => [
+        // fake: simulated provider for local and testing. unconfigured: refuses until a gateway is contracted (D-02).
+        'driver' => env('PAYMENT_DRIVER', 'unconfigured'),
+        'fake_webhook_secret' => env('FAKE_PAYMENT_WEBHOOK_SECRET', 'local-development-only'),
+        'methods' => ['mada', 'card', 'apple_pay'],
+    ],
+
     'sessions' => [
         // Sanctum tokens: a revoked or expired device must log in again with a new OTP.
         'ttl_days' => (int) env('SESSION_TTL_DAYS', 30),

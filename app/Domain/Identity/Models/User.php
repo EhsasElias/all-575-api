@@ -4,6 +4,7 @@ namespace App\Domain\Identity\Models;
 
 use App\Domain\Addressing\Models\Address;
 use App\Domain\Identity\Enums\ConsentType;
+use App\Domain\Orders\Models\Order;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -34,6 +35,12 @@ class User extends Authenticatable
     public function addresses(): HasMany
     {
         return $this->hasMany(Address::class);
+    }
+
+    /** @return HasMany<Order, $this> */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
     }
 
     /** @return HasMany<Consent, $this> */

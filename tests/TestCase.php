@@ -21,7 +21,7 @@ abstract class TestCase extends BaseTestCase
     }
 
     /** A verified customer, authenticated through Sanctum with the customer ability. */
-    protected function actingAsCustomer(?User $user = null): User
+    public function actingAsCustomer(?User $user = null): User
     {
         $user ??= User::factory()->create();
         Sanctum::actingAs($user, ['customer']);
