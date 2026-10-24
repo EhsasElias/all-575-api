@@ -6,9 +6,9 @@ use App\Domain\Orders\Actions\PlaceOrder;
 use App\Domain\Orders\Actions\PlaceOrderCommand;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\CheckoutRequest;
-use App\Http\Support\OrderPresenter;
 use App\Http\Resources\OrderDetailResource;
 use App\Http\Resources\PaymentResource;
+use App\Http\Support\OrderPresenter;
 use Illuminate\Http\JsonResponse;
 
 class CheckoutController extends Controller

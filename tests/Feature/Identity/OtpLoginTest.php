@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Identity;
 
+use App\Domain\Identity\Contracts\OtpSender;
 use App\Domain\Identity\Models\OtpChallenge;
 use App\Domain\Identity\Models\User;
+use App\Domain\Identity\Services\UnconfiguredOtpSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -175,8 +177,8 @@ class OtpLoginTest extends TestCase
 
     public function test_it_refuses_to_send_codes_until_a_provider_is_configured(): void
     {
-        $this->app->forgetInstance(\App\Domain\Identity\Contracts\OtpSender::class);
-        $this->app->bind(\App\Domain\Identity\Contracts\OtpSender::class, \App\Domain\Identity\Services\UnconfiguredOtpSender::class);
+        $this->app->forgetInstance(OtpSender::class);
+        $this->app->bind(OtpSender::class, UnconfiguredOtpSender::class);
 
         $this->postJson('/api/v1/auth/otp/request', ['channel' => 'phone', 'destination' => self::PHONE])
             ->assertStatus(503)

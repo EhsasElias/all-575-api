@@ -4,6 +4,7 @@ namespace Tests\Feature\Checkout;
 
 use App\Domain\Cart\Models\PromoCode;
 use App\Domain\Cart\Models\PromoRedemption;
+use App\Domain\Catalog\Models\ServiceZone;
 use App\Domain\Identity\Models\User;
 use App\Domain\Orders\Models\DeliverySlot;
 use App\Domain\Orders\Models\Order;
@@ -12,6 +13,7 @@ use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Models\Refund;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Tests\Support\CatalogBuilder;
 use Tests\Support\CheckoutScenario;
 use Tests\TestCase;
 
@@ -206,7 +208,7 @@ class CheckoutTest extends TestCase
 
     public function test_the_last_units_cannot_be_oversold(): void
     {
-        $catalog = new \Tests\Support\CatalogBuilder;
+        $catalog = new CatalogBuilder;
         $first = (new CheckoutScenario($this, $catalog))->withCart(1, onHand: 2);
         $item = $first->item;
 
@@ -237,7 +239,7 @@ class CheckoutTest extends TestCase
         $full = CheckoutScenario::slotFor($s->catalog->zone, capacity: 1, hoursAhead: 6);
         $full->update(['booked' => 1]);
         $soon = DeliverySlot::query()->create(['service_zone_id' => $s->catalog->zone->id, 'starts_at' => now()->addMinutes(20), 'ends_at' => now()->addHours(2), 'capacity' => 5]);
-        $otherZone = CheckoutScenario::slotFor(\App\Domain\Catalog\Models\ServiceZone::factory()->create());
+        $otherZone = CheckoutScenario::slotFor(ServiceZone::factory()->create());
 
         $s->checkout(slotId: $full->id, key: 'idem-slot-full')->assertStatus(409)->assertJsonPath('code', 'slot_full');
         $s->checkout(slotId: $soon->id, key: 'idem-slot-soon')->assertStatus(409)->assertJsonPath('code', 'slot_too_soon');
@@ -415,7 +417,7 @@ class CheckoutTest extends TestCase
 
     public function test_the_slot_generator_creates_windows_once(): void
     {
-        $zone = \App\Domain\Catalog\Models\ServiceZone::factory()->create();
+        $zone = ServiceZone::factory()->create();
 
         $this->artisan('slots:generate')->assertSuccessful();
         $count = DeliverySlot::query()->where('service_zone_id', $zone->id)->count();

@@ -3,11 +3,20 @@
 namespace Tests\Support;
 
 use App\Domain\Addressing\Models\Address;
+use App\Domain\Catalog\Models\Branch;
+use App\Domain\Catalog\Models\BranchStock;
+use App\Domain\Catalog\Models\Product;
+use App\Domain\Catalog\Models\ProductVariant;
+use App\Domain\Catalog\Models\Seller;
 use App\Domain\Catalog\Models\ServiceZone;
 use App\Domain\Identity\Models\User;
 use App\Domain\Orders\Models\DeliverySlot;
+use App\Domain\Orders\Models\Order;
 use App\Domain\Payments\Contracts\PaymentGateway;
+use App\Domain\Payments\Gateways\FakeGateway;
+use App\Domain\Payments\Models\Payment;
 use Illuminate\Testing\TestResponse;
+use Tests\TestCase;
 
 /** Everything a customer needs to reach the pay button: an address, a cart, a priced quote and a delivery slot. */
 final class CheckoutScenario
@@ -20,10 +29,10 @@ final class CheckoutScenario
 
     public DeliverySlot $slot;
 
-    /** @var array{product: \App\Domain\Catalog\Models\Product, variant: \App\Domain\Catalog\Models\ProductVariant, branch: \App\Domain\Catalog\Models\Branch, stock: \App\Domain\Catalog\Models\BranchStock} */
+    /** @var array{product: Product, variant: ProductVariant, branch: Branch, stock: BranchStock} */
     public array $item;
 
-    public function __construct(private readonly \Tests\TestCase $test, ?CatalogBuilder $catalog = null, ?User $user = null, ?DeliverySlot $slot = null)
+    public function __construct(private readonly TestCase $test, ?CatalogBuilder $catalog = null, ?User $user = null, ?DeliverySlot $slot = null)
     {
         $this->catalog = $catalog ?? new CatalogBuilder;
         $this->user = $user ?? User::factory()->create();
@@ -72,15 +81,35 @@ final class CheckoutScenario
     /** Plays the payment provider: a correctly signed callback delivered to our public webhook. */
     public function providerCallback(array $payload, ?string $signatureOverride = null): TestResponse
     {
-        /** @var \App\Domain\Payments\Gateways\FakeGateway $gateway */
+        /** @var FakeGateway $gateway */
         $gateway = app(PaymentGateway::class);
         $callback = $gateway->signedCallback($payload);
 
         return $this->test->call('POST', '/api/v1/webhooks/payments/fake', [], [], [], [
             'CONTENT_TYPE' => 'application/json',
-            'HTTP_X_FAKE_SIGNATURE' => $signatureOverride ?? $callback['headers'][\App\Domain\Payments\Gateways\FakeGateway::SIGNATURE_HEADER],
+            'HTTP_X_FAKE_SIGNATURE' => $signatureOverride ?? $callback['headers'][FakeGateway::SIGNATURE_HEADER],
             'HTTP_ACCEPT' => 'application/json',
         ], $callback['body']);
+    }
+
+    /** Adds another product (optionally from another seller) to the same cart. */
+    public function addItem(int $quantity = 1, ?Seller $seller = null): array
+    {
+        $item = $this->catalog->stockedProduct(100, seller: $seller);
+        $this->test->actingAsCustomer($this->user);
+        $this->test->putJson('/api/v1/cart/items/'.$item['variant']->id, ['quantity' => $quantity])->assertOk();
+
+        return $item;
+    }
+
+    /** Checks out and plays the provider confirming the charge. Returns the confirmed order. */
+    public function pay(?string $key = null): Order
+    {
+        $placed = $this->checkout(key: $key ?? 'idem-pay-'.uniqid())->assertCreated()->json('data');
+        $payment = Payment::query()->findOrFail($placed['payment']['id']);
+        $this->chargeSucceeded($payment->provider_reference, $payment->amount_halalas, 'evt_'.uniqid())->assertOk();
+
+        return Order::query()->findOrFail($placed['order']['id']);
     }
 
     public function chargeSucceeded(string $reference, int $amount, string $eventId = 'evt_1'): TestResponse

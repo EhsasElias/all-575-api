@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Identity\Enums\ConsentType;
 use App\Domain\Identity\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -21,8 +22,8 @@ class UserResource extends JsonResource
             'phone_verified' => $this->phone_verified_at !== null,
             'email_verified' => $this->email_verified_at !== null,
             'consents' => [
-                'terms_version' => $this->latestConsent(\App\Domain\Identity\Enums\ConsentType::Terms)?->version,
-                'privacy_version' => $this->latestConsent(\App\Domain\Identity\Enums\ConsentType::Privacy)?->version,
+                'terms_version' => $this->latestConsent(ConsentType::Terms)?->version,
+                'privacy_version' => $this->latestConsent(ConsentType::Privacy)?->version,
                 'marketing' => $this->hasMarketingConsent(),
                 'needs_update' => ! $this->hasAcceptedCurrentLegalVersions(),
             ],

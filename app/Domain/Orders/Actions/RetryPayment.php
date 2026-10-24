@@ -13,6 +13,7 @@ use App\Domain\Payments\Enums\PaymentStatus;
 use App\Domain\Payments\Gateways\ChargeSession;
 use App\Domain\Payments\Models\Payment;
 use App\Support\Exceptions\DomainRuleViolation;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /** A new payment attempt for an unpaid order whose stock is still held (declined card, lost response, closed app). */
@@ -41,7 +42,7 @@ final class RetryPayment
             return $locked->payments()->create([
                 'provider' => $this->gateway->name(), 'method' => $method, 'status' => PaymentStatus::Pending,
                 'amount_halalas' => $locked->total_halalas, 'currency' => $locked->currency,
-                'expires_at' => \Illuminate\Support\Carbon::parse($heldUntil),
+                'expires_at' => Carbon::parse($heldUntil),
             ]);
         });
 

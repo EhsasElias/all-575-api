@@ -52,6 +52,16 @@ return [
         'methods' => ['mada', 'card', 'apple_pay'],
     ],
 
+    'delivery_code' => [
+        'length' => 6,
+        'max_attempts' => 5,
+        'ttl_hours' => 12,
+    ],
+
+    'reviews' => [
+        'edit_window_days' => 7,
+    ],
+
     'sessions' => [
         // Sanctum tokens: a revoked or expired device must log in again with a new OTP.
         'ttl_days' => (int) env('SESSION_TTL_DAYS', 30),

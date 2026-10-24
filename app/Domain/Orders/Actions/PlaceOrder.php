@@ -22,9 +22,10 @@ use App\Domain\Orders\Services\UnpaidOrderCancellation;
 use App\Domain\Payments\Contracts\PaymentGateway;
 use App\Domain\Payments\Enums\PaymentMethod;
 use App\Domain\Payments\Enums\PaymentStatus;
+use App\Domain\Payments\Gateways\ChargeSession;
 use App\Domain\Payments\Models\Payment;
 use App\Support\Exceptions\DomainRuleViolation;
-use App\Support\Money;
+use Carbon\CarbonInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -219,7 +220,7 @@ final class PlaceOrder
         ]);
     }
 
-    private function createPayment(Order $order, PaymentMethod $method, \Carbon\CarbonInterface $expiresAt): ?Payment
+    private function createPayment(Order $order, PaymentMethod $method, CarbonInterface $expiresAt): ?Payment
     {
         if ($order->total_halalas === 0) {
             $free = $order->payments()->create([
@@ -237,7 +238,7 @@ final class PlaceOrder
         ]);
     }
 
-    private function openCharge(Order $order, Payment $payment): \App\Domain\Payments\Gateways\ChargeSession
+    private function openCharge(Order $order, Payment $payment): ChargeSession
     {
         try {
             $session = $this->gateway->createCharge($payment);

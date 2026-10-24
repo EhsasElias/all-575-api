@@ -9,10 +9,12 @@ use App\Domain\Payments\Contracts\PaymentGateway;
 use App\Domain\Payments\Gateways\FakeGateway;
 use App\Domain\Payments\Gateways\UnconfiguredGateway;
 use App\Domain\Pricing\VatCalculator;
+use App\Support\SaudiPhone;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use LogicException;
 
@@ -40,7 +42,17 @@ class AppServiceProvider extends ServiceProvider
         // Catches lazy loading (N+1), silently discarded attributes and missing attributes outside production.
         Model::shouldBeStrict(! $this->app->isProduction());
 
+        if ($this->app->isProduction()) {
+            URL::forceHttps();
+        }
+
         $this->configureRateLimiting();
+    }
+
+    /** 0512345678 and +966512345678 are the same phone, so they must share one rate-limit bucket. */
+    private function canonicalDestination(string $destination): string
+    {
+        return SaudiPhone::normalize($destination) ?? strtolower(trim($destination));
     }
 
     private function guardFakeGateway(): PaymentGateway
@@ -77,7 +89,7 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('otp-request', fn (Request $request): array => [
             Limit::perMinute(10)->by('otp-ip:'.$request->ip()),
-            Limit::perHour(5)->by('otp-destination:'.strtolower((string) $request->input('destination'))),
+            Limit::perHour(5)->by('otp-destination:'.$this->canonicalDestination((string) $request->input('destination'))),
         ]);
 
         RateLimiter::for('otp-verify', fn (Request $request): array => [

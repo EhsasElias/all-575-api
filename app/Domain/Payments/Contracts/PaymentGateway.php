@@ -6,6 +6,7 @@ namespace App\Domain\Payments\Contracts;
 
 use App\Domain\Payments\Gateways\ChargeSession;
 use App\Domain\Payments\Gateways\GatewayEvent;
+use App\Domain\Payments\Gateways\InvalidWebhook;
 use App\Domain\Payments\Gateways\RefundResult;
 use App\Domain\Payments\Models\Payment;
 use App\Domain\Payments\Models\Refund;
@@ -25,7 +26,7 @@ interface PaymentGateway
      *
      * @param  array<string, list<string|null>>  $headers
      *
-     * @throws \App\Domain\Payments\Gateways\InvalidWebhook when the signature or body is not acceptable
+     * @throws InvalidWebhook when the signature or body is not acceptable
      */
     public function parseWebhook(string $rawBody, array $headers): GatewayEvent;
 

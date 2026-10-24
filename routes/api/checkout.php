@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\DeliveryCodeController;
 use App\Http\Controllers\Api\V1\DevPaymentController;
+use App\Http\Controllers\Api\V1\OrderCancellationController;
+use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PaymentWebhookController;
 use App\Http\Controllers\Api\V1\SlotController;
@@ -22,6 +25,8 @@ if (app()->environment(['local', 'testing'])) {
 }
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(function (): void {
-    Route::get('orders', [\App\Http\Controllers\Api\V1\OrderController::class, 'index']);
-    Route::get('orders/{order}', [\App\Http\Controllers\Api\V1\OrderController::class, 'show']);
+    Route::get('orders', [OrderController::class, 'index']);
+    Route::get('orders/{order}', [OrderController::class, 'show']);
+    Route::post('orders/{order}/cancel', [OrderCancellationController::class, 'store']);
+    Route::get('orders/{order}/suborders/{suborder}/delivery-code', [DeliveryCodeController::class, 'show']);
 });

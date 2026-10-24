@@ -5,8 +5,10 @@ namespace Tests\Feature\Cart;
 use App\Domain\Addressing\Models\Address;
 use App\Domain\Cart\Models\PromoCode;
 use App\Domain\Cart\Models\PromoRedemption;
+use App\Domain\Cart\Models\QuoteRecord;
 use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\Support\CatalogBuilder;
 use Tests\TestCase;
 
@@ -37,7 +39,7 @@ class QuoteTest extends TestCase
         return $built;
     }
 
-    private function quote(array $body = []): \Illuminate\Testing\TestResponse
+    private function quote(array $body = []): TestResponse
     {
         return $this->postJson('/api/v1/quotes', ['address_id' => $this->address->id] + $body);
     }
@@ -197,7 +199,7 @@ class QuoteTest extends TestCase
         $id = $this->quote()->assertCreated()->json('data.id');
 
         $this->assertDatabaseHas('quotes', ['id' => $id, 'user_id' => $this->user->id, 'total_halalas' => 1575]);
-        $this->assertTrue(\App\Domain\Cart\Models\QuoteRecord::query()->findOrFail($id)->expires_at->isFuture());
+        $this->assertTrue(QuoteRecord::query()->findOrFail($id)->expires_at->isFuture());
     }
 
     public function test_guessing_promo_codes_is_rate_limited(): void
