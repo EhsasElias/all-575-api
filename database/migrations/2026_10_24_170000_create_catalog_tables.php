@@ -67,19 +67,13 @@ return new class extends Migration
             $table->text('description_en')->nullable();
             $table->string('image_path')->nullable();
             $table->string('vat_class', 16)->default('standard');
-            // How the seller typed the variant prices: VAT already inside (true) or added on top (false).
-            $table->boolean('price_includes_vat')->default(true);
             $table->string('status', 16)->default('draft');
             $table->boolean('is_featured')->default(false);
-            // Gross (VAT-inclusive) price range, kept in step with the variants for sorting and filtering.
-            $table->unsignedInteger('min_gross_price_halalas')->default(0);
-            $table->unsignedInteger('max_gross_price_halalas')->default(0);
             $table->decimal('rating_average', 2, 1)->default(0);
             $table->unsignedInteger('rating_count')->default(0);
             $table->timestamps();
 
             $table->index(['status', 'category_id']);
-            $table->index(['status', 'min_gross_price_halalas']);
         });
 
         Schema::create('product_variants', function (Blueprint $table) {
@@ -89,8 +83,6 @@ return new class extends Migration
             $table->string('barcode')->nullable()->index();
             $table->string('name_ar')->nullable();
             $table->string('name_en')->nullable();
-            // Price exactly as the seller entered it; see products.price_includes_vat.
-            $table->unsignedInteger('price_halalas');
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();

@@ -29,11 +29,8 @@ class ProductFactory extends Factory
             'description_en' => null,
             'image_path' => null,
             'vat_class' => VatClass::Standard,
-            'price_includes_vat' => true,
             'status' => ProductStatus::Published,
             'is_featured' => false,
-            'min_gross_price_halalas' => 575,
-            'max_gross_price_halalas' => 575,
             'rating_average' => 0,
             'rating_count' => 0,
         ];

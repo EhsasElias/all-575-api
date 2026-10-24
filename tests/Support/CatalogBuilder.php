@@ -9,7 +9,6 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductVariant;
 use App\Domain\Catalog\Models\Seller;
 use App\Domain\Catalog\Models\ServiceZone;
-use App\Domain\Catalog\Services\ProductPricing;
 
 /** Builds a product that can actually be bought: published, in stock, inside a delivery zone. */
 final class CatalogBuilder
@@ -36,8 +35,6 @@ final class CatalogBuilder
         $branch = Branch::query()->where('seller_id', $seller->id)->where('service_zone_id', $this->zone->id)->first()
             ?? Branch::factory()->create(['seller_id' => $seller->id, 'service_zone_id' => $this->zone->id]);
         $stock = BranchStock::factory()->create(['branch_id' => $branch->id, 'variant_id' => $variant->id, 'on_hand' => $onHand]);
-
-        app(ProductPricing::class)->refreshPriceRange($product->refresh());
 
         return compact('product', 'variant', 'branch', 'stock');
     }

@@ -20,7 +20,7 @@ class VariantResource extends JsonResource
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
-        $split = app(ProductPricing::class)->split($this->product, $this->resource);
+        $split = app(ProductPricing::class)->split($this->product);
 
         return [
             'id' => $this->id,

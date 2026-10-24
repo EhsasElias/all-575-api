@@ -28,10 +28,9 @@ class ProductController extends Controller
                 fn (Builder $seller) => $seller->where('slug', $request->string('seller')->toString()),
             ))
             ->when($request->filled('q'), fn (Builder $query) => $this->search($query, $request->string('q')->toString()))
-            ->when($request->filled('min_price'), fn (Builder $query) => $query->where('max_gross_price_halalas', '>=', $request->integer('min_price')))
-            ->when($request->filled('max_price'), fn (Builder $query) => $query->where('min_gross_price_halalas', '<=', $request->integer('max_price')));
-
-        $this->applySort($products, $request->string('sort')->toString())
+            // Everything costs the same, so there is no price sort or filter: featured first, then newest.
+            ->orderByDesc('is_featured')
+            ->orderByDesc('created_at')
             ->orderBy('id');
 
         $page = $products->cursorPaginate($request->integer('per_page', 20))->withQueryString();
@@ -76,18 +75,5 @@ class ProductController extends Controller
         $query->where(fn (Builder $q) => $q
             ->whereRaw("name_ar LIKE ? ESCAPE '!'", [$like])
             ->orWhereRaw("name_en LIKE ? ESCAPE '!'", [$like]));
-    }
-
-    /**
-     * @param  Builder<Product>  $query
-     * @return Builder<Product>
-     */
-    private function applySort(Builder $query, string $sort): Builder
-    {
-        return match ($sort) {
-            'price_asc' => $query->orderBy('min_gross_price_halalas'),
-            'price_desc' => $query->orderByDesc('max_gross_price_halalas'),
-            default => $query->orderByDesc('is_featured')->orderByDesc('created_at'),
-        };
     }
 }

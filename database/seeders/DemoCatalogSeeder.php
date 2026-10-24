@@ -12,14 +12,13 @@ use App\Domain\Catalog\Models\ProductVariant;
 use App\Domain\Catalog\Models\Seller;
 use App\Domain\Catalog\Models\ServiceZone;
 use App\Domain\Catalog\Models\WelcomeSlide;
-use App\Domain\Catalog\Services\ProductPricing;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
 /**
- * Demo data for local development and screenshots. Delivery fees, stock and the prices that differ
- * from 5.75 are placeholders, not business decisions. Never runs in production.
+ * Demo data for local development and screenshots. Delivery fees and stock are placeholders, not business
+ * decisions (every product costs the platform price in config/store.php). Never runs in production.
  */
 class DemoCatalogSeeder extends Seeder
 {
@@ -65,9 +64,6 @@ class DemoCatalogSeeder extends Seeder
         'gifts' => ['stationery-corner', [['كيس هدية', 'Gift Bag'], ['بطاقة تهنئة', 'Greeting Card'], ['ورق تغليف', 'Wrapping Paper']]],
         'cleaning' => ['value-store', [['فرشاة تنظيف', 'Cleaning Brush'], ['إسفنجة تنظيف', 'Cleaning Sponge'], ['قفازات', 'Gloves']]],
     ];
-
-    /** product slug => price as typed by the seller (halalas) */
-    private const PRICE_OVERRIDES = ['demo-stationery-2' => 350, 'demo-electronics-1' => 750];
 
     public function run(): void
     {
@@ -129,30 +125,24 @@ class DemoCatalogSeeder extends Seeder
      */
     private function seedProducts(array $categories, array $branches): void
     {
-        $pricing = app(ProductPricing::class);
-
         foreach (self::PRODUCTS as $categorySlug => [$sellerSlug, $items]) {
             foreach ($items as $index => [$ar, $en]) {
                 $slug = 'demo-'.$categorySlug.'-'.($index + 1);
                 $branch = $branches[$sellerSlug];
-
-                // The first mug is typed without VAT (5.00 + 15% = 5.75) to exercise both entry modes.
-                $includesVat = $slug !== 'demo-kitchen-1';
-                $typedPrice = self::PRICE_OVERRIDES[$slug] ?? ($includesVat ? 575 : 500);
 
                 $product = Product::query()->updateOrCreate(['slug' => $slug], [
                     'seller_id' => $branch->seller_id, 'category_id' => $categories[$categorySlug]->id,
                     'name_ar' => $ar, 'name_en' => $en,
                     'description_ar' => 'منتج تجريبي لعرض المتجر.', 'description_en' => 'Demo product for previewing the store.',
                     'image_path' => "images/all575/products/{$slug}.png",
-                    'price_includes_vat' => $includesVat, 'status' => ProductStatus::Published, 'is_featured' => $index === 0,
+                    'status' => ProductStatus::Published, 'is_featured' => $index === 0,
                 ]);
 
                 $variants = $slug === 'demo-clothing-1' ? ['S', 'M', 'L'] : [null];
 
                 foreach ($variants as $position => $size) {
                     $variant = ProductVariant::query()->updateOrCreate(['sku' => strtoupper($slug).($size ? "-{$size}" : '')], [
-                        'product_id' => $product->id, 'price_halalas' => $typedPrice, 'sort_order' => $position,
+                        'product_id' => $product->id, 'sort_order' => $position,
                         'name_ar' => $size, 'name_en' => $size,
                     ]);
 
@@ -161,8 +151,6 @@ class DemoCatalogSeeder extends Seeder
                         ['on_hand' => 100, 'reserved' => 0],
                     );
                 }
-
-                $pricing->refreshPriceRange($product->refresh());
             }
         }
     }

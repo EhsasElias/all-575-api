@@ -3,6 +3,10 @@
 return [
     'currency' => 'SAR',
 
+    // Everything on the platform costs this, VAT included (roadmap decision D-05: always 5.75 SAR).
+    // 5.75 is 5.00 + 0.75 VAT at 15%. Orders keep the price they were bought at, so changing it here never rewrites history.
+    'price_halalas' => 575,
+
     // 15% Saudi VAT, in basis points (1500 = 15.00%).
     'vat_rate_basis_points' => (int) env('STORE_VAT_RATE_BASIS_POINTS', 1500),
 

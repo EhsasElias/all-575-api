@@ -54,7 +54,7 @@ class CheckoutTest extends TestCase
         $orderId = $s->checkout()->assertCreated()->json('data.order.id');
 
         $s->address->update(['street' => 'Changed Street']);
-        $s->item['variant']->update(['price_halalas' => 9999]);
+        config(['store.price_halalas' => 9999]);
 
         $this->getJson('/api/v1/orders/'.$orderId)->assertOk()
             ->assertJsonPath('data.address.street', 'King Fahd Road')
@@ -187,7 +187,7 @@ class CheckoutTest extends TestCase
     {
         $s = $this->scenario();
         $quote = $s->quote();
-        $s->item['variant']->update(['price_halalas' => 700]);
+        config(['store.price_halalas' => 700]);
 
         $response = $s->checkout($quote)->assertStatus(409)->assertJsonPath('code', 'quote_changed')->assertJsonPath('quote.subtotal', 700);
 

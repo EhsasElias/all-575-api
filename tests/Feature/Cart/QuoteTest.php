@@ -78,16 +78,6 @@ class QuoteTest extends TestCase
         $this->quote()->assertCreated()->assertJsonPath('data.delivery_fee', 0)->assertJsonPath('data.total', 5175);
     }
 
-    public function test_a_price_typed_without_vat_is_charged_with_vat_added_once(): void
-    {
-        $this->catalog->zone->update(['delivery_fee_halalas' => 0]);
-        $this->addToCart(1, ['price_includes_vat' => false], ['price_halalas' => 10_000]);
-
-        $this->quote()->assertCreated()
-            ->assertJsonPath('data.total', 11_500)
-            ->assertJsonPath('data.vat_included', 1500);
-    }
-
     public function test_zero_rated_goods_get_their_own_vat_line_with_no_vat(): void
     {
         $this->catalog->zone->update(['delivery_fee_halalas' => 0]);

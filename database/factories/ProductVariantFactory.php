@@ -20,7 +20,6 @@ class ProductVariantFactory extends Factory
             'barcode' => null,
             'name_ar' => null,
             'name_en' => null,
-            'price_halalas' => 575,
             'sort_order' => 0,
             'is_active' => true,
         ];

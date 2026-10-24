@@ -33,7 +33,7 @@ class CartResource extends JsonResource
 
         $lines = $this->items->map(function (CartItem $item) use ($pricing, &$subtotal): array {
             $variant = $item->variant;
-            $unit = $pricing->unitGross($variant->product, $variant);
+            $unit = $pricing->unitGross();
             $subtotal = $subtotal->plus($unit->times($item->quantity));
 
             return [

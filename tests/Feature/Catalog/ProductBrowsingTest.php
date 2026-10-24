@@ -35,9 +35,7 @@ class ProductBrowsingTest extends TestCase
         $this->getJson('/api/v1/products')
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'biscuits')
-            ->assertJsonPath('data.0.price.from', 575)
-            ->assertJsonPath('data.0.price.includes_vat', true)
-            ->assertJsonPath('data.0.price.currency', 'SAR');
+            ->assertJsonPath('data.0.price', ['gross' => 575, 'net' => 500, 'vat' => 75, 'currency' => 'SAR']);
     }
 
     public function test_unpublished_products_and_hidden_sellers_and_categories_never_appear(): void
@@ -80,17 +78,30 @@ class ProductBrowsingTest extends TestCase
         $this->getJson('/api/v1/products?q=a')->assertUnprocessable();
     }
 
-    public function test_price_filter_and_sorting_use_the_gross_price(): void
+    public function test_every_product_costs_the_platform_price_whatever_its_data_says(): void
     {
-        $this->catalog->stockedProduct(product: ['slug' => 'cheap'], variant: ['price_halalas' => 350]);
-        $this->catalog->stockedProduct(product: ['slug' => 'mid'], variant: ['price_halalas' => 575]);
-        // Typed without VAT: 7.00 + 15% = 8.05 gross.
-        $this->catalog->stockedProduct(product: ['slug' => 'dear', 'price_includes_vat' => false], variant: ['price_halalas' => 700]);
+        $this->catalog->stockedProduct(product: ['slug' => 'tea']);
+        $this->catalog->stockedProduct(product: ['slug' => 'scarf']);
 
-        $this->assertSame(['cheap', 'mid', 'dear'], $this->slugs('?sort=price_asc'));
-        $this->assertSame(['dear', 'mid', 'cheap'], $this->slugs('?sort=price_desc'));
-        $this->assertSame(['mid'], $this->slugs('?min_price=500&max_price=600'));
-        $this->assertSame(['dear'], $this->slugs('?min_price=800'));
+        $prices = collect($this->getJson('/api/v1/products')->assertOk()->json('data'))->pluck('price.gross')->unique()->all();
+        $this->assertSame([575], $prices);
+    }
+
+    public function test_zero_rated_goods_cost_the_same_5_75_with_no_vat_in_it(): void
+    {
+        $this->catalog->stockedProduct(product: ['slug' => 'staple', 'vat_class' => 'zero']);
+
+        $this->getJson('/api/v1/products/staple')
+            ->assertJsonPath('data.price', ['gross' => 575, 'net' => 575, 'vat' => 0, 'currency' => 'SAR'])
+            ->assertJsonPath('data.variants.0.price.vat', 0);
+    }
+
+    public function test_the_price_is_one_setting_and_changing_it_changes_every_product(): void
+    {
+        $this->catalog->stockedProduct(product: ['slug' => 'tea']);
+        config(['store.price_halalas' => 600]);
+
+        $this->getJson('/api/v1/products/tea')->assertJsonPath('data.price.gross', 600)->assertJsonPath('data.variants.0.price.net', 522);
     }
 
     public function test_results_are_paginated_with_a_cursor(): void
@@ -147,15 +158,6 @@ class ProductBrowsingTest extends TestCase
             ->assertJsonPath('data.variants.0.availability', 'in_stock')
             ->assertJsonPath('data.variants.1.availability', 'out_of_stock')
             ->assertJsonCount(2, 'data.variants');
-    }
-
-    public function test_a_price_typed_without_vat_is_shown_with_vat_added(): void
-    {
-        $this->catalog->stockedProduct(product: ['slug' => 'mug', 'price_includes_vat' => false], variant: ['price_halalas' => 500]);
-
-        $this->getJson('/api/v1/products/mug')->assertJsonPath('data.variants.0.price.gross', 575)
-            ->assertJsonPath('data.variants.0.price.net', 500)
-            ->assertJsonPath('data.variants.0.price.vat', 75);
     }
 
     public function test_zone_resolution_says_whether_we_deliver_to_a_point(): void

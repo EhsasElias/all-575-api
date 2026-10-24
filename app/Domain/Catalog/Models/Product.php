@@ -17,8 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(ProductFactory::class)]
 #[Fillable([
     'seller_id', 'category_id', 'slug', 'name_ar', 'name_en', 'description_ar', 'description_en', 'image_path',
-    'vat_class', 'price_includes_vat', 'status', 'is_featured',
-    'min_gross_price_halalas', 'max_gross_price_halalas', 'rating_average', 'rating_count',
+    'vat_class', 'status', 'is_featured', 'rating_average', 'rating_count',
 ])]
 class Product extends Model
 {
@@ -31,7 +30,6 @@ class Product extends Model
         return [
             'vat_class' => VatClass::class,
             'status' => ProductStatus::class,
-            'price_includes_vat' => 'boolean',
             'is_featured' => 'boolean',
             'rating_average' => 'float',
         ];

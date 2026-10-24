@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[UseFactory(ProductVariantFactory::class)]
-#[Fillable(['product_id', 'sku', 'barcode', 'name_ar', 'name_en', 'price_halalas', 'sort_order', 'is_active'])]
+#[Fillable(['product_id', 'sku', 'barcode', 'name_ar', 'name_en', 'sort_order', 'is_active'])]
 class ProductVariant extends Model
 {
     /** @use HasFactory<ProductVariantFactory> */
@@ -20,7 +20,7 @@ class ProductVariant extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['is_active' => 'boolean', 'price_halalas' => 'integer'];
+        return ['is_active' => 'boolean'];
     }
 
     /** @return BelongsTo<Product, $this> */

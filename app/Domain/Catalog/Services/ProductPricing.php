@@ -5,40 +5,23 @@ declare(strict_types=1);
 namespace App\Domain\Catalog\Services;
 
 use App\Domain\Catalog\Models\Product;
-use App\Domain\Catalog\Models\ProductVariant;
 use App\Domain\Pricing\VatCalculator;
 use App\Domain\Pricing\VatSplit;
 use App\Support\Money;
 
-/** The one place that turns a seller's typed price into what the customer pays. */
+/** Every product costs the same: the platform price, VAT included. The one place that says so. */
 final class ProductPricing
 {
     public function __construct(private readonly VatCalculator $vat) {}
 
-    public function split(Product $product, ProductVariant $variant): VatSplit
+    public function unitGross(): Money
     {
-        $entered = Money::halalas($variant->price_halalas);
-        $rate = $this->vat->rateFor($product->vat_class);
-
-        return $product->price_includes_vat
-            ? $this->vat->splitGross($entered, $rate)
-            : $this->vat->addToNet($entered, $rate);
+        return Money::halalas((int) config('store.price_halalas'));
     }
 
-    public function unitGross(Product $product, ProductVariant $variant): Money
+    /** What the platform price is made of for this product: 5.75 is 5.00 + 0.75 VAT, or 5.75 + 0.00 when zero-rated or exempt. */
+    public function split(Product $product): VatSplit
     {
-        return $this->split($product, $variant)->gross;
-    }
-
-    /** Keeps the denormalised min/max gross price columns in step with the active variants. */
-    public function refreshPriceRange(Product $product): void
-    {
-        $grossPrices = $product->variants()->get()
-            ->map(fn (ProductVariant $variant): int => $this->unitGross($product, $variant)->halalas);
-
-        $product->forceFill([
-            'min_gross_price_halalas' => (int) $grossPrices->min(),
-            'max_gross_price_halalas' => (int) $grossPrices->max(),
-        ])->save();
+        return $this->vat->splitGross($this->unitGross(), $this->vat->rateFor($product->vat_class));
     }
 }
