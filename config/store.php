@@ -20,6 +20,15 @@ return [
         'resend_cooldown_seconds' => 60,
     ],
 
+    'cart' => [
+        'max_quantity_per_line' => 20,
+        'max_lines' => 50,
+    ],
+
+    'quote' => [
+        'ttl_minutes' => 10,
+    ],
+
     'sessions' => [
         // Sanctum tokens: a revoked or expired device must log in again with a new OTP.
         'ttl_days' => (int) env('SESSION_TTL_DAYS', 30),

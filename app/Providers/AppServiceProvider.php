@@ -48,6 +48,12 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('api', fn (Request $request): Limit => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
 
+        RateLimiter::for('quotes', fn (Request $request): array => [
+            Limit::perMinute(30)->by('quotes:'.$request->user()?->id),
+            // Each guess at a promo code counts extra, so the code space cannot be brute-forced.
+            ...($request->filled('promo_code') ? [Limit::perMinute(10)->by('promo:'.$request->user()?->id)] : []),
+        ]);
+
         RateLimiter::for('otp-request', fn (Request $request): array => [
             Limit::perMinute(10)->by('otp-ip:'.$request->ip()),
             Limit::perHour(5)->by('otp-destination:'.strtolower((string) $request->input('destination'))),
