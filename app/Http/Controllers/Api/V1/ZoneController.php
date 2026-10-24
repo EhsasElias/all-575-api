@@ -10,7 +10,11 @@ use Illuminate\Http\JsonResponse;
 
 class ZoneController extends Controller
 {
-    /** Tells the app whether we deliver to a point, and which zone it belongs to. */
+    /**
+     * Tells the app whether we deliver to a point, and which zone it belongs to.
+     *
+     * @response array{data: array{serviceable: bool, zone: ?ZoneResource}}
+     */
     public function resolve(ResolveZoneRequest $request): JsonResponse
     {
         $zone = ServiceZone::resolve((float) $request->input('lat'), (float) $request->input('lng'));

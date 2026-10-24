@@ -16,6 +16,10 @@ class CheckoutController extends Controller
     /**
      * Creates the unpaid order and the payment attempt. The order is only confirmed later, by the provider's callback.
      * Repeating the request with the same Idempotency-Key returns the same order instead of creating another.
+     *
+     * @status 201
+     *
+     * @response array{data: array{order: OrderDetailResource, payment: ?PaymentResource, replayed: bool}}
      */
     public function store(CheckoutRequest $request, PlaceOrder $placeOrder, OrderPresenter $orders): JsonResponse
     {

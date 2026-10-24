@@ -12,6 +12,9 @@ use Illuminate\Http\Response;
 
 class SpendingReportController extends Controller
 {
+    /**
+     * @response array{data: array{summary: array{orders: int, paid: int, refunded: int, net_spent: int, savings: int, vat_included: int, delivery_fees: int}, rows: list<array{order_number: string, status: string, order_date: string, payment_date: ?string, refund_date: ?string, subtotal: int, discount: int, delivery_fee: int, vat_included: int, total: int, refunded: int, net_spent: int}>, currency: string, timezone: string, from: string, to: string}}
+     */
     public function show(SpendingReportRequest $request, SpendingReport $report): JsonResponse
     {
         $data = $report->for($request->user(), $request->from(), $request->to());

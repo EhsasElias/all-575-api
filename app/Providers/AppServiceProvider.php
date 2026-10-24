@@ -10,9 +10,11 @@ use App\Domain\Payments\Gateways\FakeGateway;
 use App\Domain\Payments\Gateways\UnconfiguredGateway;
 use App\Domain\Pricing\VatCalculator;
 use App\Support\SaudiPhone;
+use Dedoc\Scramble\Scramble;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -47,6 +49,11 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->configureRateLimiting();
+
+        // The apps' contract: no development helpers and no provider callbacks (those are not for the app to call).
+        Scramble::routes(fn (Route $route): bool => str_starts_with($route->uri(), 'api/v1/')
+            && ! str_starts_with($route->uri(), 'api/v1/dev/')
+            && ! str_starts_with($route->uri(), 'api/v1/webhooks/'));
     }
 
     /** 0512345678 and +966512345678 are the same phone, so they must share one rate-limit bucket. */

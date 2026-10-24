@@ -10,7 +10,11 @@ use Illuminate\Http\Request;
 
 class DeliveryCodeController extends Controller
 {
-    /** The customer's own hand-over code, available only while that delivery is on its way. */
+    /**
+     * The customer's own hand-over code, available only while that delivery is on its way.
+     *
+     * @response array{data: array{code: string, expires_at: string}}
+     */
     public function show(Request $request, string $order, string $suborder, DeliveryCodes $codes): JsonResponse
     {
         $delivery = $request->user()->orders()->findOrFail($order)->suborders()->findOrFail($suborder);

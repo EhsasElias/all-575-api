@@ -15,6 +15,13 @@ use Illuminate\Http\Response;
 
 class AuthController extends Controller
 {
+    /**
+     * Send a one-time code. The answer is the same whether or not the number already has an account.
+     *
+     * @status 202
+     *
+     * @response array{data: array{challenge_id: string, expires_in: int, resend_after: int}}
+     */
     public function requestOtp(RequestOtpRequest $request, RequestOtp $requestOtp): JsonResponse
     {
         $challenge = $requestOtp->handle(
@@ -31,6 +38,11 @@ class AuthController extends Controller
         ]], 202);
     }
 
+    /**
+     * Check the code and sign in. A new account must also send the current Terms and Privacy versions.
+     *
+     * @response array{data: array{token: string, token_type: string, expires_at: string, is_new_user: bool, user: UserResource}}
+     */
     public function verifyOtp(VerifyOtpRequest $request, VerifyOtp $verifyOtp): JsonResponse
     {
         $login = $verifyOtp->handle(
