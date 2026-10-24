@@ -26,6 +26,12 @@ final readonly class Money implements JsonSerializable
         return new self(0);
     }
 
+    /** The amount as a plain integer number of halalas, for building responses. */
+    public function toInt(): int
+    {
+        return $this->halalas;
+    }
+
     public function plus(self $other): self
     {
         return new self($this->halalas + $other->halalas);

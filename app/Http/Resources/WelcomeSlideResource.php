@@ -12,7 +12,9 @@ class WelcomeSlideResource extends JsonResource
 {
     use PublicAssets;
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array{id: int, image_url: string, title: array{ar: string, en: string}}
+     */
     public function toArray(Request $request): array
     {
         return [

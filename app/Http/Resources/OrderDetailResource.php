@@ -17,7 +17,17 @@ use Illuminate\Http\Request;
  */
 class OrderDetailResource extends OrderResource
 {
-    /** @return array<string, mixed> */
+    /**
+     * @return array{
+     *         id: string, number: string, status: 'pending_payment'|'confirmed'|'cancelled'|'completed', placed_at: string, paid_at: ?string, total: int, currency: string, items_count: int, preview_images: list<string>, slot: array{starts_at: ?string, ends_at: ?string}, payment_status: ?string,
+     *         address: array{recipient_name: string, recipient_phone: string, region: string, city: string, district: string, street: string, building_number: string, additional_number: string, postal_code: string, short_address: ?string, unit: ?string, floor: ?string, delivery_notes: ?string, lat: float, lng: float},
+     *         amounts: array{subtotal: int, discount: int, delivery_fee: int, total: int, vat_included: int, vat: list<array{vat_class: string, rate_basis_points: int, taxable_net: int, vat: int, gross: int}>},
+     *         promo_code: ?string, customer_notes: ?string, cancelled_at: ?string, cancel_reason: ?string, can_cancel: bool,
+     *         suborders: list<array{id: string, status: 'awaiting_payment'|'awaiting_seller'|'preparing'|'ready'|'on_the_way'|'delivered'|'cancelled', seller: SellerResource, eta: array{at: ?string, reason: ?string}, items: list<array{product_slug: string, name: array{ar: string, en: string}, variant_name: ?array{ar: ?string, en: ?string}, image_url: ?string, quantity: int, unit_price: int, line_total: int}>}>,
+     *         timeline: list<array{type: string, at: string, suborder_id: ?string, note: ?string}>,
+     *         payments: list<array{id: string, order_id: string, status: 'pending'|'paid'|'failed'|'expired', method: 'mada'|'card'|'apple_pay'|'none', amount: int, currency: string, expires_at: string, paid_at: ?string, failure_code: ?string, action: ?array{redirect_url: ?string, client_secret: ?string}}>,
+     *         refunds: list<array{id: string, status: 'pending'|'succeeded'|'failed', amount: int, reason: string, credit_note_number: ?string, requested_at: string, completed_at: ?string}>}
+     */
     public function toArray(Request $request): array
     {
         return parent::toArray($request) + [
@@ -49,7 +59,7 @@ class OrderDetailResource extends OrderResource
             'payments' => $this->payments->map(fn ($payment): array => (new PaymentResource($payment))->resolve($request))->all(),
             // A refund is "succeeded" only once the provider says so, never when it is merely requested.
             'refunds' => $this->refunds->map(fn (Refund $refund): array => [
-                'id' => $refund->id, 'status' => $refund->status->value, 'amount' => $refund->amount_halalas,
+                'id' => $refund->id, 'status' => $refund->status, 'amount' => $refund->amount_halalas,
                 'reason' => $refund->reason, 'credit_note_number' => $refund->credit_note_number,
                 'requested_at' => $refund->requested_at, 'completed_at' => $refund->completed_at,
             ])->all(),
@@ -65,12 +75,14 @@ class OrderDetailResource extends OrderResource
         };
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array{id: string, status: 'awaiting_payment'|'awaiting_seller'|'preparing'|'ready'|'on_the_way'|'delivered'|'cancelled', seller: SellerResource, eta: array{at: ?string, reason: ?string}, items: list<array{product_slug: string, name: array{ar: string, en: string}, variant_name: ?array{ar: ?string, en: ?string}, image_url: ?string, quantity: int, unit_price: int, line_total: int}>}
+     */
     private function suborder(Suborder $suborder): array
     {
         return [
             'id' => $suborder->id,
-            'status' => $suborder->status->value,
+            'status' => $suborder->status,
             'seller' => new SellerResource($suborder->seller),
             'eta' => ['at' => $suborder->eta_at, 'reason' => $suborder->eta_reason],
             'items' => $suborder->items->map(fn (OrderItem $item): array => [

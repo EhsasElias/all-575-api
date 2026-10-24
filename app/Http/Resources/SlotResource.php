@@ -9,7 +9,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin DeliverySlot */
 class SlotResource extends JsonResource
 {
-    /** @return array<string, mixed> */
+    /**
+     * @return array{id: int, starts_at: string, ends_at: string, remaining: int, available: bool}
+     */
     public function toArray(Request $request): array
     {
         return [

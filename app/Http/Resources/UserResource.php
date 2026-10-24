@@ -10,7 +10,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin User */
 class UserResource extends JsonResource
 {
-    /** @return array<string, mixed> */
+    /**
+     * @return array{id: int, name: ?string, phone: ?string, email: ?string, locale: 'ar'|'en', phone_verified: bool, email_verified: bool, consents: array{terms_version: ?string, privacy_version: ?string, marketing: bool, needs_update: bool}}
+     */
     public function toArray(Request $request): array
     {
         return [

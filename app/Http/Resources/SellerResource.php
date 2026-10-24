@@ -12,7 +12,9 @@ class SellerResource extends JsonResource
 {
     use PublicAssets;
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array{slug: string, name: array{ar: string, en: string}, logo_url: ?string}
+     */
     public function toArray(Request $request): array
     {
         return [

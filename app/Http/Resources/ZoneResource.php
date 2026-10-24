@@ -9,7 +9,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin ServiceZone */
 class ZoneResource extends JsonResource
 {
-    /** @return array<string, mixed> */
+    /**
+     * @return array{id: int, name: array{ar: string, en: string}, delivery_fee: int, free_delivery_threshold: ?int, currency: string}
+     */
     public function toArray(Request $request): array
     {
         return [

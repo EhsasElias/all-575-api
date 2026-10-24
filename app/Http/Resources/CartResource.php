@@ -6,7 +6,6 @@ use App\Domain\Cart\Models\Cart;
 use App\Domain\Cart\Models\CartItem;
 use App\Domain\Catalog\Services\Availability;
 use App\Domain\Catalog\Services\ProductPricing;
-use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -25,34 +24,30 @@ class CartResource extends JsonResource
         parent::__construct($resource);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array{
+     *         lines: list<array{variant_id: int, product_slug: string, name: array{ar: string, en: string}, variant_name: ?array{ar: ?string, en: ?string}, image_url: ?string, quantity: int, unit_price: int, line_price: int, availability: 'unknown'|'in_stock'|'low_stock'|'out_of_stock'}>,
+     *         items_count: int, subtotal: int, currency: string}
+     */
     public function toArray(Request $request): array
     {
-        $pricing = app(ProductPricing::class);
-        $subtotal = Money::zero();
-
-        $lines = $this->items->map(function (CartItem $item) use ($pricing, &$subtotal): array {
-            $variant = $item->variant;
-            $unit = $pricing->unitGross();
-            $subtotal = $subtotal->plus($unit->times($item->quantity));
-
-            return [
-                'variant_id' => $variant->id,
-                'product_slug' => $variant->product->slug,
-                'name' => ['ar' => $variant->product->name_ar, 'en' => $variant->product->name_en],
-                'variant_name' => $variant->name_en === null && $variant->name_ar === null ? null : ['ar' => $variant->name_ar, 'en' => $variant->name_en],
-                'image_url' => $variant->product->image_path === null ? null : asset($variant->product->image_path),
-                'quantity' => $item->quantity,
-                'unit_price' => $unit->halalas,
-                'line_price' => $unit->times($item->quantity)->halalas,
-                'availability' => Availability::status($this->units === null ? null : ($this->units[$variant->id] ?? 0)),
-            ];
-        })->all();
+        $unitPrice = app(ProductPricing::class)->unitPriceHalalas();
+        $quantity = (int) $this->items->sum('quantity');
 
         return [
-            'lines' => $lines,
-            'items_count' => (int) $this->items->sum('quantity'),
-            'subtotal' => $subtotal->halalas,
+            'lines' => $this->items->map(fn (CartItem $item): array => [
+                'variant_id' => $item->variant->id,
+                'product_slug' => $item->variant->product->slug,
+                'name' => ['ar' => $item->variant->product->name_ar, 'en' => $item->variant->product->name_en],
+                'variant_name' => $item->variant->name_en === null && $item->variant->name_ar === null ? null : ['ar' => $item->variant->name_ar, 'en' => $item->variant->name_en],
+                'image_url' => $item->variant->product->image_path === null ? null : asset($item->variant->product->image_path),
+                'quantity' => $item->quantity,
+                'unit_price' => (int) $unitPrice,
+                'line_price' => $unitPrice * $item->quantity,
+                'availability' => Availability::status($this->units === null ? null : ($this->units[$item->variant->id] ?? 0)),
+            ])->all(),
+            'items_count' => $quantity,
+            'subtotal' => $unitPrice * $quantity,
             'currency' => config('store.currency'),
         ];
     }

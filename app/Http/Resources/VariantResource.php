@@ -17,19 +17,21 @@ class VariantResource extends JsonResource
         parent::__construct($resource);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array{id: int, sku: string, name: ?array{ar: ?string, en: ?string}, price: array{gross: int, net: int, vat: int, currency: string}, availability: 'unknown'|'in_stock'|'low_stock'|'out_of_stock'}
+     */
     public function toArray(Request $request): array
     {
-        $split = app(ProductPricing::class)->split($this->product);
+        $split = app(ProductPricing::class)->split($this->product->vatClass());
 
         return [
             'id' => $this->id,
             'sku' => $this->sku,
             'name' => $this->name_en === null && $this->name_ar === null ? null : ['ar' => $this->name_ar, 'en' => $this->name_en],
             'price' => [
-                'gross' => $split->gross->halalas,
-                'net' => $split->net->halalas,
-                'vat' => $split->vat->halalas,
+                'gross' => (int) $split->gross->toInt(),
+                'net' => (int) $split->net->toInt(),
+                'vat' => (int) $split->vat->toInt(),
                 'currency' => config('store.currency'),
             ],
             'availability' => Availability::status($this->availableUnits),

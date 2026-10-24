@@ -12,7 +12,9 @@ class CategoryResource extends JsonResource
 {
     use PublicAssets;
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array{id: int, slug: string, name: array{ar: string, en: string}, image_url: ?string, children?: list<array{id: int, slug: string, name: array{ar: string, en: string}, image_url: ?string}>}
+     */
     public function toArray(Request $request): array
     {
         return [

@@ -19,9 +19,13 @@ class ProductListResource extends JsonResource
 {
     use PublicAssets;
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array{id: int, slug: string, name: array{ar: string, en: string}, image_url: ?string, seller: SellerResource, category: array{slug: string, name: array{ar: string, en: string}}, price: array{gross: int, net: int, vat: int, currency: string}, rating: array{average: float, count: int}, availability: 'unknown'|'in_stock'|'low_stock'|'out_of_stock'}
+     */
     public function toArray(Request $request): array
     {
+        $split = app(ProductPricing::class)->split($this->vatClass());
+
         return [
             'id' => $this->id,
             'slug' => $this->slug,
@@ -29,22 +33,14 @@ class ProductListResource extends JsonResource
             'image_url' => $this->assetUrl($this->image_path),
             'seller' => new SellerResource($this->seller),
             'category' => ['slug' => $this->category->slug, 'name' => ['ar' => $this->category->name_ar, 'en' => $this->category->name_en]],
-            'price' => $this->price(),
+            'price' => [
+                'gross' => (int) $split->gross->toInt(),
+                'net' => (int) $split->net->toInt(),
+                'vat' => (int) $split->vat->toInt(),
+                'currency' => config('store.currency'),
+            ],
             'rating' => ['average' => $this->rating_average, 'count' => $this->rating_count],
             'availability' => Availability::status($this->available_units),
-        ];
-    }
-
-    /** @return array{gross: int, net: int, vat: int, currency: string} */
-    protected function price(): array
-    {
-        $split = app(ProductPricing::class)->split($this->resource);
-
-        return [
-            'gross' => $split->gross->halalas,
-            'net' => $split->net->halalas,
-            'vat' => $split->vat->halalas,
-            'currency' => config('store.currency'),
         ];
     }
 }

@@ -47,6 +47,12 @@ class Product extends Model
             ->whereHas('seller', fn (Builder $q) => $q->where('status', SellerStatus::Approved->value));
     }
 
+    /** The VAT class as a typed value (the attribute itself is cast by Eloquent). */
+    public function vatClass(): VatClass
+    {
+        return $this->vat_class;
+    }
+
     /** @return BelongsTo<Seller, $this> */
     public function seller(): BelongsTo
     {

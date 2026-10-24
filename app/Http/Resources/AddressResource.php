@@ -9,7 +9,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Address */
 class AddressResource extends JsonResource
 {
-    /** @return array<string, mixed> */
+    /**
+     * @return array{id: int, label: ?string, recipient_name: string, recipient_phone: string, region: string, city: string, district: string, street: string, building_number: string, additional_number: string, postal_code: string, short_address: ?string, unit: ?string, floor: ?string, delivery_notes: ?string, lat: float, lng: float, is_default: bool, serviceable: bool, service_zone_id: ?int}
+     */
     public function toArray(Request $request): array
     {
         return [

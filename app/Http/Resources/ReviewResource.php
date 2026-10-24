@@ -13,7 +13,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class ReviewResource extends JsonResource
 {
-    /** @return array<string, mixed> */
+    /**
+     * @return array{id: int, rating: int, body: ?string, reviewer: ?string, created_at: string, editable_until?: string}
+     */
     public function toArray(Request $request): array
     {
         return [
