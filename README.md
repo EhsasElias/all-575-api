@@ -1,6 +1,11 @@
 # ALL 5.75 API
 
 Laravel 13 / PHP 8.3 API for the ALL 5.75 customer app.
+
+**Front end:** [EhsasElias/all-575-android](https://github.com/EhsasElias/all-575-android), branch `v2`. The two repositories share one thing, the API contract
+([docs/api/openapi.json](docs/api/openapi.json)). This repository owns it: the tests here fail when it no longer matches the code. The front end keeps a copy
+pinned to one commit of this repository in its `api-contract.json`, and its CI fails when the copy and this repository disagree.
+After you change the contract here (`composer openapi`), commit it, then run `npm run api:update` in the front end.
 The machine-readable contract is [docs/api/openapi.json](docs/api/openapi.json) (regenerate with `composer openapi`); how to use it is in [docs/api/README.md](docs/api/README.md).
 
 ## Run it
