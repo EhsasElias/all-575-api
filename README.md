@@ -35,6 +35,7 @@ Rules worth knowing:
 - Money is always an integer number of halalas (575 = 5.75 SAR) and prices include VAT. VAT is reported once per invoice and rate, never added on top.
 - The server prices everything. The app never sends an amount.
 - Only a signed, de-duplicated provider callback confirms a payment. Returning to the app proves nothing.
+- A refund that could not reach the provider stays `pending` and `payments:retry-refunds` (scheduled every 5 minutes, so `php artisan schedule:run` must run every minute) sends it again. A callback that arrives before we have saved the charge's reference is answered `409` and not remembered, so the provider's retry is processed.
 - Stock is held with single conditional `UPDATE`s, so two buyers cannot take the last unit. Unpaid holds expire (`orders:expire-unpaid`, every minute).
 - Business refusals are `DomainRuleViolation`s and reach the app as `{ "message", "code", ... }`; the app switches on `code`.
 

@@ -9,6 +9,7 @@ use App\Domain\Identity\Models\OtpChallenge;
 use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Services\AuditLogger;
 use App\Support\Exceptions\DomainRuleViolation;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\NewAccessToken;
 
@@ -67,6 +68,13 @@ final class VerifyOtp
     private function completeLogin(string $challengeId, string $deviceName, string $locale, ?array $consents, ?string $ip): VerifiedLogin
     {
         $challenge = OtpChallenge::query()->lockForUpdate()->findOrFail($challengeId);
+
+        // The code was checked in an earlier transaction. A parallel request with the same right code may have
+        // used it since, and a one-time code must give out one token.
+        if (! $challenge->isUsable()) {
+            throw new DomainRuleViolation('otp_expired', 'This code is no longer valid. Request a new one.');
+        }
+
         $user = $this->findUser($challenge);
         $isNewUser = $user === null;
 
@@ -100,7 +108,14 @@ final class VerifyOtp
 
     private function createUser(OtpChallenge $challenge, string $locale): User
     {
-        return User::query()->create([$this->identityColumn($challenge) => $challenge->destination, 'locale' => $locale, 'is_active' => true]);
+        $column = $this->identityColumn($challenge);
+
+        try {
+            return User::query()->create([$column => $challenge->destination, 'locale' => $locale, 'is_active' => true]);
+        } catch (UniqueConstraintViolationException) {
+            // The same person signed up in a parallel request a moment ago.
+            return User::query()->where($column, $challenge->destination)->firstOrFail();
+        }
     }
 
     private function identityColumn(OtpChallenge $challenge): string

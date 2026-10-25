@@ -10,6 +10,7 @@ use App\Domain\Orders\Models\StockReservation;
 use App\Support\Exceptions\DomainRuleViolation;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Holds stock for an unpaid order. Every change is a single conditional UPDATE, so two buyers racing for the
@@ -38,12 +39,16 @@ final class StockReservations
     public function commit(Order $order): void
     {
         foreach ($order->reservations()->where('status', StockReservation::HELD)->get() as $reservation) {
-            DB::table('branch_stock')->where('id', $reservation->branch_stock_id)
+            $updated = DB::table('branch_stock')->where('id', $reservation->branch_stock_id)
                 ->whereRaw('reserved >= ? AND on_hand >= ?', [$reservation->quantity, $reservation->quantity])
                 ->update([
                     'reserved' => DB::raw('reserved - '.(int) $reservation->quantity),
                     'on_hand' => DB::raw('on_hand - '.(int) $reservation->quantity),
                 ]);
+
+            // The customer has paid, so the order must still be confirmed; but the stock figures no longer add up
+            // (adjusted by hand or by a sync while this was held) and somebody has to look at them.
+            $this->reportMismatch($updated, 'commit', $order, $reservation);
 
             $reservation->forceFill(['status' => StockReservation::COMMITTED])->save();
         }
@@ -53,12 +58,27 @@ final class StockReservations
     public function release(Order $order): void
     {
         foreach ($order->reservations()->where('status', StockReservation::HELD)->get() as $reservation) {
-            DB::table('branch_stock')->where('id', $reservation->branch_stock_id)
+            $updated = DB::table('branch_stock')->where('id', $reservation->branch_stock_id)
                 ->where('reserved', '>=', $reservation->quantity)
                 ->decrement('reserved', $reservation->quantity);
 
+            $this->reportMismatch($updated, 'release', $order, $reservation);
+
             $reservation->forceFill(['status' => StockReservation::RELEASED])->save();
         }
+    }
+
+    private function reportMismatch(int $updated, string $action, Order $order, StockReservation $reservation): void
+    {
+        if ($updated === 1) {
+            return;
+        }
+
+        Log::error("Stock {$action} found no matching stock row: the held quantity and the shelf no longer agree.", [
+            'order_id' => $order->id,
+            'branch_stock_id' => $reservation->branch_stock_id,
+            'quantity' => $reservation->quantity,
+        ]);
     }
 
     private function holdOne(Order $order, int $variantId, int $quantity, int $zoneId, CarbonInterface $expiresAt): int

@@ -8,6 +8,7 @@ use App\Domain\Identity\Contracts\OtpSender;
 use App\Domain\Identity\Enums\OtpChannel;
 use App\Domain\Identity\Models\OtpChallenge;
 use App\Support\Exceptions\DomainRuleViolation;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 final class RequestOtp
@@ -16,6 +17,23 @@ final class RequestOtp
 
     /** @param  string  $destination  already normalised (E.164 phone or lower-case email) */
     public function handle(OtpChannel $channel, string $destination, string $locale, ?string $ip): OtpChallenge
+    {
+        // The cooldown is checked, then a code is sent. Without a lock, parallel requests would all pass the check
+        // together and each send a message (SMS cost, and one person's valid code invalidated by another request).
+        $lock = Cache::lock('otp-request:'.hash('sha256', $channel->value.'|'.$destination), 15);
+
+        if (! $lock->get()) {
+            throw DomainRuleViolation::tooManyAttempts('otp_cooldown', 'A code is already being sent. Please wait.', 5);
+        }
+
+        try {
+            return $this->issue($channel, $destination, $locale, $ip);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function issue(OtpChannel $channel, string $destination, string $locale, ?string $ip): OtpChallenge
     {
         $this->assertCooldownElapsed($channel, $destination);
 

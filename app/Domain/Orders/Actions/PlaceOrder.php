@@ -76,7 +76,7 @@ final class PlaceOrder
             throw new DomainRuleViolation('idempotency_key_reused', 'This key was already used for a different order.', 422);
         }
 
-        return new PlacedOrder($order, $order->payments()->latest('created_at')->first(), null, true);
+        return new PlacedOrder($order, $order->payments()->reorder()->orderByDesc('created_at')->orderByDesc('id')->first(), null, true);
     }
 
     private function freshQuoteMatchingWhatTheCustomerSaw(PlaceOrderCommand $command): QuoteData

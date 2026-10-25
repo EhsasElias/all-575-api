@@ -27,21 +27,24 @@ final class CancelOrder
 
     public function handle(Order $order): Order
     {
-        if ($order->status === OrderStatus::PendingPayment) {
-            $this->unpaid->cancel($order, 'customer_cancelled');
-
+        if ($order->status === OrderStatus::PendingPayment && $this->unpaid->cancel($order, 'customer_cancelled')) {
             return $order->refresh();
         }
 
-        $refund = DB::transaction(fn (): Refund => $this->cancelPaid($order));
+        // The order may have been paid a moment ago, so what we loaded is stale: the paid path reads it again
+        // under a lock and refuses when it can no longer be cancelled.
+        $refund = DB::transaction(fn (): ?Refund => $this->cancelPaid($order));
 
-        // The provider is told only after our own books have committed.
-        $this->refunds->send($refund);
+        if ($refund !== null) {
+            // The provider is told only after our own books have committed. If it cannot be reached the refund
+            // stays pending and `payments:retry-refunds` sends it again; the cancellation itself stands.
+            $this->refunds->sendSafely($refund);
+        }
 
         return $order->refresh();
     }
 
-    private function cancelPaid(Order $order): Refund
+    private function cancelPaid(Order $order): ?Refund
     {
         $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
 
@@ -56,7 +59,16 @@ final class CancelOrder
         $locked->forceFill(['status' => OrderStatus::Cancelled, 'cancelled_at' => now(), 'cancel_reason' => 'customer_cancelled'])->save();
         $locked->record('order_cancelled', 'customer');
 
-        $payment = $locked->payments()->where('status', PaymentStatus::Paid->value)->latest('paid_at')->firstOrFail();
+        // Nothing was charged for an order a promo covered in full, so there is nothing to give back.
+        if ($locked->total_halalas === 0) {
+            return null;
+        }
+
+        // The payment that confirmed the order: the earliest paid one that was not already sent back as a late duplicate.
+        $payment = $locked->payments()->reorder()->orderBy('paid_at')->orderBy('id')
+            ->where('status', PaymentStatus::Paid->value)
+            ->whereDoesntHave('refunds')
+            ->firstOrFail();
 
         return $this->refunds->request($locked, $payment, Money::halalas($locked->total_halalas), 'customer_cancelled');
     }

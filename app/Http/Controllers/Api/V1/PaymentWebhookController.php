@@ -22,6 +22,9 @@ class PaymentWebhookController extends Controller
             return response()->json(['message' => 'Invalid callback.'], 400);
         }
 
-        return response()->json(['outcome' => $processor->process($provider, $event)]);
+        $outcome = $processor->process($provider, $event);
+
+        // A non-2xx answer makes the provider send the callback again, which is what we want for a reference we do not know yet.
+        return response()->json(['outcome' => $outcome], PaymentProcessor::shouldRetryLater($outcome) ? 409 : 200);
     }
 }

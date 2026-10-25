@@ -27,6 +27,14 @@ final class PaymentProcessor
         private readonly Refunds $refunds,
     ) {}
 
+    /** Outcomes where the callback came before we saved the provider's reference. It is not recorded, so the provider's retry can succeed. */
+    private const RETRY_LATER = ['unknown_payment', 'unknown_refund'];
+
+    public static function shouldRetryLater(string $outcome): bool
+    {
+        return in_array($outcome, self::RETRY_LATER, true);
+    }
+
     public function process(string $provider, GatewayEvent $event): string
     {
         $refundsToSend = [];
@@ -48,6 +56,13 @@ final class PaymentProcessor
                 default => 'ignored',
             };
 
+            if (self::shouldRetryLater($outcome)) {
+                // We save a payment's reference a moment after the provider creates the charge, and a callback can win that race.
+                $record->delete();
+
+                return $outcome;
+            }
+
             $record->forceFill(['outcome' => $outcome])->save();
 
             return $outcome;
@@ -55,7 +70,7 @@ final class PaymentProcessor
 
         // Network calls happen only after the database work has committed.
         foreach ($refundsToSend as $refund) {
-            $this->refunds->send($refund);
+            $this->refunds->sendSafely($refund);
         }
 
         return $outcome;

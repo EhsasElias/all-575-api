@@ -3,4 +3,5 @@
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('orders:expire-unpaid')->everyMinute()->withoutOverlapping();
+Schedule::command('payments:retry-refunds')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('slots:generate')->dailyAt('00:10')->withoutOverlapping();
