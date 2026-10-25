@@ -26,7 +26,7 @@ class OpenApiContractTest extends TestCase
         $this->assertTrue($exported->successful(), $exported->errorOutput());
         @unlink($database);
 
-        $committed = json_decode((string) file_get_contents(base_path('../../docs/api/openapi.json')), true, flags: JSON_THROW_ON_ERROR);
+        $committed = json_decode((string) file_get_contents(base_path('docs/api/openapi.json')), true, flags: JSON_THROW_ON_ERROR);
         $regenerated = json_decode((string) file_get_contents($fresh), true, flags: JSON_THROW_ON_ERROR);
         @unlink($fresh);
 
@@ -35,7 +35,7 @@ class OpenApiContractTest extends TestCase
 
     public function test_the_contract_excludes_development_helpers_and_provider_callbacks(): void
     {
-        $paths = array_keys(json_decode((string) file_get_contents(base_path('../../docs/api/openapi.json')), true, flags: JSON_THROW_ON_ERROR)['paths']);
+        $paths = array_keys(json_decode((string) file_get_contents(base_path('docs/api/openapi.json')), true, flags: JSON_THROW_ON_ERROR)['paths']);
 
         foreach ($paths as $path) {
             $this->assertStringNotContainsString('/dev/', $path);

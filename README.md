@@ -1,7 +1,7 @@
 # ALL 5.75 API
 
-Laravel 13 / PHP 8.3 API for the customer app. Plan and phase list: [docs/customer-roadmap.md](../../docs/customer-roadmap.md).
-The machine-readable contract is [docs/api/openapi.json](../../docs/api/openapi.json) (regenerate with `composer openapi`).
+Laravel 13 / PHP 8.3 API for the ALL 5.75 customer app.
+The machine-readable contract is [docs/api/openapi.json](docs/api/openapi.json) (regenerate with `composer openapi`); how to use it is in [docs/api/README.md](docs/api/README.md).
 
 ## Run it
 
@@ -35,6 +35,6 @@ Rules worth knowing:
 
 ## Before production
 
-These are intentionally unconfigured and refuse to work until decided (see the roadmap, section 6):
+These are intentionally unconfigured and refuse to work until decided (decisions D-02, D-03, D-04 and D-09):
 SMS/email provider (D-03), payment gateway (D-02), VAT/invoice model (D-04), delivery slot model (D-09).
 Also set `TRUSTED_PROXIES`, `CORS_ALLOWED_ORIGINS`, a real database, and `APP_DEBUG=false`.
