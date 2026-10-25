@@ -44,3 +44,26 @@ Rules worth knowing:
 These are intentionally unconfigured and refuse to work until decided (decisions D-02, D-03, D-04 and D-09):
 SMS/email provider (D-03), payment gateway (D-02), VAT/invoice model (D-04), delivery slot model (D-09).
 Also set `TRUSTED_PROXIES`, `CORS_ALLOWED_ORIGINS`, a real database, and `APP_DEBUG=false`.
+
+## Deploy on Railway (a test server)
+
+`railway.json` and `railway/predeploy.sh` are all Railway needs: it builds the app with Nixpacks, runs the migrations (and creates delivery times) before each
+release, and checks `/up`. In a Railway project: **New > GitHub repo > this repository, branch `v2`**, add a **MySQL** or **PostgreSQL** database, then set the variables below.
+
+| Variable | Value |
+|---|---|
+| `APP_KEY` | the output of `php artisan key:generate --show` |
+| `APP_ENV` | `local` for a test server: it is what turns on sign-in codes in the log and the test payment. In `production` the app refuses to send codes or take payments until a provider is chosen (D-02, D-03). |
+| `APP_DEBUG` | `false` |
+| `APP_URL` | the service's public address, `https://...up.railway.app` (product pictures use it) |
+| `DB_CONNECTION` | `mysql` (or `pgsql`), and `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` from the database service, for example `${{MySQL.MYSQLHOST}}` |
+| `OTP_DRIVER` / `PAYMENT_DRIVER` | `log` / `fake` |
+| `FAKE_PAYMENT_WEBHOOK_SECRET` | any long random text |
+| `LOG_CHANNEL` | `stderr`, so the sign-in code appears in Railway's logs (a line "OTP issued (log driver)") |
+| `TRUSTED_PROXIES` | `*` (Railway terminates HTTPS in front of the app) |
+| `CORS_ALLOWED_ORIGINS` | the front end's address, `https://...up.railway.app`, plus `capacitor://localhost,https://localhost` for the Android app |
+| `SEED_DEMO_DATA` | `true` for the first deployment only, then remove it |
+
+The scheduled work (`orders:expire-unpaid`, `payments:retry-refunds`, `slots:generate`) needs a second service from the same repository with the start command `php artisan schedule:work`.
+A test server with `APP_ENV=local` is not for real customers: anyone who knows a payment id can play the payment provider.
+This has not been run on MySQL or PostgreSQL yet (the tests use SQLite): watch the first deployment's logs.
