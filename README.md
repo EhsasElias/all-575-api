@@ -6,7 +6,7 @@ The machine-readable contract is [docs/api/openapi.json](../../docs/api/openapi.
 ## Run it
 
 ```bash
-composer setup            # install, .env, key, migrate, demo data (local only)
+composer setup            # install, .env, key, migrate, demo data and delivery slots (local only)
 php artisan serve         # http://localhost:8000
 php artisan test          # unit + feature tests
 composer lint             # code style (Laravel Pint)
