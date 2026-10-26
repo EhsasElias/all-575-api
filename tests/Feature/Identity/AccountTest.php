@@ -34,6 +34,14 @@ class AccountTest extends TestCase
             ->assertJsonPath('data.phone', $phone);
     }
 
+    public function test_the_customer_can_choose_french_and_nothing_else_beyond_the_three_languages(): void
+    {
+        $this->actingAsCustomer();
+
+        $this->patchJson('/api/v1/me', ['locale' => 'fr'])->assertOk()->assertJsonPath('data.locale', 'fr');
+        $this->patchJson('/api/v1/me', ['locale' => 'de'])->assertUnprocessable();
+    }
+
     public function test_marketing_consent_is_off_until_granted_and_every_change_is_recorded(): void
     {
         $this->actingAsCustomer();

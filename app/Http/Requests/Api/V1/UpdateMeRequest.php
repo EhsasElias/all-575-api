@@ -11,7 +11,7 @@ class UpdateMeRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'locale' => ['sometimes', 'in:ar,en'],
+            'locale' => ['sometimes', 'in:ar,en,fr'],
         ];
     }
 }

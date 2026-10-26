@@ -4112,7 +4112,8 @@
                         "type": "string",
                         "enum": [
                             "ar",
-                            "en"
+                            "en",
+                            "fr"
                         ]
                     }
                 },
