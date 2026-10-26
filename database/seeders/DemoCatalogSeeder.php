@@ -22,23 +22,22 @@ use LogicException;
  */
 class DemoCatalogSeeder extends Seeder
 {
-    /** slug => [name_ar, name_en] */
+    /** slug => [name_ar, name_en], in the order the store lists them. Each has a picture in public/images/all575/category-art. */
     private const CATEGORIES = [
-        'food' => ['أطعمة', 'Food'],
-        'meat' => ['اللحوم', 'Meat'],
-        'groceries' => ['البقالة', 'Groceries'],
-        'gifts' => ['هدايا', 'Gifts'],
-        'pet-supplies' => ['مستلزمات الحيوانات الأليفة', 'Pet Supplies'],
-        'accessories' => ['الإكسسوارات', 'Accessories'],
-        'clothing' => ['الملابس', 'Clothing'],
-        'stationery' => ['القرطاسية', 'Stationery'],
-        'beauty' => ['التجميل', 'Beauty'],
-        'home' => ['المنزل', 'Home'],
-        'kitchen' => ['المطبخ', 'Kitchen'],
-        'toys' => ['الألعاب', 'Toys'],
-        'electronics' => ['إكسسوارات إلكترونية', 'Electronics Accessories'],
-        'personal-care' => ['العناية الشخصية', 'Personal Care'],
-        'cleaning' => ['التنظيف', 'Cleaning'],
+        'clothing' => ['ملابس', 'Clothing'],
+        'toys' => ['ألعاب', 'Toys'],
+        'cookware' => ['أواني مطبخ', 'Cookware'],
+        'cleaning' => ['منظفات', 'Cleaning products'],
+        'stationery' => ['أدوات مكتبية', 'Stationery'],
+        'accessories' => ['أدوات مكملة', 'Accessories'],
+        'hand-tools' => ['أدوات معالجة', 'Hand tools'],
+        'shampoos' => ['شامبوهات', 'Shampoos'],
+        'other' => ['أخرى', 'Other'],
+        'vegetables' => ['خضار', 'Vegetables'],
+        'fruits' => ['فواكه', 'Fruits'],
+        'kitchen-utensils' => ['أدوات المطبخ', 'Kitchen utensils'],
+        'shoes' => ['أحذية', 'Shoes'],
+        'towels' => ['مناشف', 'Towels'],
     ];
 
     /** slug => [name_ar, name_en] */
@@ -49,20 +48,22 @@ class DemoCatalogSeeder extends Seeder
         'value-store' => ['متجر التوفير', 'Value Store'],
     ];
 
-    /** category => [seller, [[name_ar, name_en], x3]] */
+    /** category => [seller, [[name_ar, name_en], ...]]. The product shows its category's picture. */
     private const PRODUCTS = [
-        'food' => ['home-store', [['بسكويت', 'Biscuits'], ['شوكولاتة', 'Chocolate'], ['شاي', 'Tea']]],
-        'clothing' => ['beauty-world', [['جوارب', 'Socks'], ['قبعة', 'Cap'], ['وشاح', 'Scarf']]],
-        'stationery' => ['stationery-corner', [['دفتر', 'Notebook'], ['أقلام', 'Pens'], ['ملصقات', 'Stickers']]],
-        'beauty' => ['value-store', [['أحمر شفاه', 'Lipstick'], ['فرشاة مكياج', 'Makeup Brush'], ['مرآة صغيرة', 'Pocket Mirror']]],
-        'home' => ['home-store', [['منظم أدراج', 'Drawer Organizer'], ['علاقة ملابس', 'Clothes Hanger'], ['قطعة تنظيف', 'Cleaning Cloth']]],
-        'kitchen' => ['beauty-world', [['كوب', 'Mug'], ['ملعقة سيليكون', 'Silicone Spoon'], ['علبة حفظ', 'Storage Container']]],
-        'toys' => ['stationery-corner', [['كرة صغيرة', 'Mini Ball'], ['مكعبات', 'Building Blocks'], ['لعبة ألغاز', 'Puzzle']]],
-        'accessories' => ['value-store', [['مشبك شعر', 'Hair Clip'], ['سوار', 'Bracelet'], ['ميدالية مفاتيح', 'Keychain']]],
-        'electronics' => ['home-store', [['حامل جوال', 'Phone Stand'], ['منظم كابلات', 'Cable Organizer'], ['غطاء سماعة', 'Earbud Case']]],
-        'personal-care' => ['beauty-world', [['مشط', 'Comb'], ['صابون', 'Soap'], ['إسفنجة استحمام', 'Bath Sponge']]],
-        'gifts' => ['stationery-corner', [['كيس هدية', 'Gift Bag'], ['بطاقة تهنئة', 'Greeting Card'], ['ورق تغليف', 'Wrapping Paper']]],
-        'cleaning' => ['value-store', [['فرشاة تنظيف', 'Cleaning Brush'], ['إسفنجة تنظيف', 'Cleaning Sponge'], ['قفازات', 'Gloves']]],
+        'clothing' => ['beauty-world', [['تيشيرت قطني', 'Cotton T-shirt']]],
+        'toys' => ['stationery-corner', [['دب محشو', 'Teddy bear']]],
+        'cookware' => ['home-store', [['قدر مطبخ', 'Cooking pot']]],
+        'cleaning' => ['value-store', [['مسحوق غسيل', 'Washing powder']]],
+        'stationery' => ['stationery-corner', [['أقلام', 'Pens']]],
+        'accessories' => ['value-store', [['نظارة شمسية', 'Sunglasses']]],
+        'hand-tools' => ['home-store', [['مفاتيح ربط', 'Wrenches']]],
+        'shampoos' => ['beauty-world', [['شامبو', 'Shampoo']]],
+        'other' => ['home-store', [['سلة تخزين', 'Storage basket']]],
+        'vegetables' => ['home-store', [['طماطم', 'Tomatoes']]],
+        'fruits' => ['home-store', [['تفاح أحمر', 'Red apples']]],
+        'kitchen-utensils' => ['home-store', [['طقم ملاعق وشوك', 'Cutlery set']]],
+        'shoes' => ['value-store', [['حذاء رياضي', 'Sneakers']]],
+        'towels' => ['home-store', [['مناشف', 'Towels']]],
     ];
 
     public function run(): void
@@ -93,7 +94,7 @@ class DemoCatalogSeeder extends Seeder
         foreach (self::CATEGORIES as $slug => [$ar, $en]) {
             $categories[$slug] = Category::query()->updateOrCreate(['slug' => $slug], [
                 'name_ar' => $ar, 'name_en' => $en, 'sort_order' => ++$order,
-                'image_path' => "images/all575/categories/{$slug}.png", 'is_active' => true,
+                'image_path' => "images/all575/category-art/{$slug}.png", 'is_active' => true,
             ]);
         }
 
@@ -134,7 +135,7 @@ class DemoCatalogSeeder extends Seeder
                     'seller_id' => $branch->seller_id, 'category_id' => $categories[$categorySlug]->id,
                     'name_ar' => $ar, 'name_en' => $en,
                     'description_ar' => 'منتج تجريبي لعرض المتجر.', 'description_en' => 'Demo product for previewing the store.',
-                    'image_path' => "images/all575/products/{$slug}.png",
+                    'image_path' => "images/all575/category-art/{$categorySlug}.png",
                     'status' => ProductStatus::Published, 'is_featured' => $index === 0,
                 ]);
 
