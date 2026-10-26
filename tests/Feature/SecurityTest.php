@@ -46,6 +46,26 @@ class SecurityTest extends TestCase
         $this->assertNull($other->headers->get('Access-Control-Allow-Origin'));
     }
 
+    public function test_the_plain_http_origin_of_the_android_test_build_is_accepted_by_a_local_server_only(): void
+    {
+        $originsFor = function (string $environment): array {
+            $server = $_SERVER['APP_ENV'] ?? null;
+            $env = $_ENV['APP_ENV'] ?? null;
+            $_SERVER['APP_ENV'] = $_ENV['APP_ENV'] = $environment;
+
+            try {
+                return (require config_path('cors.php'))['allowed_origins'];
+            } finally {
+                $_SERVER['APP_ENV'] = $server;
+                $_ENV['APP_ENV'] = $env;
+            }
+        };
+
+        $this->assertContains('http://localhost', $originsFor('local'));
+        $this->assertNotContains('http://localhost', $originsFor('production'));
+        $this->assertNotContains('http://localhost', $originsFor('testing'));
+    }
+
     public function test_issued_tokens_carry_a_prefix_that_secret_scanners_can_recognise(): void
     {
         $token = User::factory()->create()->createToken('Pixel 8', ['customer'])->plainTextToken;
