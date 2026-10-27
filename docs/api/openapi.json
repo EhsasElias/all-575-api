@@ -638,6 +638,361 @@
                 }
             }
         },
+        "/v1/me/cases": {
+            "get": {
+                "operationId": "customerCase.index",
+                "tags": [
+                    "CustomerCase"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `CustomerCaseResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CustomerCaseResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "next_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the next set of items."
+                                                },
+                                                "prev_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "The \"cursor\" that points to the previous set of items."
+                                                }
+                                            },
+                                            "required": [
+                                                "path",
+                                                "per_page",
+                                                "next_cursor",
+                                                "prev_cursor"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/orders/{order}/care-items": {
+            "get": {
+                "operationId": "customerCase.items",
+                "tags": [
+                    "CustomerCase"
+                ],
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "items": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "name": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "ar": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "en": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "ar",
+                                                                    "en"
+                                                                ]
+                                                            },
+                                                            "variant_name": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "ar": {
+                                                                        "type": [
+                                                                            "string",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "en": {
+                                                                        "type": [
+                                                                            "string",
+                                                                            "null"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "ar",
+                                                                    "en"
+                                                                ]
+                                                            },
+                                                            "quantity": {
+                                                                "type": "integer"
+                                                            },
+                                                            "returnable_quantity": {
+                                                                "type": "integer"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "name",
+                                                            "variant_name",
+                                                            "quantity",
+                                                            "returnable_quantity"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "items"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/orders/{order}/cases": {
+            "post": {
+                "operationId": "customerCase.store",
+                "tags": [
+                    "CustomerCase"
+                ],
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateCustomerCaseRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/me/cases/{case}": {
+            "get": {
+                "operationId": "customerCase.show",
+                "tags": [
+                    "CustomerCase"
+                ],
+                "parameters": [
+                    {
+                        "name": "case",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`CustomerCaseResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CustomerCaseResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/me/cases/{case}/messages": {
+            "post": {
+                "operationId": "customerCase.message",
+                "tags": [
+                    "CustomerCase"
+                ],
+                "parameters": [
+                    {
+                        "name": "case",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CustomerCaseMessageRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`CustomerCaseResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CustomerCaseResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/orders/{order}/suborders/{suborder}/delivery-code": {
             "get": {
                 "operationId": "deliveryCode.show",
@@ -2775,6 +3130,45 @@
                 ],
                 "title": "CheckoutRequest"
             },
+            "CreateCustomerCaseRequest": {
+                "type": "object",
+                "properties": {
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "support",
+                            "return"
+                        ]
+                    },
+                    "subject": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "message": {
+                        "type": "string",
+                        "maxLength": 3000
+                    },
+                    "request_key": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "order_item_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
+                },
+                "required": [
+                    "kind",
+                    "subject",
+                    "message",
+                    "request_key"
+                ],
+                "title": "CreateCustomerCaseRequest"
+            },
             "CreateQuoteRequest": {
                 "type": "object",
                 "properties": {
@@ -2793,6 +3187,108 @@
                     "address_id"
                 ],
                 "title": "CreateQuoteRequest"
+            },
+            "CustomerCaseMessageRequest": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "maxLength": 3000
+                    }
+                },
+                "required": [
+                    "message"
+                ],
+                "title": "CustomerCaseMessageRequest"
+            },
+            "CustomerCaseResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "order_id": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "subject": {
+                        "type": "string"
+                    },
+                    "order_item_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "quantity": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "author": {
+                                    "type": "string"
+                                },
+                                "body": {
+                                    "type": "string"
+                                },
+                                "created_at": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "format": "date-time"
+                                }
+                            },
+                            "required": [
+                                "id",
+                                "author",
+                                "body",
+                                "created_at"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "order_id",
+                    "kind",
+                    "status",
+                    "subject",
+                    "order_item_id",
+                    "quantity",
+                    "created_at",
+                    "updated_at",
+                    "messages"
+                ],
+                "title": "CustomerCaseResource"
             },
             "MergeCartRequest": {
                 "type": "object",

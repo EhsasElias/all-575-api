@@ -67,3 +67,18 @@ release, and checks `/up`. In a Railway project: **New > GitHub repo > this repo
 The scheduled work (`orders:expire-unpaid`, `payments:retry-refunds`, `slots:generate`) needs a second service from the same repository with the start command `php artisan schedule:work`.
 A test server with `APP_ENV=local` is not for real customers: anyone who knows a payment id can play the payment provider.
 This has not been run on MySQL or PostgreSQL yet (the tests use SQLite): watch the first deployment's logs.
+
+## Customer support and return requests
+
+Customers can open an order issue or a delivered-item return request from the customer app, follow replies under Account > Support and returns, and send follow-up messages while a case is open. Run `php artisan migrate` after updating this branch.
+
+The authenticated customer endpoints are `GET /me/cases`, `GET /me/cases/{case}`, `POST /orders/{order}/cases`, `GET /orders/{order}/care-items`, and `POST /me/cases/{case}/messages` under `/api/v1`. Create requests use a UUID `request_key`: retrying the same payload returns the original case; reusing a key with another payload is refused. Return requests require a delivered order line and cannot exceed its unrequested quantity. Rejected requests release that quantity for a new request.
+
+For local/testing support replies use:
+
+```bash
+php artisan care:reply CASE_ID "We are checking your request." --status=in_review
+php artisan care:reply CASE_ID "Outcome explained here." --status=resolved
+```
+
+The command also accepts `rejected`. It is unavailable outside local/testing. Opening/resolving a case never issues a refund, restores stock or confirms money received. Production support permissions/UI, return policy/collection/inspection, evidence attachments and return-triggered partial refunds are still required. See the [customer map](https://github.com/EhsasElias/all-575-android/blob/v2/docs/customer/CUSTOMER_MAP.md) and [testing guide](https://github.com/EhsasElias/all-575-android/blob/v2/docs/customer/CUSTOMER_TEST_GUIDE.md) for the full requirement and test matrix.
