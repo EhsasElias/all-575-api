@@ -1,0 +1,139 @@
+[
+  {
+    "path": "public/images/all575/category-art/clothing.png",
+    "photographer": "dayong tien",
+    "source": "https://www.pexels.com/photo/a-basic-white-t-shirt-18186106/",
+    "license": "Pexels License",
+    "crop": null,
+    "sha256": "ae2213512727b17cc92217d43c15aaeee919b12689a7f9e84969e8d4d929c60f"
+  },
+  {
+    "path": "public/images/all575/category-art/toys.png",
+    "photographer": "Nothing Ahead",
+    "source": "https://www.pexels.com/photo/brown-bear-plush-toy-on-white-surface-5786759/",
+    "license": "Pexels License",
+    "crop": [
+      70,
+      530,
+      1000,
+      1500
+    ],
+    "sha256": "193eaf8ae87ddfd03a4b3ade7b5c638add6f7011cd16045e435ebe05b8236d8f"
+  },
+  {
+    "path": "public/images/all575/category-art/cookware.png",
+    "photographer": "Silberfuchs",
+    "source": "https://pixabay.com/photos/pot-cookware-kitchen-unclean-554068/",
+    "license": "Pixabay Content License",
+    "crop": null,
+    "sha256": "2c6014451b8c50ce70f9a3e4b973784f02caaf82c9c44e3b71dfa29bc362762e"
+  },
+  {
+    "path": "public/images/all575/category-art/cleaning.png",
+    "photographer": "Markus Winkler",
+    "source": "https://www.pexels.com/photo/stall-with-washing-powder-13768941/",
+    "license": "Pexels License",
+    "crop": [
+      540,
+      310,
+      755,
+      575
+    ],
+    "sha256": "94cee9e9525f3159631968907cdaee76998207378e58aa589f08f99d153bde4a"
+  },
+  {
+    "path": "public/images/all575/category-art/stationery.png",
+    "photographer": "Jess Bailey Designs",
+    "source": "https://www.pexels.com/photo/three-ball-point-pens-983826/",
+    "license": "Pexels License",
+    "crop": null,
+    "sha256": "aca3fde8ba149480a415f1b094759da6bcd89aa7ff2bdf26e429cdabcfee2f74"
+  },
+  {
+    "path": "public/images/all575/category-art/accessories.png",
+    "photographer": "Saliem Moeslan",
+    "source": "https://www.pexels.com/photo/sunglasses-on-a-white-background-27111647/",
+    "license": "Pexels License",
+    "crop": null,
+    "sha256": "3300b00af5b56aca65d88079b494245ec649723160937a76767104b4090596fd"
+  },
+  {
+    "path": "public/images/all575/category-art/hand-tools.png",
+    "photographer": "Roger Brown",
+    "source": "https://www.pexels.com/photo/different-wrenches-on-a-brown-surface-5414384/",
+    "license": "Pexels License",
+    "crop": [
+      570,
+      10,
+      1000,
+      665
+    ],
+    "sha256": "79818430eb0637c3468f49706b876cb8c5d3a50f1d277e5d90c162eb3d07e20f"
+  },
+  {
+    "path": "public/images/all575/category-art/shampoos.png",
+    "photographer": "TRAFFIC On",
+    "source": "https://www.pexels.com/photo/shampoo-in-design-bottle-14656326/",
+    "license": "Pexels License",
+    "crop": null,
+    "sha256": "1e827448e06bd017a1add2cc6f0c22050fc0ca22466579508047b76a37562935"
+  },
+  {
+    "path": "public/images/all575/category-art/other.png",
+    "photographer": "Melike B",
+    "source": "https://www.pexels.com/photo/empty-baskets-on-white-background-10079392/",
+    "license": "Pexels License",
+    "crop": null,
+    "sha256": "ec7b5013500bf950362d003effb1048e90b9f7104921f228e64fc98168a9bb8a"
+  },
+  {
+    "path": "public/images/all575/category-art/vegetables.png",
+    "photographer": "Daka",
+    "source": "https://www.pexels.com/photo/cherry-tomatoes-on-white-background-11229105/",
+    "license": "Pexels License",
+    "crop": [
+      130,
+      400,
+      900,
+      1400
+    ],
+    "sha256": "ff08577263441586d5ab680c551c0b2882a1add424330f27d04fbf43e92a237e"
+  },
+  {
+    "path": "public/images/all575/category-art/fruits.png",
+    "photographer": "Evgeniy Alekseyev",
+    "source": "https://www.pexels.com/photo/red-apple-on-white-surface-7333141/",
+    "license": "Pexels License",
+    "crop": [
+      300,
+      170,
+      900,
+      667
+    ],
+    "sha256": "1600fb164a9f22f4d36ac3155dc4a93eaad1d3f08ad5706a3319badeac67a2c2"
+  },
+  {
+    "path": "public/images/all575/category-art/kitchen-utensils.png",
+    "photographer": "Nelly Aran",
+    "source": "https://www.pexels.com/photo/fork-on-spoon-20849333/",
+    "license": "Pexels License",
+    "crop": null,
+    "sha256": "e063f4f501995d2b35e01a77e79826c71396dc0da278c67c9283295d4c44fabb"
+  },
+  {
+    "path": "public/images/all575/category-art/shoes.png",
+    "photographer": "Melvin Buezo",
+    "source": "https://www.pexels.com/photo/photo-of-sneakers-on-white-background-2529148/",
+    "license": "Pexels License",
+    "crop": null,
+    "sha256": "34456a93ec528ee338c8e7a14af71df8362b74209ec1fe977cde9de680bd98c1"
+  },
+  {
+    "path": "public/images/all575/category-art/towels.png",
+    "photographer": "Atlantic Ambience",
+    "source": "https://www.pexels.com/photo/clean-cotton-towels-12932367/",
+    "license": "Pexels License",
+    "crop": null,
+    "sha256": "2e7d5a62dc9b0ebbc3e6253ddead155cfc0c62a8b44ae0b424c45718773f6d90"
+  }
+]

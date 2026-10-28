@@ -82,3 +82,7 @@ php artisan care:reply CASE_ID "Outcome explained here." --status=resolved
 ```
 
 The command also accepts `rejected`. It is unavailable outside local/testing. Opening/resolving a case never issues a refund, restores stock or confirms money received. Production support permissions/UI, return policy/collection/inspection, evidence attachments and return-triggered partial refunds are still required. See the [customer map](https://github.com/EhsasElias/all-575-android/blob/v2/docs/customer/CUSTOMER_MAP.md) and [testing guide](https://github.com/EhsasElias/all-575-android/blob/v2/docs/customer/CUSTOMER_TEST_GUIDE.md) for the full requirement and test matrix.
+
+## Demo catalog photographs
+
+The active demo categories and products use real photographs. See [photo sources and local refresh steps](docs/catalog-photo-sources.md). Pulling these image files does not change your database or stock; hard-refresh the app after updating the API repository.
