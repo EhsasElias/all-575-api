@@ -67,7 +67,7 @@ final class QuoteBuilder
     {
         $variant = $item->variant;
         $product = $variant->product;
-        $unit = $this->pricing->unitGross();
+        $unit = $this->pricing->unitGross($product);
 
         $sellable = $variant->is_active
             && $product->status === ProductStatus::Published

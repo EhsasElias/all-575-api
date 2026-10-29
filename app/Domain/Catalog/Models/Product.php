@@ -9,6 +9,7 @@ use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(ProductFactory::class)]
 #[Fillable([
     'seller_id', 'category_id', 'slug', 'name_ar', 'name_en', 'description_ar', 'description_en', 'image_path',
-    'vat_class', 'status', 'is_featured', 'rating_average', 'rating_count',
+    'price_halalas', 'vat_class', 'status', 'is_featured', 'rating_average', 'rating_count',
 ])]
 class Product extends Model
 {
@@ -28,11 +29,23 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'price_halalas' => 'integer',
             'vat_class' => VatClass::class,
             'status' => ProductStatus::class,
             'is_featured' => 'boolean',
             'rating_average' => 'float',
         ];
+    }
+
+    protected function priceHalalas(): Attribute
+    {
+        return Attribute::make(set: static function (mixed $value): int {
+            if ((! is_int($value) && (! is_string($value) || ! ctype_digit($value))) || (int) $value < 100 || (int) $value > 575) {
+                throw new \InvalidArgumentException('Product price must be 100 to 575 integer halalas, VAT included.');
+            }
+
+            return (int) $value;
+        });
     }
 
     /**

@@ -26,7 +26,7 @@ class ProductDetailResource extends ProductListResource
      */
     public function toArray(Request $request): array
     {
-        $split = app(ProductPricing::class)->split($this->vatClass());
+        $split = app(ProductPricing::class)->split($this->vatClass(), $this->resource);
 
         return [
             'id' => $this->id,

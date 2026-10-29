@@ -1916,6 +1916,9 @@
                                 "featured",
                                 "newest",
                                 "rating",
+                                "best_selling",
+                                "price_asc",
+                                "price_desc",
                                 null
                             ]
                         }
@@ -3801,7 +3804,7 @@
                         "type": "integer"
                     },
                     "subtotal": {
-                        "type": "number"
+                        "type": "integer"
                     },
                     "currency": {
                         "type": "string"

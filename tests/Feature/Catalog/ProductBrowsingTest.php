@@ -96,12 +96,12 @@ class ProductBrowsingTest extends TestCase
             ->assertJsonPath('data.variants.0.price.vat', 0);
     }
 
-    public function test_the_price_is_one_setting_and_changing_it_changes_every_product(): void
+    public function test_product_prices_do_not_change_when_the_legacy_store_setting_changes(): void
     {
         $this->catalog->stockedProduct(product: ['slug' => 'tea']);
         config(['store.price_halalas' => 600]);
 
-        $this->getJson('/api/v1/products/tea')->assertJsonPath('data.price.gross', 600)->assertJsonPath('data.variants.0.price.net', 522);
+        $this->getJson('/api/v1/products/tea')->assertJsonPath('data.price.gross', 575)->assertJsonPath('data.variants.0.price.net', 500);
     }
 
     public function test_results_are_paginated_with_a_cursor(): void

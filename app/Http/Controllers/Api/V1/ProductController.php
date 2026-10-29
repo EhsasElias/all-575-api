@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Services\Availability;
+use App\Domain\Catalog\Services\CatalogSort;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ProductIndexRequest;
 use App\Http\Resources\ProductDetailResource;
@@ -28,13 +29,11 @@ class ProductController extends Controller
                 fn (Builder $seller) => $seller->where('slug', $request->string('seller')->toString()),
             ))
             ->when($request->filled('q'), fn (Builder $query) => $this->search($query, $request->string('q')->toString()))
-            ->when($request->filled('min_price') && $request->integer('min_price') > (int) config('store.price_halalas'), fn (Builder $q) => $q->whereRaw('1 = 0'))
-            ->when($request->filled('max_price') && $request->integer('max_price') < (int) config('store.price_halalas'), fn (Builder $q) => $q->whereRaw('1 = 0'))
-            ->when($request->boolean('in_stock') && $request->filled('zone_id'), fn (Builder $q) => $q->whereHas('variants.stock', fn (Builder $stock) => $stock->whereColumn('on_hand', '>', 'reserved')->whereHas('branch', fn (Builder $branch) => $branch->where('is_active', true)->where('service_zone_id', $request->integer('zone_id')))))
-            ->when($request->input('sort', 'featured') === 'featured', fn (Builder $q) => $q->orderByDesc('is_featured'))
-            ->when($request->input('sort') === 'rating', fn (Builder $q) => $q->orderByDesc('rating_average'))
-            ->orderByDesc('created_at')
-            ->orderBy('id');
+            ->when($request->filled('min_price'), fn (Builder $q) => $q->where('products.price_halalas', '>=', $request->integer('min_price')))
+            ->when($request->filled('max_price'), fn (Builder $q) => $q->where('products.price_halalas', '<=', $request->integer('max_price')))
+            ->when($request->boolean('in_stock') && $request->filled('zone_id'), fn (Builder $q) => $q->whereHas('variants.stock', fn (Builder $stock) => $stock->whereColumn('on_hand', '>', 'reserved')->whereHas('branch', fn (Builder $branch) => $branch->where('is_active', true)->where('service_zone_id', $request->integer('zone_id')))));
+
+        CatalogSort::apply($products, $request->input('sort', 'featured'));
 
         $page = $products->cursorPaginate($request->integer('per_page', 20))->withQueryString();
 

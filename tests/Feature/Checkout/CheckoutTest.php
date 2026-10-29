@@ -187,9 +187,9 @@ class CheckoutTest extends TestCase
     {
         $s = $this->scenario();
         $quote = $s->quote();
-        config(['store.price_halalas' => 700]);
+        $s->item['product']->update(['price_halalas' => 250]);
 
-        $response = $s->checkout($quote)->assertStatus(409)->assertJsonPath('code', 'quote_changed')->assertJsonPath('quote.subtotal', 700);
+        $response = $s->checkout($quote)->assertStatus(409)->assertJsonPath('code', 'quote_changed')->assertJsonPath('quote.subtotal', 250);
 
         $this->assertNotSame($quote, $response->json('quote.id'));
         $this->assertDatabaseCount('orders', 0);

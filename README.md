@@ -96,3 +96,16 @@ Run `php artisan migrate` after updating. See [Customer flow](docs/CUSTOMER_FLOW
 Authenticated `GET /api/v1/addresses/resolve?lat=...&lng=...` looks up a deliberately selected pin and returns available Saudi region/city/district/street/building/postcode suggestions. It never verifies a National Address or invents an additional/short address number. Coordinates and language are sent to the provider; account details and entered form fields are not. Provider failure leaves manual address entry available.
 
 The default is public Nominatim, for moderate, user-triggered use only. Read its [usage policy](https://operations.osmfoundation.org/policies/nominatim/): maximum 1 request/second across the whole application, identifying User-Agent and OpenStreetMap attribution required; no search autocomplete or bulk lookup. This proxy caches results for 24 hours and admits at most one uncached lookup every two seconds across the shared cache. All deployed instances must use the same cache, and `APP_URL` must identify the actual application. Use `GEOCODING_REVERSE_URL` to switch to a contracted or self-hosted Nominatim-compatible service without rebuilding the app; set it empty to disable lookup. Plan a provider suitable for production traffic before scaling. Do not log lookup coordinates or provider response bodies.
+
+## Product prices and discovery
+
+Run `php artisan migrate`. Products now have individual VAT-inclusive `price_halalas` from 100 through 575 (1–5.75 SAR). Existing products remain 575; existing order snapshots are unchanged. Variants inherit the product price. Listings, details, server carts, quotes and new orders all use the product price. A price change after quoting requires the customer to review the new quote. Customers never submit a trusted unit price.
+
+Assign prices with the trusted operator command (not a customer API):
+
+```bash
+php artisan catalog:set-price demo-stationery-1 100
+php artisan catalog:set-price demo-toys-1 250
+```
+
+The amounts above are examples; choose actual business prices before running. The command rejects values outside 100–575 integer halalas. Model writes and the database range constraint also enforce the range. `/products` combines `category`, `seller`, `q`, `min_price`, `max_price`, delivery-zone availability and `sort=featured|newest|rating|price_asc|price_desc|best_selling`. Best selling means all-time units in completed orders with a recorded paid date; unpaid/cancelled orders do not contribute. Ties and cursor pages have deterministic ordering. `/store.price` is retained as the legacy ceiling/reference, not the price of every product.

@@ -31,7 +31,7 @@ class CartResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $unitPrice = app(ProductPricing::class)->unitPriceHalalas();
+        $pricing = app(ProductPricing::class);
         $quantity = (int) $this->items->sum('quantity');
 
         return [
@@ -42,12 +42,12 @@ class CartResource extends JsonResource
                 'variant_name' => $item->variant->name_en === null && $item->variant->name_ar === null ? null : ['ar' => $item->variant->name_ar, 'en' => $item->variant->name_en],
                 'image_url' => $item->variant->product->image_path === null ? null : asset($item->variant->product->image_path),
                 'quantity' => $item->quantity,
-                'unit_price' => (int) $unitPrice,
-                'line_price' => $unitPrice * $item->quantity,
+                'unit_price' => (int) $pricing->unitPriceHalalas($item->variant->product),
+                'line_price' => $pricing->unitPriceHalalas($item->variant->product) * $item->quantity,
                 'availability' => Availability::status($this->units === null ? null : ($this->units[$item->variant->id] ?? 0)),
             ])->all(),
             'items_count' => $quantity,
-            'subtotal' => $unitPrice * $quantity,
+            'subtotal' => (int) $this->items->sum(fn (CartItem $item): int => $pricing->unitPriceHalalas($item->variant->product) * $item->quantity),
             'currency' => config('store.currency'),
         ];
     }
