@@ -2,6 +2,10 @@
 
 return [
 
+    'geocoding' => [
+        'url' => env('GEOCODING_REVERSE_URL', 'https://nominatim.openstreetmap.org/reverse'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

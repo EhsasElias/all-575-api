@@ -1394,6 +1394,63 @@
                 }
             }
         },
+        "/v1/addresses/resolve": {
+            "get": {
+                "operationId": "v1.mapAddress",
+                "summary": "Suggest available address fields for a customer-selected map pin",
+                "tags": [
+                    "MapAddress"
+                ],
+                "parameters": [
+                    {
+                        "name": "lat",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                        }
+                    },
+                    {
+                        "name": "lng",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`MapAddressResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/MapAddressResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/me": {
             "get": {
                 "operationId": "me.show",
@@ -4099,6 +4156,63 @@
                     "updated_at"
                 ],
                 "title": "CustomerRequestResource"
+            },
+            "MapAddressResource": {
+                "type": "object",
+                "properties": {
+                    "country_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "district": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "street": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "building_number": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "postal_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "country_code",
+                    "region",
+                    "city",
+                    "district",
+                    "street",
+                    "building_number",
+                    "postal_code"
+                ],
+                "title": "MapAddressResource"
             },
             "MergeCartRequest": {
                 "type": "object",

@@ -90,3 +90,9 @@ The active demo categories and products use real photographs. See [photo sources
 ## Company buyers and cash on delivery
 
 Run `php artisan migrate` after updating. See [Customer flow](docs/CUSTOMER_FLOW.md) for individual/company shopping, saved products, bulk/privacy requests and cash collection operations. A cash order is confirmed without a bank session or paid timestamp. Only verified full collection after delivery marks it paid.
+
+## Map address suggestions
+
+Authenticated `GET /api/v1/addresses/resolve?lat=...&lng=...` looks up a deliberately selected pin and returns available Saudi region/city/district/street/building/postcode suggestions. It never verifies a National Address or invents an additional/short address number. Coordinates and language are sent to the provider; account details and entered form fields are not. Provider failure leaves manual address entry available.
+
+The default is public Nominatim, for moderate, user-triggered use only. Read its [usage policy](https://operations.osmfoundation.org/policies/nominatim/): maximum 1 request/second across the whole application, identifying User-Agent and OpenStreetMap attribution required; no search autocomplete or bulk lookup. This proxy caches results for 24 hours and admits at most one uncached lookup every two seconds across the shared cache. All deployed instances must use the same cache, and `APP_URL` must identify the actual application. Use `GEOCODING_REVERSE_URL` to switch to a contracted or self-hosted Nominatim-compatible service without rebuilding the app; set it empty to disable lookup. Plan a provider suitable for production traffic before scaling. Do not log lookup coordinates or provider response bodies.
