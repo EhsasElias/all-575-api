@@ -3,16 +3,16 @@
 return [
     'currency' => 'SAR',
 
-    // Everything on the platform costs this, VAT included (roadmap decision D-05: always 5.75 SAR).
-    // 5.75 is 5.00 + 0.75 VAT at 15%. Orders keep the price they were bought at, so changing it here never rewrites history.
+    // Legacy ceiling/reference for the storefront; individual products have prices from 100 to 575 halalas.
+    // Changing this setting does not change product prices or existing order snapshots.
     'price_halalas' => 575,
 
     // 15% Saudi VAT, in basis points (1500 = 15.00%).
     'vat_rate_basis_points' => (int) env('STORE_VAT_RATE_BASIS_POINTS', 1500),
 
     // Bump these when the legal text changes; accepted versions are stored per user.
-    'terms_version' => env('STORE_TERMS_VERSION', '2026-10-01'),
-    'privacy_version' => env('STORE_PRIVACY_VERSION', '2026-10-01'),
+    'terms_version' => env('STORE_TERMS_VERSION', '2026-10-29'),
+    'privacy_version' => env('STORE_PRIVACY_VERSION', '2026-10-29'),
 
     'otp' => [
         // log: writes the code to the application log (local and testing only).

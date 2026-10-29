@@ -109,3 +109,7 @@ php artisan catalog:set-price demo-toys-1 250
 ```
 
 The amounts above are examples; choose actual business prices before running. The command rejects values outside 100–575 integer halalas. Model writes and the database range constraint also enforce the range. `/products` combines `category`, `seller`, `q`, `min_price`, `max_price`, delivery-zone availability and `sort=featured|newest|rating|price_asc|price_desc|best_selling`. Best selling means all-time units in completed orders with a recorded paid date; unpaid/cancelled orders do not contribute. Ties and cursor pages have deterministic ordering. `/store.price` is retained as the legacy ceiling/reference, not the price of every product.
+
+## Legal document revision
+
+The customer app includes detailed Terms/Privacy drafts dated 2026-10-29. Set `STORE_TERMS_VERSION=2026-10-29` and `STORE_PRIVACY_VERSION=2026-10-29` in existing environments when adopting those texts, then clear configuration cache. Updating defaults does not overwrite an existing `.env`. Existing consent/version checks require the current versions on the next applicable sign-in/consent flow; marketing remains separate and optional. Confirm the operator identity, business registration, National Address, official support/privacy contact, providers/transfers and operational policies before approving the drafts for real customers.
