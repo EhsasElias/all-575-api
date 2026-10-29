@@ -164,11 +164,11 @@ class CheckoutTest extends TestCase
         $s->checkout($quote, 'short')->assertUnprocessable()->assertJsonValidationErrors('idempotency_key');
     }
 
-    public function test_only_supported_payment_methods_are_accepted_cash_on_delivery_is_not(): void
+    public function test_only_supported_payment_methods_are_accepted(): void
     {
         $s = $this->scenario();
 
-        $s->checkout(method: 'cash_on_delivery')->assertUnprocessable()->assertJsonValidationErrors('payment_method');
+        $s->checkout(method: 'unknown_method')->assertUnprocessable()->assertJsonValidationErrors('payment_method');
         $s->checkout(method: 'apple_pay', key: 'idem-apple-01')->assertCreated();
     }
 

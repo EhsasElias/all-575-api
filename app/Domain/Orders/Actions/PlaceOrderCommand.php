@@ -16,5 +16,6 @@ final readonly class PlaceOrderCommand
         public PaymentMethod $method,
         public string $idempotencyKey,
         public ?string $notes,
+        public ?string $purchaseOrderReference = null,
     ) {}
 }

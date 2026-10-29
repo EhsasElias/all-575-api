@@ -12,6 +12,7 @@ use App\Domain\Cart\Services\QuoteBuilder;
 use App\Domain\Cart\Services\QuoteData;
 use App\Domain\Cart\Services\QuoteLine;
 use App\Domain\Cart\Services\QuoteService;
+use App\Domain\Identity\Models\CustomerBillingProfile;
 use App\Domain\Inventory\Services\StockReservations;
 use App\Domain\Orders\Enums\OrderStatus;
 use App\Domain\Orders\Enums\SuborderStatus;
@@ -62,7 +63,7 @@ final class PlaceOrder
             return $this->replay($this->findByIdempotencyKey($command) ?? throw new DomainRuleViolation('checkout_conflict', 'Please try again.', 409), $command);
         }
 
-        return new PlacedOrder($order, $payment, $payment === null ? null : $this->openCharge($order, $payment), false);
+        return new PlacedOrder($order, $payment, $payment === null || $payment->method === PaymentMethod::CashOnDelivery ? null : $this->openCharge($order, $payment), false);
     }
 
     private function findByIdempotencyKey(PlaceOrderCommand $command): ?Order
@@ -117,6 +118,8 @@ final class PlaceOrder
 
         $order = Order::query()->create([
             'number' => $this->newOrderNumber(),
+            'billing_details' => CustomerBillingProfile::query()->where('user_id', $command->user->id)->first()?->only(['buyer_type', 'company_name', 'registration_number', 'vat_number', 'billing_address']),
+            'purchase_order_reference' => $command->purchaseOrderReference,
             'user_id' => $command->user->id,
             'status' => OrderStatus::PendingPayment,
             'idempotency_key' => $command->idempotencyKey,
@@ -230,6 +233,16 @@ final class PlaceOrder
             $this->confirmation->confirm($order, $free);
 
             return null;
+        }
+
+        if ($method === PaymentMethod::CashOnDelivery) {
+            $cash = $order->payments()->create([
+                'provider' => 'cash', 'method' => $method, 'status' => PaymentStatus::Pending,
+                'amount_halalas' => $order->total_halalas, 'currency' => $order->currency, 'expires_at' => $expiresAt,
+            ]);
+            $this->confirmation->acceptCashOrder($order);
+
+            return $cash;
         }
 
         return $order->payments()->create([

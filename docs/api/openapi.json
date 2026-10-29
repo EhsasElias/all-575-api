@@ -385,6 +385,151 @@
                 }
             }
         },
+        "/v1/me/billing-profile": {
+            "get": {
+                "operationId": "billingProfile.show",
+                "tags": [
+                    "BillingProfile"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "buyer_type": {
+                                                    "type": "string"
+                                                },
+                                                "company_name": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "registration_number": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "vat_number": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "billing_address": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "buyer_type",
+                                                "company_name",
+                                                "registration_number",
+                                                "vat_number",
+                                                "billing_address"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "billingProfile.update",
+                "tags": [
+                    "BillingProfile"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateBillingProfileRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "buyer_type": {
+                                                    "type": "string"
+                                                },
+                                                "company_name": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "registration_number": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "vat_number": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "billing_address": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "buyer_type",
+                                                "company_name",
+                                                "registration_number",
+                                                "vat_number",
+                                                "billing_address"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/cart": {
             "get": {
                 "operationId": "cart.show",
@@ -993,6 +1138,200 @@
                 }
             }
         },
+        "/v1/me/requests": {
+            "get": {
+                "operationId": "customerRequest.index",
+                "tags": [
+                    "CustomerRequest"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `CustomerRequestResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CustomerRequestResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "customerRequest.store",
+                "tags": [
+                    "CustomerRequest"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CustomerRequestRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`CustomerRequestResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CustomerRequestResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/orders/{order}/suborders/{suborder}/delivery-code": {
             "get": {
                 "operationId": "deliveryCode.show",
@@ -1504,6 +1843,56 @@
                         "schema": {
                             "type": [
                                 "integer",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "featured",
+                                "newest",
+                                "rating",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "min_price",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 0,
+                            "maximum": 100000000
+                        }
+                    },
+                    {
+                        "name": "max_price",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 0,
+                            "maximum": 100000000
+                        }
+                    },
+                    {
+                        "name": "in_stock",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "boolean",
                                 "null"
                             ]
                         }
@@ -2161,6 +2550,332 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/me/saved-products": {
+            "get": {
+                "operationId": "savedProduct.index",
+                "tags": [
+                    "SavedProduct"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `ProductListResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ProductListResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/me/saved-products/{slug}": {
+            "get": {
+                "operationId": "savedProduct.show",
+                "tags": [
+                    "SavedProduct"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "saved": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "saved"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "savedProduct.store",
+                "tags": [
+                    "SavedProduct"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "saved": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "saved"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "savedProduct.destroy",
+                "tags": [
+                    "SavedProduct"
+                ],
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "saved": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "saved"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/sellers": {
+            "get": {
+                "operationId": "seller.index",
+                "tags": [
+                    "Seller"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `SellerResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/SellerResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -3111,8 +3826,16 @@
                         "enum": [
                             "mada",
                             "card",
-                            "apple_pay"
+                            "apple_pay",
+                            "cash_on_delivery"
                         ]
+                    },
+                    "purchase_order_reference": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 80
                     },
                     "notes": {
                         "type": [
@@ -3289,6 +4012,93 @@
                     "messages"
                 ],
                 "title": "CustomerCaseResource"
+            },
+            "CustomerRequestRequest": {
+                "type": "object",
+                "properties": {
+                    "request_key": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]+$",
+                        "minLength": 8,
+                        "maxLength": 64
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "bulk_quote",
+                            "data_access",
+                            "account_closure"
+                        ]
+                    },
+                    "subject": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 5000
+                    }
+                },
+                "required": [
+                    "request_key",
+                    "kind",
+                    "subject",
+                    "description"
+                ],
+                "title": "CustomerRequestRequest"
+            },
+            "CustomerRequestResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "subject": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "reply": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "kind",
+                    "subject",
+                    "description",
+                    "status",
+                    "reply",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "CustomerRequestResource"
             },
             "MergeCartRequest": {
                 "type": "object",
@@ -3527,6 +4337,54 @@
                             "vat"
                         ]
                     },
+                    "billing_details": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "buyer_type": {
+                                "type": "string"
+                            },
+                            "company_name": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "registration_number": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "vat_number": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "billing_address": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "buyer_type",
+                            "company_name",
+                            "registration_number",
+                            "vat_number",
+                            "billing_address"
+                        ]
+                    },
+                    "purchase_order_reference": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "promo_code": {
                         "type": [
                             "string",
@@ -3740,6 +4598,7 @@
                                         "mada",
                                         "card",
                                         "apple_pay",
+                                        "cash_on_delivery",
                                         "none"
                                     ]
                                 },
@@ -3867,6 +4726,8 @@
                     "payment_status",
                     "address",
                     "amounts",
+                    "billing_details",
+                    "purchase_order_reference",
                     "promo_code",
                     "customer_notes",
                     "cancelled_at",
@@ -3986,11 +4847,12 @@
             },
             "PaymentMethod": {
                 "type": "string",
-                "description": "Cash on delivery, SADAD, BNPL and bank transfer need separate approval (roadmap D-06) and are not listed.\n| |\n|---|\n| `mada` <br/>  |\n| `card` <br/>  |\n| `apple_pay` <br/>  |\n| `none` <br/> Order fully covered by a promo code: nothing to charge. |",
+                "description": "Only enabled, supported checkout methods are accepted.\n| |\n|---|\n| `mada` <br/>  |\n| `card` <br/>  |\n| `apple_pay` <br/>  |\n| `cash_on_delivery` <br/>  |\n| `none` <br/> Order fully covered by a promo code: nothing to charge. |",
                 "enum": [
                     "mada",
                     "card",
                     "apple_pay",
+                    "cash_on_delivery",
                     "none"
                 ],
                 "title": "PaymentMethod"
@@ -4581,6 +5443,50 @@
                     "rating"
                 ],
                 "title": "StoreReviewRequest"
+            },
+            "UpdateBillingProfileRequest": {
+                "type": "object",
+                "properties": {
+                    "buyer_type": {
+                        "type": "string",
+                        "enum": [
+                            "individual",
+                            "business"
+                        ]
+                    },
+                    "company_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 200
+                    },
+                    "registration_number": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "pattern": "^[0-9]{10}$"
+                    },
+                    "vat_number": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "pattern": "^3[0-9]{13}3$"
+                    },
+                    "billing_address": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "buyer_type"
+                ],
+                "title": "UpdateBillingProfileRequest"
             },
             "UpdateMarketingConsentRequest": {
                 "type": "object",

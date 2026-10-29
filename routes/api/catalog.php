@@ -13,5 +13,6 @@ Route::get('welcome', [WelcomeController::class, 'index']);
 Route::get('categories', [CategoryController::class, 'index']);
 Route::get('products', [ProductController::class, 'index']);
 Route::get('products/{slug}', [ProductController::class, 'show']);
+Route::get('sellers', [SellerController::class, 'index']);
 Route::get('sellers/{slug}', [SellerController::class, 'show']);
 Route::get('zones/resolve', [ZoneController::class, 'resolve']);

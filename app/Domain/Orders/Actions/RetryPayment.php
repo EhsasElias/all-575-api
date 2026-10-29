@@ -24,6 +24,10 @@ final class RetryPayment
     /** @return array{0: Payment, 1: ChargeSession} */
     public function handle(Order $order, PaymentMethod $method): array
     {
+        if ($method === PaymentMethod::CashOnDelivery) {
+            throw new DomainRuleViolation('order_not_payable', 'Place a new cash order after cancelling the unpaid order.', 409);
+        }
+
         $payment = DB::transaction(function () use ($order, $method): Payment {
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
 

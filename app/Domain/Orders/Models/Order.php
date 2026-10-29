@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'number', 'user_id', 'status', 'idempotency_key', 'quote_id',
+    'billing_details', 'purchase_order_reference', 'number', 'user_id', 'status', 'idempotency_key', 'quote_id',
     'recipient_name', 'recipient_phone', 'region', 'city', 'district', 'street', 'building_number', 'additional_number',
     'postal_code', 'short_address', 'unit', 'floor', 'delivery_notes', 'lat', 'lng', 'service_zone_id',
     'delivery_slot_id', 'slot_starts_at', 'slot_ends_at',
@@ -29,6 +29,7 @@ class Order extends Model
     {
         return [
             'status' => OrderStatus::class,
+            'billing_details' => 'array',
             'vat_breakdown' => 'array',
             'lat' => 'float',
             'lng' => 'float',

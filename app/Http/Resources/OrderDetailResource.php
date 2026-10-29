@@ -22,10 +22,11 @@ class OrderDetailResource extends OrderResource
      *         id: string, number: string, status: 'pending_payment'|'confirmed'|'cancelled'|'completed', placed_at: string, paid_at: ?string, total: int, currency: string, items_count: int, preview_images: list<string>, slot: array{starts_at: ?string, ends_at: ?string}, payment_status: ?string,
      *         address: array{recipient_name: string, recipient_phone: string, region: string, city: string, district: string, street: string, building_number: string, additional_number: string, postal_code: string, short_address: ?string, unit: ?string, floor: ?string, delivery_notes: ?string, lat: float, lng: float},
      *         amounts: array{subtotal: int, discount: int, delivery_fee: int, total: int, vat_included: int, vat: list<array{vat_class: string, rate_basis_points: int, taxable_net: int, vat: int, gross: int}>},
+     *         billing_details: ?array{buyer_type: string, company_name: ?string, registration_number: ?string, vat_number: ?string, billing_address: ?string}, purchase_order_reference: ?string,
      *         promo_code: ?string, customer_notes: ?string, cancelled_at: ?string, cancel_reason: ?string, can_cancel: bool,
      *         suborders: list<array{id: string, status: 'awaiting_payment'|'awaiting_seller'|'preparing'|'ready'|'on_the_way'|'delivered'|'cancelled', seller: SellerResource, eta: array{at: ?string, reason: ?string}, items: list<array{product_slug: string, name: array{ar: string, en: string}, variant_name: ?array{ar: ?string, en: ?string}, image_url: ?string, quantity: int, unit_price: int, line_total: int}>}>,
      *         timeline: list<array{type: string, at: string, suborder_id: ?string, note: ?string}>,
-     *         payments: list<array{id: string, order_id: string, status: 'pending'|'paid'|'failed'|'expired', method: 'mada'|'card'|'apple_pay'|'none', amount: int, currency: string, expires_at: string, paid_at: ?string, failure_code: ?string, action: ?array{redirect_url: ?string, client_secret: ?string}}>,
+     *         payments: list<array{id: string, order_id: string, status: 'pending'|'paid'|'failed'|'expired', method: 'mada'|'card'|'apple_pay'|'cash_on_delivery'|'none', amount: int, currency: string, expires_at: string, paid_at: ?string, failure_code: ?string, action: ?array{redirect_url: ?string, client_secret: ?string}}>,
      *         refunds: list<array{id: string, status: 'pending'|'succeeded'|'failed', amount: int, reason: string, credit_note_number: ?string, requested_at: string, completed_at: ?string}>}
      */
     public function toArray(Request $request): array
@@ -47,6 +48,8 @@ class OrderDetailResource extends OrderResource
                 'vat_included' => $this->vat_halalas,
                 'vat' => $this->vat_breakdown,
             ],
+            'billing_details' => $this->billing_details,
+            'purchase_order_reference' => $this->purchase_order_reference,
             'promo_code' => $this->promo_code,
             'customer_notes' => $this->customer_notes,
             'cancelled_at' => $this->cancelled_at,

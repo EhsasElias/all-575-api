@@ -16,7 +16,7 @@ class PaymentResource extends JsonResource
     }
 
     /**
-     * @return array{id: string, order_id: string, status: 'pending'|'paid'|'failed'|'expired', method: 'mada'|'card'|'apple_pay'|'none', amount: int, currency: string, expires_at: string, paid_at: ?string, failure_code: ?string, action: ?array{redirect_url: ?string, client_secret: ?string}}
+     * @return array{id: string, order_id: string, status: 'pending'|'paid'|'failed'|'expired', method: 'mada'|'card'|'apple_pay'|'cash_on_delivery'|'none', amount: int, currency: string, expires_at: string, paid_at: ?string, failure_code: ?string, action: ?array{redirect_url: ?string, client_secret: ?string}}
      */
     public function toArray(Request $request): array
     {

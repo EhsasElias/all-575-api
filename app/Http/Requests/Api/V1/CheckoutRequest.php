@@ -22,6 +22,7 @@ class CheckoutRequest extends FormRequest
             'quote_id' => ['required', 'string', 'size:26'],
             'slot_id' => ['required', 'integer'],
             'payment_method' => ['required', Rule::in(config('store.payments.methods'))],
+            'purchase_order_reference' => ['nullable', 'string', 'max:80'],
             'notes' => ['nullable', 'string', 'max:500'],
         ];
     }

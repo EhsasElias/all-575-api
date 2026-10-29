@@ -11,7 +11,7 @@ class RetryPaymentRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        return ['payment_method' => ['required', Rule::in(config('store.payments.methods'))]];
+        return ['payment_method' => ['required', Rule::in(array_diff(config('store.payments.methods'), ['cash_on_delivery']))]];
     }
 
     public function method(): PaymentMethod

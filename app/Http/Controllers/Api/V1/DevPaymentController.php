@@ -21,6 +21,7 @@ class DevPaymentController extends Controller
         $request->validate(['outcome' => ['required', 'in:succeed,fail']]);
 
         $owned = Payment::query()->whereHas('order', fn ($query) => $query->where('user_id', $request->user()->id))->findOrFail($payment);
+        abort_unless($owned->provider === $gateway->name(), 404);
         $succeed = $request->input('outcome') === 'succeed';
 
         $callback = $gateway->signedCallback([

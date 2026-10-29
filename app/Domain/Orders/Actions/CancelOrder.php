@@ -10,6 +10,7 @@ use App\Domain\Orders\Models\DeliverySlot;
 use App\Domain\Orders\Models\Order;
 use App\Domain\Orders\Models\StockReservation;
 use App\Domain\Orders\Services\UnpaidOrderCancellation;
+use App\Domain\Payments\Enums\PaymentMethod;
 use App\Domain\Payments\Enums\PaymentStatus;
 use App\Domain\Payments\Models\Refund;
 use App\Domain\Payments\Services\Refunds;
@@ -58,6 +59,12 @@ final class CancelOrder
         $locked->suborders()->update(['status' => SuborderStatus::Cancelled->value]);
         $locked->forceFill(['status' => OrderStatus::Cancelled, 'cancelled_at' => now(), 'cancel_reason' => 'customer_cancelled'])->save();
         $locked->record('order_cancelled', 'customer');
+
+        if ($locked->payments()->where('method', PaymentMethod::CashOnDelivery->value)->where('status', PaymentStatus::Pending->value)->exists()) {
+            $locked->payments()->where('method', PaymentMethod::CashOnDelivery->value)->update(['status' => PaymentStatus::Expired->value, 'failure_code' => 'customer_cancelled']);
+
+            return null;
+        }
 
         // Nothing was charged for an order a promo covered in full, so there is nothing to give back.
         if ($locked->total_halalas === 0) {

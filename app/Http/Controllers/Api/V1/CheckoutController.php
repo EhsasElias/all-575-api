@@ -30,6 +30,7 @@ class CheckoutController extends Controller
             $request->method(),
             $request->string('idempotency_key')->toString(),
             $request->input('notes'),
+            $request->input('purchase_order_reference'),
         ));
 
         return response()->json(['data' => [

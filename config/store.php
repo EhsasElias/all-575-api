@@ -53,7 +53,7 @@ return [
         // fake: simulated provider for local and testing. unconfigured: refuses until a gateway is contracted (D-02).
         'driver' => env('PAYMENT_DRIVER', 'unconfigured'),
         'fake_webhook_secret' => env('FAKE_PAYMENT_WEBHOOK_SECRET', 'local-development-only'),
-        'methods' => ['mada', 'card', 'apple_pay'],
+        'methods' => ['mada', 'card', 'apple_pay', 'cash_on_delivery'],
     ],
 
     'delivery_code' => [

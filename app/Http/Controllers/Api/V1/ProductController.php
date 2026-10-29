@@ -28,8 +28,11 @@ class ProductController extends Controller
                 fn (Builder $seller) => $seller->where('slug', $request->string('seller')->toString()),
             ))
             ->when($request->filled('q'), fn (Builder $query) => $this->search($query, $request->string('q')->toString()))
-            // Everything costs the same, so there is no price sort or filter: featured first, then newest.
-            ->orderByDesc('is_featured')
+            ->when($request->filled('min_price') && $request->integer('min_price') > (int) config('store.price_halalas'), fn (Builder $q) => $q->whereRaw('1 = 0'))
+            ->when($request->filled('max_price') && $request->integer('max_price') < (int) config('store.price_halalas'), fn (Builder $q) => $q->whereRaw('1 = 0'))
+            ->when($request->boolean('in_stock') && $request->filled('zone_id'), fn (Builder $q) => $q->whereHas('variants.stock', fn (Builder $stock) => $stock->whereColumn('on_hand', '>', 'reserved')->whereHas('branch', fn (Builder $branch) => $branch->where('is_active', true)->where('service_zone_id', $request->integer('zone_id')))))
+            ->when($request->input('sort', 'featured') === 'featured', fn (Builder $q) => $q->orderByDesc('is_featured'))
+            ->when($request->input('sort') === 'rating', fn (Builder $q) => $q->orderByDesc('rating_average'))
             ->orderByDesc('created_at')
             ->orderBy('id');
 

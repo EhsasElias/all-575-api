@@ -35,6 +35,16 @@ final class OrderConfirmation
         DB::afterCommit(fn () => event(new OrderPaid($order)));
     }
 
+    /** A cash order can be prepared, but no money has been collected yet. */
+    public function acceptCashOrder(Order $order): void
+    {
+        $order->forceFill(['status' => OrderStatus::Confirmed])->save();
+        $order->suborders()->update(['status' => SuborderStatus::AwaitingSeller->value]);
+        $this->stock->commit($order);
+        $this->removePurchasedLinesFromCart($order);
+        $order->record('order_confirmed', 'system');
+    }
+
     private function removePurchasedLinesFromCart(Order $order): void
     {
         $cart = Cart::query()->where('user_id', $order->user_id)->first();
