@@ -17,7 +17,7 @@ class SpendingReportController extends Controller
      */
     public function show(SpendingReportRequest $request, SpendingReport $report): JsonResponse
     {
-        $data = $report->for($request->user(), $request->from(), $request->to());
+        $data = $report->for($request->user(), $request->from(), $request->to(), $request->safe()->only(['category', 'seller', 'status']));
 
         return response()->json(['data' => $data + [
             'currency' => config('store.currency'),
@@ -29,7 +29,7 @@ class SpendingReportController extends Controller
 
     public function csv(SpendingReportRequest $request, SpendingReport $report, CsvWriter $csv, AuditLogger $audit): Response
     {
-        $data = $report->for($request->user(), $request->from(), $request->to());
+        $data = $report->for($request->user(), $request->from(), $request->to(), $request->safe()->only(['category', 'seller', 'status']));
         $tz = config('store.slots.timezone');
         $date = fn ($at): string => $at === null ? '' : $at->copy()->setTimezone($tz)->format('Y-m-d H:i');
 

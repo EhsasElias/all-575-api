@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Domain\Reporting\Services;
 
+use App\Domain\Catalog\Models\Category;
+use App\Domain\Catalog\Models\Product;
 use App\Domain\Identity\Models\User;
 use App\Domain\Orders\Enums\OrderStatus;
 use App\Domain\Orders\Models\Order;
 use App\Domain\Payments\Enums\RefundStatus;
 use App\Domain\Payments\Models\Refund;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 
 /** A customer's own spending. Order date, payment date and refund date are kept apart on every row. */
 final class SpendingReport
@@ -17,13 +20,20 @@ final class SpendingReport
     /**
      * @return array{summary: array<string, int>, rows: list<array<string, mixed>>}
      */
-    public function for(User $user, CarbonInterface $from, CarbonInterface $to): array
+    public function for(User $user, CarbonInterface $from, CarbonInterface $to, array $filters = []): array
     {
         $orders = Order::query()
             ->where('user_id', $user->id)
             ->whereIn('status', [OrderStatus::Confirmed->value, OrderStatus::Completed->value, OrderStatus::Cancelled->value])
             ->whereNotNull('paid_at')
-            ->whereBetween('placed_at', [$from->copy()->startOfDay(), $to->copy()->endOfDay()])
+            ->whereBetween('placed_at', [$from->copy()->startOfDay()->setTimezone('UTC'), $to->copy()->endOfDay()->setTimezone('UTC')])
+            ->when(! empty($filters['status']), fn (Builder $query) => $query->where('status', $filters['status']))
+            ->when(! empty($filters['seller']), fn (Builder $query) => $query->whereHas('suborders.seller', fn (Builder $seller) => $seller->where('slug', $filters['seller'])))
+            ->when(! empty($filters['category']), function (Builder $query) use ($filters): void {
+                $category = Category::query()->where('slug', $filters['category'])->first();
+                $ids = $category?->selfAndChildIds() ?? [];
+                $query->whereHas('items', fn (Builder $items) => $items->whereIn('product_id', Product::query()->whereIn('category_id', $ids)->select('id')));
+            })
             ->with(['refunds' => fn ($query) => $query->where('status', RefundStatus::Succeeded->value)])
             ->orderBy('placed_at')
             ->orderBy('id')

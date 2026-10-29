@@ -12,6 +12,21 @@ class SpendingReportTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_category_seller_status_and_export_share_filters_and_saudi_date_boundaries(): void
+    {
+        $s = (new CheckoutScenario($this))->withCart();
+        $paid = $s->pay();
+        $paid->update(['placed_at' => '2026-10-29 21:30:00']);
+        $category = $s->item['product']->category->slug;
+        $seller = $s->item['product']->seller->slug;
+        $query = '?from=2026-10-30&to=2026-10-30&category='.$category.'&seller='.$seller.'&status=confirmed';
+        $this->getJson('/api/v1/me/reports/spending'.$query)->assertOk()->assertJsonPath('data.summary.orders', 1);
+        $this->get('/api/v1/me/reports/spending.csv'.$query, ['Accept' => 'text/csv'])->assertOk()->assertSee($paid->number);
+        $this->getJson('/api/v1/me/reports/spending'.$query.'&status=completed')->assertOk()->assertJsonCount(0, 'data.rows');
+        $this->getJson('/api/v1/me/reports/spending?from=2026-10-29&to=2026-10-29')->assertOk()->assertJsonCount(0, 'data.rows');
+        $this->get('/api/v1/me/reports/spending.csv?from=2026-10-30&to=2026-10-30&seller=missing', ['Accept' => 'text/csv'])->assertOk()->assertDontSee($paid->number);
+    }
+
     public function test_the_summary_adds_up_paid_orders_with_savings_vat_and_fees_separate(): void
     {
         $s = (new CheckoutScenario($this))->withCart(2);

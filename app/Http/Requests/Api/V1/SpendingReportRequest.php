@@ -11,6 +11,9 @@ class SpendingReportRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'category' => ['nullable', 'string', 'max:100'],
+            'seller' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:confirmed,completed,cancelled'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
         ];
