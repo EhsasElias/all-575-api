@@ -86,3 +86,7 @@ The command also accepts `rejected`. It is unavailable outside local/testing. Op
 ## Demo catalog photographs
 
 The active demo categories and products use real photographs. See [photo sources and local refresh steps](docs/catalog-photo-sources.md). Pulling these image files does not change your database or stock; hard-refresh the app after updating the API repository.
+
+## Company buyers and cash on delivery
+
+Run `php artisan migrate` after updating. See [Customer flow](docs/CUSTOMER_FLOW.md) for individual/company shopping, saved products, bulk/privacy requests and cash collection operations. A cash order is confirmed without a bank session or paid timestamp. Only verified full collection after delivery marks it paid.

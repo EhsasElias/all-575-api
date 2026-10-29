@@ -21,7 +21,7 @@ final class CashCollection
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
             $payment = Payment::query()->where('order_id', $locked->id)
                 ->where('method', PaymentMethod::CashOnDelivery->value)->lockForUpdate()->first();
-            if ($payment === null || $locked->status !== OrderStatus::Completed || $amount !== $payment->amount_halalas) {
+            if ($payment === null || $locked->status !== OrderStatus::Completed || $amount !== $payment->amount_halalas || $locked->suborders()->where('status', '!=', 'delivered')->exists()) {
                 throw new DomainRuleViolation('cash_collection_invalid', 'Confirm delivery and the exact cash amount first.', 409);
             }
             if ($payment->status === PaymentStatus::Paid) {

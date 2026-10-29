@@ -68,6 +68,7 @@ class CashOnDeliveryTest extends TestCase
         $id = $s->checkout(method: 'cash_on_delivery')->json('data.order.id');
         $order = Order::findOrFail($id);
         $order->forceFill(['status' => 'completed'])->save();
+        $order->suborders()->update(['status' => 'delivered']);
         $collection = app(CashCollection::class);
         $collection->record($order, $order->total_halalas, 'receipt-0001');
         $collection->record($order, $order->total_halalas, 'receipt-0001');
