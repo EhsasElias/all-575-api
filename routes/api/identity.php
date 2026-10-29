@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingProfileController;
+use App\Http\Controllers\Api\V1\CustomerDashboardController;
 use App\Http\Controllers\Api\V1\CustomerRequestController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\SavedProductController;
@@ -14,6 +15,7 @@ Route::prefix('auth/otp')->group(function (): void {
 });
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(function (): void {
+    Route::get('me/dashboard', CustomerDashboardController::class);
     Route::delete('auth/session', [AuthController::class, 'logout']);
 
     Route::get('me/requests', [CustomerRequestController::class, 'index']);

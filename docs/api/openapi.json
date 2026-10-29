@@ -1138,6 +1138,38 @@
                 }
             }
         },
+        "/v1/me/dashboard": {
+            "get": {
+                "operationId": "v1.customerDashboard",
+                "summary": "The signed-in customer's all-time summary; no other customer's records are queried",
+                "tags": [
+                    "CustomerDashboard"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`CustomerDashboardResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CustomerDashboardResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/me/requests": {
             "get": {
                 "operationId": "customerRequest.index",
@@ -1573,6 +1605,70 @@
                 "tags": [
                     "Order"
                 ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "pending_payment",
+                                "confirmed",
+                                "completed",
+                                "cancelled",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 80
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 50
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Paginated set of `OrderResource`",
@@ -1671,6 +1767,9 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
@@ -4072,6 +4171,73 @@
                     "messages"
                 ],
                 "title": "CustomerCaseResource"
+            },
+            "CustomerDashboardResource": {
+                "type": "object",
+                "properties": {
+                    "orders_total": {
+                        "type": "integer"
+                    },
+                    "orders_active": {
+                        "type": "integer"
+                    },
+                    "orders_awaiting_payment": {
+                        "type": "integer"
+                    },
+                    "orders_completed": {
+                        "type": "integer"
+                    },
+                    "paid_total": {
+                        "type": "integer"
+                    },
+                    "refunded_total": {
+                        "type": "integer"
+                    },
+                    "net_spent": {
+                        "type": "integer"
+                    },
+                    "saved_products": {
+                        "type": "integer"
+                    },
+                    "addresses": {
+                        "type": "integer"
+                    },
+                    "open_support": {
+                        "type": "integer"
+                    },
+                    "open_requests": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "generated_at": {
+                        "type": "string"
+                    },
+                    "recent_orders": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OrderResource"
+                        }
+                    }
+                },
+                "required": [
+                    "orders_total",
+                    "orders_active",
+                    "orders_awaiting_payment",
+                    "orders_completed",
+                    "paid_total",
+                    "refunded_total",
+                    "net_spent",
+                    "saved_products",
+                    "addresses",
+                    "open_support",
+                    "open_requests",
+                    "currency",
+                    "generated_at",
+                    "recent_orders"
+                ],
+                "title": "CustomerDashboardResource"
             },
             "CustomerRequestRequest": {
                 "type": "object",
