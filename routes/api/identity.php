@@ -4,10 +4,13 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingProfileController;
 use App\Http\Controllers\Api\V1\CustomerDashboardController;
 use App\Http\Controllers\Api\V1\CustomerRequestController;
+use App\Http\Controllers\Api\V1\FirebaseAuthController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\SavedProductController;
 use App\Http\Controllers\Api\V1\SessionController;
 use Illuminate\Support\Facades\Route;
+
+Route::post('auth/firebase/login', [FirebaseAuthController::class, 'login'])->middleware('throttle:otp-verify');
 
 Route::prefix('auth/otp')->group(function (): void {
     Route::post('request', [AuthController::class, 'requestOtp'])->middleware('throttle:otp-request');
