@@ -1426,6 +1426,39 @@
                 }
             }
         },
+        "/v1/auth/firebase/login": {
+            "post": {
+                "operationId": "firebaseAuth.login",
+                "tags": [
+                    "FirebaseAuth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FirebaseLoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/addresses/resolve": {
             "get": {
                 "operationId": "v1.mapAddress",
@@ -4401,6 +4434,51 @@
                     "updated_at"
                 ],
                 "title": "CustomerRequestResource"
+            },
+            "FirebaseLoginRequest": {
+                "type": "object",
+                "properties": {
+                    "id_token": {
+                        "type": "string",
+                        "maxLength": 12000
+                    },
+                    "device_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 100
+                    },
+                    "consents": {
+                        "type": "object",
+                        "properties": {
+                            "terms_version": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "maxLength": 20
+                            },
+                            "privacy_version": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ],
+                                "maxLength": 20
+                            },
+                            "marketing": {
+                                "type": [
+                                    "boolean",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "id_token"
+                ],
+                "title": "FirebaseLoginRequest"
             },
             "MapAddressResource": {
                 "type": "object",
