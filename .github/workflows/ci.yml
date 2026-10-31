@@ -25,5 +25,11 @@ jobs:
         run: composer audit
       - name: Code style
         run: composer lint
+      - name: Generate OpenAPI contract for PR (diagnostic, temporary)
+        run: |
+          composer openapi
+          echo 'OPENAPI_EXPORT_BEGIN'
+          base64 -w0 docs/api/openapi.json | fold -w 480 | sed 's/^/OPENAPI_CHUNK:/'
+          echo 'OPENAPI_EXPORT_END'
       - name: Tests (includes the check that docs/api/openapi.json matches the code)
         run: php artisan test
