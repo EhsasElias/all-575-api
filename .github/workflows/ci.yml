@@ -27,6 +27,8 @@ jobs:
         run: composer lint
       - name: Generate OpenAPI contract for PR (diagnostic, temporary)
         run: |
+          touch database/database.sqlite
+          php artisan migrate --force
           composer openapi
           echo 'OPENAPI_EXPORT_BEGIN'
           base64 -w0 docs/api/openapi.json | fold -w 480 | sed 's/^/OPENAPI_CHUNK:/'
