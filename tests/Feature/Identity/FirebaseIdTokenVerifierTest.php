@@ -12,7 +12,7 @@ class FirebaseIdTokenVerifierTest extends TestCase
 {
     private \OpenSSLAsymmetricKey $key;
 
-    private string $certificate;
+    private string $certificate = '';
 
     protected function setUp(): void
     {
