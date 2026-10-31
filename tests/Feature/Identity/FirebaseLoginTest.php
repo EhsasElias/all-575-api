@@ -85,7 +85,8 @@ class FirebaseLoginTest extends TestCase
 
     public function test_never_changes_an_existing_firebase_binding_to_another_uid(): void
     {
-        User::factory()->create(['email' => 'customer@example.com', 'firebase_uid' => 'uid-previous', 'email_verified_at' => now()]);
+        $user = User::factory()->create(['email' => 'customer@example.com', 'email_verified_at' => now()]);
+        $user->forceFill(['firebase_uid' => 'uid-previous'])->save();
 
         $this->postJson('/api/v1/auth/firebase/login', $this->requestBody())
             ->assertStatus(409)->assertJsonPath('code', 'account_link_required');
