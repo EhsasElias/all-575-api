@@ -20,8 +20,9 @@ class LoginWithFirebase
         private readonly AuditLogger $audit,
     ) {}
 
-    /** @param array{uid: string, email: string} $identity
-     *  @param array{terms_version?: string, privacy_version?: string, marketing?: bool}|null $consents
+    /**
+     * @param  array{uid: string, email: string}  $identity
+     * @param  array{terms_version?: string, privacy_version?: string, marketing?: bool}|null  $consents
      */
     public function handle(array $identity, string $deviceName, string $locale, ?array $consents, ?string $ip): VerifiedLogin
     {
@@ -43,7 +44,7 @@ class LoginWithFirebase
 
             $isNewUser = $user === null;
 
-            if ($isNewUser || ! $user->hasAcceptedCurrentLegalVersions()) {
+            if ($isNewUser || $user->hasAcceptedCurrentLegalVersions() === false) {
                 if (($consents['terms_version'] ?? null) !== config('store.terms_version')
                     || ($consents['privacy_version'] ?? null) !== config('store.privacy_version')) {
                     throw new DomainRuleViolation('consent_required', 'Accept the current Terms and Privacy Policy to continue.', 422, [
@@ -60,7 +61,7 @@ class LoginWithFirebase
                 'is_active' => true,
             ]);
 
-            if (! $user->is_active) {
+            if ($user->is_active === false) {
                 throw new DomainRuleViolation('account_inactive', 'This account is not active.', 403);
             }
 
