@@ -10,6 +10,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -23,7 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'ability' => CheckForAnyAbility::class,
             'active' => EnsureActiveUser::class,
         ]);
-        $middleware->api(prepend: [SetApiLocale::class], append: [SecurityHeaders::class]);
+        $middleware->prepend(SecurityHeaders::class);
+        $middleware->api(prepend: [SetApiLocale::class]);
 
         // Behind a load balancer the client address comes from X-Forwarded-For, and rate limits are keyed by it.
         // Trust nothing by default; list the proxy addresses (or '*' if the platform guarantees the edge) in TRUSTED_PROXIES.
@@ -36,6 +38,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn (Request $request): ?string => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash(['code', 'destination']);
+        $exceptions->respond(fn (Response $response, Throwable $exception, Request $request): Response => SecurityHeaders::apply($request, $response));
         $exceptions->shouldRenderJsonWhen(fn (Request $request) => true);
 
         $exceptions->render(function (DomainRuleViolation $e) {

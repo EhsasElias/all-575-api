@@ -41,6 +41,8 @@ Rules worth knowing:
 
 ## Before production
 
+Run `php artisan security:check` after caching production configuration. This read-only command fails on local/debug settings, log OTP, fake payments, unsafe CORS, missing app key, insecure app URL, unbounded sessions or a non-persistent rate-limit cache. It does not certify configured providers, VPS security or checkout readiness. API headers now also cover errors and preflight; OTP/auth/personal/error responses are not cacheable, and HTTPS production API responses set HSTS. See the frontend [web security guide](https://github.com/EhsasElias/all-575-android/blob/v2/docs/customer/WEB_SECURITY.md) for website headers and manual deployment acceptance.
+
 These are intentionally unconfigured and refuse to work until decided (decisions D-02, D-03, D-04 and D-09):
 SMS/email provider (D-03), payment gateway (D-02), VAT/invoice model (D-04), delivery slot model (D-09).
 Also set `TRUSTED_PROXIES`, `CORS_ALLOWED_ORIGINS`, a real database, and `APP_DEBUG=false`.
