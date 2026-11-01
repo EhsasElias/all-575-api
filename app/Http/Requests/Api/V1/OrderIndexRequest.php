@@ -14,6 +14,12 @@ class OrderIndexRequest extends FormRequest
             'q' => ['nullable', 'string', 'max:80'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', Rule::when($this->filled('from'), 'after_or_equal:from')],
+            'product' => ['nullable', 'string', 'max:120'],
+            'seller' => ['nullable', 'string', 'max:120'],
+            'branch' => ['nullable', 'string', 'max:120'],
+            'payment_method' => ['nullable', 'in:mada,visa,mastercard,apple_pay,sadad,cash_on_delivery'],
+            'min_price' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
+            'max_price' => ['nullable', 'numeric', 'min:0', 'max:999999999', Rule::when($this->filled('min_price'), 'gte:min_price')],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];
     }
