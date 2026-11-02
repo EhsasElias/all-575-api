@@ -17,6 +17,7 @@ class SellerWorkspaceTest extends TestCase
     {
         $this->getJson('/api/v1/seller/orders')->assertUnauthorized();
         $this->getJson('/api/v1/seller/dashboard')->assertUnauthorized();
+        $this->getJson('/api/v1/seller/branches')->assertUnauthorized();
         $this->getJson('/api/v1/seller/products')->assertUnauthorized();
         $this->getJson('/api/v1/seller/stock')->assertUnauthorized();
 
@@ -24,6 +25,7 @@ class SellerWorkspaceTest extends TestCase
         $this->actingAsCustomer($customer);
         $this->getJson('/api/v1/seller/orders')->assertForbidden();
         $this->getJson('/api/v1/seller/dashboard')->assertForbidden();
+        $this->getJson('/api/v1/seller/branches')->assertForbidden();
         $this->getJson('/api/v1/seller/products')->assertForbidden();
         $this->getJson('/api/v1/seller/stock')->assertForbidden();
     }
@@ -35,6 +37,7 @@ class SellerWorkspaceTest extends TestCase
 
         $this->getJson('/api/v1/seller/orders')->assertOk()->assertJsonCount(0, 'data');
         $this->getJson('/api/v1/seller/dashboard')->assertOk()->assertJsonPath('data.preparing', 0);
+        $this->getJson('/api/v1/seller/branches')->assertOk()->assertJsonCount(0, 'data');
         $this->getJson('/api/v1/seller/products')->assertOk()->assertJsonCount(0, 'data');
         $this->getJson('/api/v1/seller/stock')->assertOk()->assertJsonCount(0, 'data');
         $this->patchJson('/api/v1/seller/orders/01JXXXXXXXXXXXXXXX00000000/status', [
