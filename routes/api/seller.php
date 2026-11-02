@@ -2,7 +2,14 @@
 
 use App\Http\Controllers\Api\V1\SellerWorkspaceController;
 use App\Http\Controllers\Api\V1\SellerAccessController;
+use App\Http\Controllers\Api\V1\SellerApplicationController;
 use Illuminate\Support\Facades\Route;
+
+Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
+    Route::get('seller/application', [SellerApplicationController::class, 'show']);
+    Route::put('seller/application', [SellerApplicationController::class, 'save']);
+    Route::post('seller/application/submit', [SellerApplicationController::class, 'submit']);
+});
 
 Route::get('seller/memberships', [SellerAccessController::class, 'memberships'])
     ->middleware(['auth:sanctum', 'abilities:customer', 'active']);
