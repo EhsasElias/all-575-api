@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Domain\Finance\TwoPersonApproval;
 use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -17,6 +18,8 @@ final class TwoPersonApprovalTest extends TestCase
     public function test_same_person_cannot_approve_twice(): void
     {
         $user = User::factory()->create();
+        $this->grant($user->id, 'first');
+        $this->grant($user->id, 'second');
         $service = app(TwoPersonApproval::class);
         $id = $service->request('refund_allocation', 'test-reference-one', $user->id);
 
@@ -28,6 +31,8 @@ final class TwoPersonApprovalTest extends TestCase
     {
         $first = User::factory()->create();
         $second = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->grant($second->id, 'second');
         $service = app(TwoPersonApproval::class);
         $id = $service->request('refund_allocation', 'test-reference-two', $first->id);
 
@@ -41,5 +46,22 @@ final class TwoPersonApprovalTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $service->approve($id, $second->id);
+    }
+    public function test_ungranted_user_cannot_create_approval(): void
+    {
+        $user = User::factory()->create();
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        app(TwoPersonApproval::class)->request('refund_allocation', 'ungranted', $user->id);
+    }
+
+    private function grant(int $userId, string $role): void
+    {
+        DB::table('finance_approver_grants')->insert([
+            'user_id' => $userId,
+            'role' => $role,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }
