@@ -16,10 +16,12 @@ class SellerWorkspaceTest extends TestCase
     public function test_seller_endpoints_require_a_seller_token(): void
     {
         $this->getJson('/api/v1/seller/orders')->assertUnauthorized();
+        $this->getJson('/api/v1/seller/dashboard')->assertUnauthorized();
 
         $customer = User::factory()->create();
         $this->actingAsCustomer($customer);
         $this->getJson('/api/v1/seller/orders')->assertForbidden();
+        $this->getJson('/api/v1/seller/dashboard')->assertForbidden();
     }
 
     public function test_seller_token_without_an_approved_staff_membership_sees_nothing(): void
@@ -28,6 +30,7 @@ class SellerWorkspaceTest extends TestCase
         Sanctum::actingAs($user, ['seller']);
 
         $this->getJson('/api/v1/seller/orders')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/v1/seller/dashboard')->assertOk()->assertJsonPath('data.preparing', 0);
         $this->patchJson('/api/v1/seller/orders/01JXXXXXXXXXXXXXXX00000000/status', [
             'status' => 'preparing',
         ])->assertNotFound();
