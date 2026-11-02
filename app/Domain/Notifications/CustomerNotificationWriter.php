@@ -15,8 +15,9 @@ final class CustomerNotificationWriter
     public function orderPlaced(int $userId, int $orderId): void
     {
         try {
-            DB::table('customer_notifications')->insert([
+            DB::table('customer_notifications')->insertOrIgnore([
                 'user_id' => $userId,
+                'source_order_id' => $orderId,
                 'type' => 'order_placed',
                 'title' => 'تم استلام طلبك',
                 'message' => 'تم تسجيل طلبك بنجاح. يمكنك متابعة حالته من صفحة طلباتي.',
