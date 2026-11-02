@@ -74,6 +74,47 @@ final class SellerReturnController extends Controller
         return response()->json(['data' => $result]);
     }
 
+    public function respond(Request $request, string $case): JsonResponse
+    {
+        $input = $request->validate([
+            'position' => ['required', Rule::in(['accept', 'dispute'])],
+            'explanation' => ['required', 'string', 'min:10', 'max:2000'],
+        ]);
+
+        $result = DB::transaction(function () use ($request, $case, $input): array {
+            $visible = $this->visibleCases($request)
+                ->where('customer_cases.id', $case)
+                ->whereIn('customer_cases.status', ['submitted', 'in_review'])
+                ->select('customer_cases.id', 'customer_cases.status', 'suborders.seller_id')
+                ->firstOrFail();
+
+            $locked = DB::table('customer_cases')->where('id', $visible->id)
+                ->lockForUpdate()->first();
+            abort_if($locked === null || ! in_array($locked->status, ['submitted', 'in_review'], true),
+                409, 'The return is no longer open for seller responses.');
+
+            // One recorded position per seller/case; no overwrites or hidden revisions.
+            abort_if(DB::table('seller_case_responses')
+                ->where('customer_case_id', $case)
+                ->where('seller_id', $visible->seller_id)
+                ->exists(), 409, 'A seller response already exists.');
+
+            $id = DB::table('seller_case_responses')->insertGetId([
+                'customer_case_id' => $case,
+                'seller_id' => $visible->seller_id,
+                'user_id' => $request->user()->id,
+                'position' => $input['position'],
+                'explanation' => $input['explanation'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return ['id' => $id, 'case_id' => $case, 'position' => $input['position']];
+        }, 3);
+
+        return response()->json(['data' => $result], 201);
+    }
+
     private function visibleCases(Request $request): \Illuminate\Database\Query\Builder
     {
         return DB::table('customer_cases')
