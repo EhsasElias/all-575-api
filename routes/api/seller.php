@@ -4,6 +4,9 @@ use App\Http\Controllers\Api\V1\SellerWorkspaceController;
 use App\Http\Controllers\Api\V1\SellerAccessController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('seller/memberships', [SellerAccessController::class, 'memberships'])
+    ->middleware(['auth:sanctum', 'abilities:customer', 'active']);
+
 Route::post('seller/session', [SellerAccessController::class, 'issue'])
     ->middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:10,1']);
 
