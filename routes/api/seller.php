@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\SellerStockAdjustmentController;
 use App\Http\Controllers\Api\V1\SellerProductDraftController;
 use App\Http\Controllers\Api\V1\SellerProductVariantController;
 use App\Http\Controllers\Api\V1\SellerProductImageController;
+use App\Http\Controllers\Api\V1\SellerCatalogImportController;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
     Route::get('seller/application', [SellerApplicationController::class, 'show']);
@@ -26,6 +27,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
     ->prefix('seller')->group(function (): void {
         Route::get('branches', [SellerCatalogWorkspaceController::class, 'branches']);
         Route::get('products', [SellerCatalogWorkspaceController::class, 'products']);
+        Route::post('products/import', SellerCatalogImportController::class)->middleware('throttle:5,1');
         Route::post('products', [SellerProductDraftController::class, 'store'])->middleware('throttle:30,1');
         Route::patch('products/{product}', [SellerProductDraftController::class, 'update'])->whereNumber('product');
         Route::post('products/{product}/submit', [SellerProductDraftController::class, 'submit'])->whereNumber('product');
