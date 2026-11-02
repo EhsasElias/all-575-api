@@ -27,6 +27,14 @@ final class RefundAllocationFingerprintTest extends TestCase
         self::assertNotSame($fingerprint->hash('refund-1', $one), $fingerprint->hash('refund-1', $changed));
     }
 
+    public function test_whitespace_only_suborder_id_is_rejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new RefundAllocationFingerprint())->hash('refund-1', [
+            ['suborder_id' => '   ', 'seller_id' => 1, 'amount_halalas' => 200],
+        ]);
+    }
+
     public function test_different_refund_has_different_fingerprint(): void
     {
         $fingerprint = new RefundAllocationFingerprint();
