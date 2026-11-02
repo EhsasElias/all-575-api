@@ -34,9 +34,25 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
     {
         $reviewer = User::factory()->create();
         $this->grant($reviewer->id, 'second');
+        $this->actingAs($reviewer);
 
         $this->expectException(InvalidArgumentException::class);
         app(RecordRefundAllocations::class)->record('01K00000000000000000000002', $this->allocation(), $reviewer->id);
+    }
+
+    public function test_executor_cannot_impersonate_another_finance_approver(): void
+    {
+        $reviewer = User::factory()->create();
+        $outsider = User::factory()->create();
+        $this->grant($reviewer->id, 'second');
+        $this->actingAs($outsider);
+
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        app(RecordRefundAllocations::class)->record(
+            '01K00000000000000000000009',
+            $this->allocation(),
+            $reviewer->id
+        );
     }
 
     public function test_execution_rejects_approved_request_with_changed_amount(): void
@@ -45,6 +61,7 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         $second = User::factory()->create();
         $this->grant($first->id, 'first');
         $this->grant($second->id, 'second');
+        $this->actingAs($second);
         $refundId = '01K00000000000000000000003';
         $allocation = $this->allocation();
         $hash = app(RefundAllocationFingerprint::class)->hash($refundId, $allocation);
