@@ -68,6 +68,37 @@ final class TwoPersonApproval
             ]);
         }, 3);
     }
+    public function reject(int $requestId, int $reviewerId, string $reason): void
+    {
+        $reason = trim($reason);
+        if ($requestId < 1 || $reviewerId < 1 || mb_strlen($reason) < 10 || mb_strlen($reason) > 2000) {
+            throw ValidationException::withMessages(['reason' => 'Provide a rejection reason of 10 to 2000 characters.']);
+        }
+
+        $this->requireGrant($reviewerId, 'second');
+
+        DB::transaction(function () use ($requestId, $reviewerId, $reason): void {
+            $approval = DB::table('finance_approval_requests')
+                ->where('id', $requestId)->lockForUpdate()->first();
+
+            if ($approval === null || $approval->status !== 'pending_second_approval') {
+                throw ValidationException::withMessages(['approval' => 'Request is unavailable or already closed.']);
+            }
+
+            if ((int) $approval->first_approver_id === $reviewerId) {
+                throw ValidationException::withMessages(['approval' => 'A different reviewer is required.']);
+            }
+
+            DB::table('finance_approval_requests')->where('id', $requestId)->update([
+                'status' => 'rejected',
+                'rejected_by' => $reviewerId,
+                'rejected_at' => now(),
+                'rejection_reason' => $reason,
+                'updated_at' => now(),
+            ]);
+        }, 3);
+    }
+
     private function requireGrant(int $userId, string $role): void
     {
         abort_unless(DB::table('finance_approver_grants')
