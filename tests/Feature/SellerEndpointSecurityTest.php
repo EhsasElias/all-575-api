@@ -22,6 +22,7 @@ final class SellerEndpointSecurityTest extends TestCase
             ['post', '/api/v1/seller/products/import'],
             ['patch', '/api/v1/seller/stock/1'],
             ['patch', '/api/v1/seller/staff/1/deactivate'],
+            ['post', '/api/v1/seller/returns/01ARZ3NDEKTSV4RRFFQ69G5FAV/response'],
         ];
 
         foreach ($endpoints as [$method, $uri]) {
