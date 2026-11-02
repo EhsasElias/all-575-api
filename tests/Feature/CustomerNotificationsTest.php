@@ -54,6 +54,31 @@ class CustomerNotificationsTest extends TestCase
         $this->assertDatabaseCount('customer_notifications', 1);
     }
 
+    public function test_mark_all_only_updates_current_customer_and_is_repeatable(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+
+        foreach ([$owner, $other] as $customer) {
+            DB::table('customer_notifications')->insert([
+                'user_id' => $customer->id,
+                'type' => 'test',
+                'title' => 'Test',
+                'message' => 'Notice',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $this->actingAsCustomer($owner);
+        $this->patchJson('/api/v1/me/notifications/read-all')->assertOk();
+        $this->patchJson('/api/v1/me/notifications/read-all')->assertOk();
+
+        $this->assertDatabaseCount('customer_notifications', 2);
+        $this->assertSame(0, DB::table('customer_notifications')->where('user_id', $owner->id)->whereNull('read_at')->count());
+        $this->assertSame(1, DB::table('customer_notifications')->where('user_id', $other->id)->whereNull('read_at')->count());
+    }
+
     public function test_cursor_and_page_size_are_bounded(): void
     {
         $user = $this->actingAsCustomer();
