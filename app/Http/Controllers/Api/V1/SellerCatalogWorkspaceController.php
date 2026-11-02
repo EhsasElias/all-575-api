@@ -9,6 +9,31 @@ use Illuminate\Support\Facades\DB;
 
 class SellerCatalogWorkspaceController extends Controller
 {
+    public function branches(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $branches = DB::table('branches')
+            ->join('sellers', 'sellers.id', '=', 'branches.seller_id')
+            ->where('sellers.status', 'approved')
+            ->whereExists(function ($query) use ($userId): void {
+                $query->selectRaw('1')->from('seller_staff_access')
+                    ->whereColumn('seller_staff_access.seller_id', 'branches.seller_id')
+                    ->where('seller_staff_access.user_id', $userId)
+                    ->where('seller_staff_access.is_active', true)
+                    ->whereIn('seller_staff_access.role', ['owner', 'branch_manager', 'picker'])
+                    ->where(function ($scope): void {
+                        $scope->whereNull('seller_staff_access.branch_id')
+                            ->orWhereColumn('seller_staff_access.branch_id', 'branches.id');
+                    });
+            })
+            ->select('branches.id', 'branches.seller_id', 'branches.code',
+                'branches.name_ar', 'branches.name_en', 'branches.is_active')
+            ->orderBy('branches.id')->limit(100)->get();
+
+        return response()->json(['data' => $branches]);
+    }
+
     public function products(Request $request): JsonResponse
     {
         $userId = $request->user()->id;
