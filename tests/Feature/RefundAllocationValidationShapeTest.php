@@ -7,13 +7,14 @@ namespace Tests\Feature;
 use App\Domain\Finance\RefundAllocationValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 final class RefundAllocationValidationShapeTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @dataProvider invalidAllocations */
+    #[DataProvider('invalidAllocations')]
     public function test_malformed_allocation_is_rejected_before_refund_lookup(array $allocations): void
     {
         try {
