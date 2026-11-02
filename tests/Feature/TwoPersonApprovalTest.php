@@ -224,6 +224,39 @@ final class TwoPersonApprovalTest extends TestCase
         ]);
     }
 
+    public function test_revoking_first_approver_blocks_second_rejection(): void
+    {
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->grant($second->id, 'second');
+
+        $this->actingAs($first);
+        $id = app(TwoPersonApproval::class)->request(
+            'refund_allocation', 'revoked-first-before-rejection', $first->id, hash('sha256', 'fixture')
+        );
+
+        DB::table('finance_approver_grants')
+            ->where('user_id', $first->id)
+            ->where('role', 'first')
+            ->update(['is_active' => false]);
+
+        $this->actingAs($second);
+        try {
+            app(TwoPersonApproval::class)->reject($id, $second->id, 'Supporting documents are insufficient.');
+            self::fail('Revoked first approver must block rejection.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+            self::assertSame(403, $exception->getStatusCode());
+        }
+
+        $this->assertDatabaseHas('finance_approval_requests', [
+            'id' => $id, 'status' => 'pending_second_approval',
+        ]);
+        $this->assertDatabaseMissing('finance_audit_events', [
+            'approval_request_id' => $id, 'action' => 'approval_rejected',
+        ]);
+    }
+
     private function grant(int $userId, string $role): void
     {
         DB::table('finance_approver_grants')->insert([
