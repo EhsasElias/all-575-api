@@ -94,6 +94,49 @@ class SellerWorkspaceController extends Controller
         ])->all()]);
     }
 
+    public function exportOrders(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $filters = $request->validate([
+            'status' => ['sometimes', Rule::in(array_map(
+                fn (SuborderStatus $status): string => $status->value,
+                SuborderStatus::cases()
+            ))],
+            'branch_id' => ['sometimes', 'integer', 'min:1'],
+            'from' => ['sometimes', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
+        ]);
+
+        $query = $this->scopedOrders($request)
+            ->whereHas('order', fn ($orders) => $orders->whereIn('status', ['confirmed', 'completed']))
+            ->with('order:id,number,placed_at');
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+        if (isset($filters['branch_id'])) {
+            $query->where('branch_id', $filters['branch_id']);
+        }
+        if (isset($filters['from'])) {
+            $query->whereHas('order', fn ($orders) => $orders->whereDate('placed_at', '>=', $filters['from']));
+        }
+        if (isset($filters['to'])) {
+            $query->whereHas('order', fn ($orders) => $orders->whereDate('placed_at', '<=', $filters['to']));
+        }
+
+        return response()->streamDownload(static function () use ($query): void {
+            $handle = fopen('php://output', 'wb');
+            fputcsv($handle, ['Order number', 'Status', 'Branch ID', 'Placed at']);
+            foreach ($query->orderByDesc('id')->limit(5000)->cursor() as $suborder) {
+                fputcsv($handle, [
+                    $suborder->order->number,
+                    $suborder->status->value,
+                    $suborder->branch_id,
+                    $suborder->order->placed_at,
+                ]);
+            }
+            fclose($handle);
+        }, 'seller-orders.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
     public function advance(Request $request, string $suborder, SuborderTransitions $transitions): JsonResponse
     {
         $validated = $request->validate([
