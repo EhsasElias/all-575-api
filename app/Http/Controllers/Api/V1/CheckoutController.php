@@ -10,6 +10,7 @@ use App\Http\Resources\OrderDetailResource;
 use App\Http\Resources\PaymentResource;
 use App\Http\Support\OrderPresenter;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class CheckoutController extends Controller
 {
@@ -32,6 +33,18 @@ class CheckoutController extends Controller
             $request->input('notes'),
             $request->input('purchase_order_reference'),
         ));
+
+        if (! $placed->replayed) {
+            DB::table('customer_notifications')->insert([
+                'user_id' => $request->user()->id,
+                'type' => 'order_placed',
+                'title' => 'تم استلام طلبك',
+                'message' => 'تم تسجيل طلبك بنجاح. يمكنك متابعة حالته من صفحة طلباتي.',
+                'target_path' => '/orders',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         return response()->json(['data' => [
             'order' => (new OrderDetailResource($orders->load($placed->order)))->resolve($request),
