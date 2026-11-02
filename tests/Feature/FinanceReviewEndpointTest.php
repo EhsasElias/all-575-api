@@ -56,6 +56,30 @@ final class FinanceReviewEndpointTest extends TestCase
             ->assertJsonFragment(['action' => 'approval_granted', 'actor_user_id' => $second->id]);
     }
 
+    public function test_revoking_finance_grant_immediately_blocks_approval_and_audit_reads(): void
+    {
+        $reviewer = User::factory()->create();
+
+        DB::table('finance_approver_grants')->insert([
+            'user_id' => $reviewer->id,
+            'role' => 'second',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($reviewer);
+        $this->getJson('/api/v1/finance/approvals')->assertOk();
+
+        DB::table('finance_approver_grants')
+            ->where('user_id', $reviewer->id)
+            ->where('role', 'second')
+            ->update(['is_active' => false]);
+
+        $this->getJson('/api/v1/finance/approvals')->assertForbidden();
+        $this->getJson('/api/v1/finance/approvals/1/audit')->assertForbidden();
+    }
+
     public function test_authenticated_user_without_finance_grant_cannot_read_approvals(): void
     {
         $this->actingAs(User::factory()->create());
