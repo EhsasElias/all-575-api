@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\SellerSettlementReadinessController;
 use App\Http\Controllers\Api\V1\SellerCommissionRateController;
 use App\Http\Controllers\Api\V1\SellerCommissionPreviewController;
 use App\Http\Controllers\Api\V1\SellerSettlementPreviewController;
+use App\Http\Controllers\Api\V1\SellerRefundAllocationController;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
     Route::get('seller/application', [SellerApplicationController::class, 'show']);
@@ -64,6 +65,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('finance/commission-rates', SellerCommissionRateController::class)->middleware('throttle:20,1');
         Route::get('finance/commission-preview', SellerCommissionPreviewController::class)->middleware('throttle:10,1');
         Route::get('finance/settlement-preview', SellerSettlementPreviewController::class)->middleware('throttle:10,1');
+        Route::get('finance/refund-allocations', SellerRefundAllocationController::class)->middleware('throttle:20,1');
         Route::get('orders/{suborder}/packing-list', [SellerWorkspaceController::class, 'packingList'])->whereUlid('suborder');
         Route::get('orders/export.csv', [SellerWorkspaceController::class, 'exportOrders'])->middleware('throttle:10,1');
         Route::get('orders/{suborder}', [SellerWorkspaceController::class, 'showOrder'])->whereUlid('suborder');
