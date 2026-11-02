@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\SellerProductImageController;
 use App\Http\Controllers\Api\V1\SellerCatalogImportController;
 use App\Http\Controllers\Api\V1\SellerStaffController;
 use App\Http\Controllers\Api\V1\SellerReturnController;
+use App\Http\Controllers\Api\V1\SellerFinanceController;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
     Route::get('seller/application', [SellerApplicationController::class, 'show']);
@@ -52,6 +53,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('dashboard', [SellerWorkspaceController::class, 'dashboard']);
         Route::get('orders', [SellerWorkspaceController::class, 'orders']);
         Route::get('reports/sales', [SellerWorkspaceController::class, 'salesSummary'])->middleware('throttle:30,1');
+        Route::get('finance/summary', [SellerFinanceController::class, 'summary'])->middleware('throttle:20,1');
         Route::get('orders/{suborder}/packing-list', [SellerWorkspaceController::class, 'packingList'])->whereUlid('suborder');
         Route::get('orders/export.csv', [SellerWorkspaceController::class, 'exportOrders'])->middleware('throttle:10,1');
         Route::get('orders/{suborder}', [SellerWorkspaceController::class, 'showOrder'])->whereUlid('suborder');
