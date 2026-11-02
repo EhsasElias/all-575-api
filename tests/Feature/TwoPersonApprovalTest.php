@@ -54,6 +54,26 @@ final class TwoPersonApprovalTest extends TestCase
         app(TwoPersonApproval::class)->request('refund_allocation', 'ungranted', $user->id);
     }
 
+    public function test_second_reviewer_can_reject_with_reason(): void
+    {
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->grant($second->id, 'second');
+        $service = app(TwoPersonApproval::class);
+        $id = $service->request('refund_allocation', 'rejected-ref', $first->id);
+
+        $service->reject($id, $second->id, 'Missing supporting evidence for the refund.');
+        $this->assertDatabaseHas('finance_approval_requests', [
+            'id' => $id,
+            'status' => 'rejected',
+            'rejected_by' => $second->id,
+        ]);
+
+        $this->expectException(ValidationException::class);
+        $service->approve($id, $second->id);
+    }
+
     private function grant(int $userId, string $role): void
     {
         DB::table('finance_approver_grants')->insert([
