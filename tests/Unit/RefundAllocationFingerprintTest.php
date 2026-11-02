@@ -35,6 +35,23 @@ final class RefundAllocationFingerprintTest extends TestCase
         ]);
     }
 
+    public function test_duplicate_suborder_is_rejected_before_approval(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new RefundAllocationFingerprint())->hash('refund-1', [
+            ['suborder_id' => 'a', 'seller_id' => 1, 'amount_halalas' => 200],
+            ['suborder_id' => 'a', 'seller_id' => 1, 'amount_halalas' => 100],
+        ]);
+    }
+
+    public function test_whitespace_only_refund_id_is_rejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new RefundAllocationFingerprint())->hash('   ', [
+            ['suborder_id' => 'a', 'seller_id' => 1, 'amount_halalas' => 200],
+        ]);
+    }
+
     public function test_different_refund_has_different_fingerprint(): void
     {
         $fingerprint = new RefundAllocationFingerprint();
