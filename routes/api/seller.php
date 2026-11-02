@@ -9,6 +9,7 @@ Route::post('seller/session', [SellerAccessController::class, 'issue'])
 
 Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
     ->prefix('seller')->group(function (): void {
+        Route::get('dashboard', [SellerWorkspaceController::class, 'dashboard']);
         Route::get('orders', [SellerWorkspaceController::class, 'orders']);
         Route::patch('orders/{suborder}/status', [SellerWorkspaceController::class, 'advance']);
     });
