@@ -34,6 +34,8 @@ final class SellerEndpointSecurityTest extends TestCase
         foreach ([
             '/api/v1/seller/dashboard',
             '/api/v1/seller/staff?seller_id=1',
+            '/api/v1/seller/returns',
+            '/api/v1/seller/returns/01ARZ3NDEKTSV4RRFFQ69G5FAV',
             '/api/v1/seller/products',
             '/api/v1/seller/stock',
             '/api/v1/seller/orders',
