@@ -32,7 +32,7 @@ final class TwoPersonApproval
                 throw ValidationException::withMessages(['approval' => 'Request already exists.']);
             }
 
-            return DB::table('finance_approval_requests')->insertGetId([
+            $id = DB::table('finance_approval_requests')->insertGetId([
                 'operation' => $operation,
                 'reference' => $reference,
                 'payload_hash' => $payloadHash,
@@ -42,6 +42,10 @@ final class TwoPersonApproval
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            $this->audit($id, $approverId, 'approval_requested', $payloadHash);
+
+            return $id;
         }, 3);
     }
 
@@ -71,6 +75,7 @@ final class TwoPersonApproval
                 'second_approved_at' => now(),
                 'updated_at' => now(),
             ]);
+            $this->audit($requestId, $secondApproverId, 'approval_granted', $approval->payload_hash);
         }, 3);
     }
     public function reject(int $requestId, int $reviewerId, string $reason): void
@@ -101,7 +106,19 @@ final class TwoPersonApproval
                 'rejection_reason' => $reason,
                 'updated_at' => now(),
             ]);
+            $this->audit($requestId, $reviewerId, 'approval_rejected', $approval->payload_hash);
         }, 3);
+    }
+
+    private function audit(int $requestId, int $actorId, string $action, ?string $hash): void
+    {
+        DB::table('finance_audit_events')->insert([
+            'approval_request_id' => $requestId,
+            'actor_user_id' => $actorId,
+            'action' => $action,
+            'payload_hash' => $hash,
+            'occurred_at' => now(),
+        ]);
     }
 
     private function requireGrant(int $userId, string $role): void
