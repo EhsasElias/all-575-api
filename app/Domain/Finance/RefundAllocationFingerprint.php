@@ -10,11 +10,12 @@ final class RefundAllocationFingerprint
 {
     public function hash(string $refundId, array $allocations): string
     {
-        if ($refundId === '' || $allocations === []) {
+        if (trim($refundId) === '' || $allocations === []) {
             throw new InvalidArgumentException('Refund and allocations are required.');
         }
 
         $rows = [];
+        $seen = [];
         foreach ($allocations as $allocation) {
             if (! isset($allocation['suborder_id'], $allocation['seller_id'], $allocation['amount_halalas'])
                 || ! is_string($allocation['suborder_id'])
@@ -24,6 +25,11 @@ final class RefundAllocationFingerprint
                 || $allocation['seller_id'] <= 0 || $allocation['amount_halalas'] <= 0) {
                 throw new InvalidArgumentException('Invalid allocation data.');
             }
+            if (isset($seen[$allocation['suborder_id']])) {
+                throw new InvalidArgumentException('Duplicate suborder allocation.');
+            }
+            $seen[$allocation['suborder_id']] = true;
+
             $rows[] = [
                 'suborder_id' => $allocation['suborder_id'],
                 'seller_id' => $allocation['seller_id'],
