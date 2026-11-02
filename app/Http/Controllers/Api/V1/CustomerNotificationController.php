@@ -13,9 +13,16 @@ class CustomerNotificationController extends Controller
     {
         $userId = $request->user()->id;
         $query = DB::table('customer_notifications')->where('user_id', $userId);
+        $limit = min(max((int) $request->query('limit', 20), 1), 50);
+        $beforeId = filter_var($request->query('before_id'), FILTER_VALIDATE_INT);
+
+        $page = (clone $query);
+        if ($beforeId !== false && $beforeId > 0) {
+            $page->where('id', '<', $beforeId);
+        }
 
         return response()->json([
-            'data' => $query->orderByDesc('id')->limit(50)->get([
+            'data' => $page->orderByDesc('id')->limit($limit)->get([
                 'id', 'type', 'title', 'message', 'target_path', 'read_at', 'created_at',
             ]),
             'unread_count' => DB::table('customer_notifications')
