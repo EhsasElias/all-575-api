@@ -59,7 +59,12 @@ class SellerCatalogWorkspaceController extends Controller
     public function stock(Request $request): JsonResponse
     {
         $userId = $request->user()->id;
-        $limit = min(max((int) $request->query('limit', 20), 1), 50);
+        $validated = $request->validate([
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            'branch_id' => ['sometimes', 'integer', 'min:1'],
+            'low_stock_below' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
+        ]);
+        $limit = $validated['limit'] ?? 20;
 
         $stock = DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
@@ -79,6 +84,11 @@ class SellerCatalogWorkspaceController extends Controller
                             ->orWhereColumn('seller_staff_access.branch_id', 'branches.id');
                     });
             })
+            ->when(isset($validated['branch_id']), fn ($query) => $query->where('branches.id', $validated['branch_id']))
+            ->when(isset($validated['low_stock_below']), fn ($query) => $query->whereRaw(
+                '(branch_stock.on_hand - branch_stock.reserved) <= ?',
+                [$validated['low_stock_below']]
+            ))
             ->select('branch_stock.id', 'branch_stock.branch_id', 'branch_stock.variant_id',
                 'branch_stock.on_hand', 'branch_stock.reserved', 'product_variants.sku', 'products.name_ar',
                 'products.name_en')
