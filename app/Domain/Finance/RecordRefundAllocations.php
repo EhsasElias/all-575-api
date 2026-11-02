@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Finance;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use InvalidArgumentException;
 
 /**
@@ -23,6 +24,8 @@ final class RecordRefundAllocations
         if ($approverUserId < 1 || $allocations === []) {
             throw new InvalidArgumentException('Approver and allocations are required.');
         }
+
+        abort_unless(Auth::check() && (int) Auth::id() === $approverUserId, 403, 'Authenticated finance approver required.');
 
         return DB::transaction(function () use ($refundId, $allocations, $approverUserId): int {
             $approval = DB::table('finance_approval_requests')
