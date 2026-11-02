@@ -37,6 +37,8 @@ final class TwoPersonApprovalTest extends TestCase
         $id = $service->request('refund_allocation', 'test-reference-two', $first->id);
 
         $service->approve($id, $second->id);
+        $this->assertDatabaseHas('finance_audit_events', ['approval_request_id' => $id, 'actor_user_id' => $first->id, 'action' => 'approval_requested']);
+        $this->assertDatabaseHas('finance_audit_events', ['approval_request_id' => $id, 'actor_user_id' => $second->id, 'action' => 'approval_granted']);
         $this->assertDatabaseHas('finance_approval_requests', [
             'id' => $id,
             'status' => 'approved',
@@ -64,6 +66,7 @@ final class TwoPersonApprovalTest extends TestCase
         $id = $service->request('refund_allocation', 'rejected-ref', $first->id);
 
         $service->reject($id, $second->id, 'Missing supporting evidence for the refund.');
+        $this->assertDatabaseHas('finance_audit_events', ['approval_request_id' => $id, 'actor_user_id' => $second->id, 'action' => 'approval_rejected']);
         $this->assertDatabaseHas('finance_approval_requests', [
             'id' => $id,
             'status' => 'rejected',
