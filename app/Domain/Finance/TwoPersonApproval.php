@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Finance;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -28,6 +29,7 @@ final class TwoPersonApproval
             throw ValidationException::withMessages(['approval' => 'Invalid payload fingerprint.']);
         }
 
+        $this->requireAuthenticatedActor($approverId);
         $this->requireGrant($approverId, 'first');
 
         return DB::transaction(function () use ($operation, $reference, $approverId, $payloadHash): int {
@@ -59,6 +61,7 @@ final class TwoPersonApproval
             throw ValidationException::withMessages(['approval' => 'Invalid approval identifiers.']);
         }
 
+        $this->requireAuthenticatedActor($secondApproverId);
         $this->requireGrant($secondApproverId, 'second');
 
         DB::transaction(function () use ($requestId, $secondApproverId): void {
@@ -89,6 +92,7 @@ final class TwoPersonApproval
             throw ValidationException::withMessages(['reason' => 'Provide a rejection reason of 10 to 2000 characters.']);
         }
 
+        $this->requireAuthenticatedActor($reviewerId);
         $this->requireGrant($reviewerId, 'second');
 
         DB::transaction(function () use ($requestId, $reviewerId, $reason): void {
@@ -123,6 +127,11 @@ final class TwoPersonApproval
             'payload_hash' => $hash,
             'occurred_at' => now(),
         ]);
+    }
+
+    private function requireAuthenticatedActor(int $actorId): void
+    {
+        abort_unless(Auth::check() && (int) Auth::id() === $actorId, 403, 'Authenticated finance actor required.');
     }
 
     private function requireGrant(int $userId, string $role): void
