@@ -23,7 +23,7 @@ final class RefundAllocationValidator
             if (! is_array($allocation)
                 || ! isset($allocation['suborder_id'], $allocation['seller_id'], $allocation['amount_halalas'])
                 || ! is_string($allocation['suborder_id'])
-                || $allocation['suborder_id'] === ''
+                || trim($allocation['suborder_id']) === ''
                 || ! is_int($allocation['seller_id'])
                 || $allocation['seller_id'] < 1
                 || ! is_int($allocation['amount_halalas'])
