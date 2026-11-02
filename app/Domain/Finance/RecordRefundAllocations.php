@@ -40,6 +40,13 @@ final class RecordRefundAllocations
                 ->exists();
             abort_unless($authorized, 403, 'Finance execution permission is required.');
 
+            $firstApproverActive = $approval !== null && DB::table('finance_approver_grants')
+                ->where('user_id', $approval->first_approver_id)
+                ->where('role', 'first')
+                ->where('is_active', true)
+                ->exists();
+            abort_unless($firstApproverActive, 403, 'First finance approval is no longer authorized.');
+
             $digest = $this->fingerprint->hash($refundId, $allocations);
             if ($approval === null || $approval->status !== 'approved'
                 || $approval->payload_hash === null || ! hash_equals($approval->payload_hash, $digest)
