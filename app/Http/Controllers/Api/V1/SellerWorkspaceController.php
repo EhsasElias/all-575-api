@@ -7,6 +7,7 @@ use App\Domain\Orders\Models\Suborder;
 use App\Domain\Orders\Services\SuborderTransitions;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -14,21 +15,24 @@ use Illuminate\Validation\Rule;
 class SellerWorkspaceController extends Controller
 {
     /** Seller membership and branch restrictions are enforced in every query. */
-    private function scopedOrders(Request $request)
+    private function scopedOrders(Request $request): Builder
     {
         $userId = $request->user()->id;
 
         return Suborder::query()->whereHas('seller', fn ($seller) => $seller->approved())->whereIn('seller_id', function ($query) use ($userId): void {
             $query->select('seller_id')->from('seller_staff_access')
-                ->where('user_id', $userId)->where('is_active', true);
+                ->where('user_id', $userId)->where('is_active', true)
+                ->whereIn('role', ['owner', 'branch_manager', 'picker']);
         })->where(function ($query) use ($userId): void {
             $query->whereIn('branch_id', function ($memberships) use ($userId): void {
                 $memberships->select('branch_id')->from('seller_staff_access')
                     ->where('user_id', $userId)->where('is_active', true)
+                    ->whereIn('role', ['owner', 'branch_manager', 'picker'])
                     ->whereNotNull('branch_id')->whereColumn('seller_id', 'suborders.seller_id');
             })->orWhereExists(function ($memberships) use ($userId): void {
                 $memberships->selectRaw('1')->from('seller_staff_access')
                     ->where('user_id', $userId)->where('is_active', true)
+                    ->whereIn('role', ['owner', 'branch_manager', 'picker'])
                     ->whereNull('branch_id')->whereColumn('seller_id', 'suborders.seller_id');
             });
         });
@@ -36,10 +40,16 @@ class SellerWorkspaceController extends Controller
 
     public function orders(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            'before_id' => ['sometimes', 'ulid'],
+        ]);
+
         $orders = $this->scopedOrders($request)
             ->whereHas('order', fn ($query) => $query->whereIn('status', ['confirmed', 'completed']))
             ->with(['items', 'branch', 'order:id,number,status,placed_at,slot_starts_at'])
-            ->orderByDesc('created_at')->limit(50)->get();
+            ->when(isset($validated['before_id']), fn (Builder $query) => $query->where('id', '<', $validated['before_id']))
+            ->orderByDesc('id')->limit($validated['limit'] ?? 20)->get();
 
         return response()->json(['data' => $orders->map(fn (Suborder $suborder): array => [
             'id' => $suborder->id,
