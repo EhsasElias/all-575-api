@@ -4,15 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Orders\Actions\PlaceOrder;
 use App\Domain\Orders\Actions\PlaceOrderCommand;
+use App\Domain\Notifications\CustomerNotificationWriter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\CheckoutRequest;
 use App\Http\Resources\OrderDetailResource;
 use App\Http\Resources\PaymentResource;
 use App\Http\Support\OrderPresenter;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Throwable;
 
 class CheckoutController extends Controller
 {
@@ -24,7 +22,7 @@ class CheckoutController extends Controller
      *
      * @response array{data: array{order: OrderDetailResource, payment: ?PaymentResource, replayed: bool}}
      */
-    public function store(CheckoutRequest $request, PlaceOrder $placeOrder, OrderPresenter $orders): JsonResponse
+    public function store(CheckoutRequest $request, PlaceOrder $placeOrder, OrderPresenter $orders, CustomerNotificationWriter $notifications): JsonResponse
     {
         $placed = $placeOrder->handle(new PlaceOrderCommand(
             $request->user(),
@@ -37,22 +35,7 @@ class CheckoutController extends Controller
         ));
 
         if (! $placed->replayed) {
-            try {
-                DB::table('customer_notifications')->insert([
-                'user_id' => $request->user()->id,
-                'type' => 'order_placed',
-                'title' => 'تم استلام طلبك',
-                'message' => 'تم تسجيل طلبك بنجاح. يمكنك متابعة حالته من صفحة طلباتي.',
-                'target_path' => '/orders',
-                'created_at' => now(),
-                'updated_at' => now(),
-                ]);
-            } catch (Throwable $exception) {
-                Log::warning('Customer notification could not be recorded', [
-                    'order_id' => $placed->order->id,
-                    'exception' => $exception->getMessage(),
-                ]);
-            }
+            $notifications->orderPlaced($request->user()->id, $placed->order->id);
         }
 
         return response()->json(['data' => [
