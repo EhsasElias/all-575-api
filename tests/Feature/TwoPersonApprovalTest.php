@@ -99,8 +99,8 @@ final class TwoPersonApprovalTest extends TestCase
             ->where('user_id', $second->id)->where('role', 'second')
             ->update(['is_active' => false]);
 
-        try {
         $this->actingAs($second);
+        try {
             $service->approve($id, $second->id);
             self::fail('Revoked approver must be denied.');
         } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
@@ -143,7 +143,6 @@ final class TwoPersonApprovalTest extends TestCase
         $id = $service->request('refund_allocation', 'duplicate-ref', $first->id, hash('sha256', 'fixture'));
 
         try {
-        $this->actingAs($first);
             $service->request('refund_allocation', 'duplicate-ref', $first->id, hash('sha256', 'fixture'));
             self::fail('Duplicate request must be rejected.');
         } catch (ValidationException $exception) {
@@ -178,6 +177,17 @@ final class TwoPersonApprovalTest extends TestCase
             'spoofed-request',
             $first->id,
             hash('sha256', 'fixture')
+        );
+    }
+
+    public function test_unauthenticated_user_cannot_start_approval_even_with_grant(): void
+    {
+        $first = User::factory()->create();
+        $this->grant($first->id, 'first');
+
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        app(TwoPersonApproval::class)->request(
+            'refund_allocation', 'unauthenticated-ref', $first->id, hash('sha256', 'fixture')
         );
     }
 
