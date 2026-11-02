@@ -11,6 +11,8 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('type', 64);
+            $table->unsignedBigInteger('source_order_id')->nullable();
+            $table->unique(['user_id', 'type', 'source_order_id'], 'customer_notification_order_unique');
             $table->string('title', 180);
             $table->text('message');
             $table->string('target_path', 255)->nullable();
