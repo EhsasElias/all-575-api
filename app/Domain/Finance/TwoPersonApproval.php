@@ -110,6 +110,13 @@ final class TwoPersonApproval
                 throw ValidationException::withMessages(['approval' => 'Request is unavailable or already closed.']);
             }
 
+            $firstApproverAuthorized = DB::table('finance_approver_grants')
+                ->where('user_id', $approval->first_approver_id)
+                ->where('role', 'first')
+                ->where('is_active', true)
+                ->exists();
+            abort_unless($firstApproverAuthorized, 403, 'First finance approver permission was revoked.');
+
             if ((int) $approval->first_approver_id === $reviewerId) {
                 throw ValidationException::withMessages(['approval' => 'A different reviewer is required.']);
             }
