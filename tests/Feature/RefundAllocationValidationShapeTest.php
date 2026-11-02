@@ -38,6 +38,7 @@ final class RefundAllocationValidationShapeTest extends TestCase
             'negative amount' => [[['suborder_id' => 'sub-1', 'seller_id' => 1, 'amount_halalas' => -1]]],
             'noninteger amount' => [[['suborder_id' => 'sub-1', 'seller_id' => 1, 'amount_halalas' => '200']]],
             'blank suborder' => [[['suborder_id' => '', 'seller_id' => 1, 'amount_halalas' => 200]]],
+            'whitespace-only suborder' => [[['suborder_id' => '   ', 'seller_id' => 1, 'amount_halalas' => 200]]],
         ];
     }
 }
