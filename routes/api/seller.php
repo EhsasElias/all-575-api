@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\SellerAccessController;
 use App\Http\Controllers\Api\V1\SellerApplicationController;
 use App\Http\Controllers\Api\V1\SellerCatalogWorkspaceController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\SellerStockAdjustmentController;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
     Route::get('seller/application', [SellerApplicationController::class, 'show']);
@@ -23,6 +24,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('branches', [SellerCatalogWorkspaceController::class, 'branches']);
         Route::get('products', [SellerCatalogWorkspaceController::class, 'products']);
         Route::get('stock', [SellerCatalogWorkspaceController::class, 'stock']);
+        Route::patch('stock/{stock}', SellerStockAdjustmentController::class)->whereNumber('stock')->middleware('throttle:30,1');
         Route::get('dashboard', [SellerWorkspaceController::class, 'dashboard']);
         Route::get('orders', [SellerWorkspaceController::class, 'orders']);
         Route::get('orders/export.csv', [SellerWorkspaceController::class, 'exportOrders'])->middleware('throttle:10,1');
