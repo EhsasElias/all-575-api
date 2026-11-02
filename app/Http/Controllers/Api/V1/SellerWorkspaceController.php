@@ -122,6 +122,63 @@ class SellerWorkspaceController extends Controller
         ]]);
     }
 
+    public function packingList(Request $request, string $suborder): JsonResponse
+    {
+        $delivery = $this->scopedOrders($request)
+            ->whereKey($suborder)
+            ->whereHas('order', fn ($query) => $query->whereIn('status', ['confirmed', 'completed']))
+            ->with(['items', 'order:id,number,placed_at'])
+            ->firstOrFail();
+
+        return response()->json(['data' => [
+            'order_number' => $delivery->order->number,
+            'suborder_id' => $delivery->id,
+            'branch_id' => $delivery->branch_id,
+            'status' => $delivery->status->value,
+            'created_at' => $delivery->order->placed_at,
+            'items' => $delivery->items->map(fn ($item): array => [
+                'product' => ['ar' => $item->name_ar, 'en' => $item->name_en],
+                'variant' => ['ar' => $item->variant_name_ar, 'en' => $item->variant_name_en],
+                'quantity' => (int) $item->quantity,
+                'variant_id' => $item->variant_id,
+            ])->all(),
+        ]]);
+    }
+
+    public function salesSummary(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'from' => ['required', 'date_format:Y-m-d'],
+            'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'branch_id' => ['sometimes', 'integer', 'min:1'],
+        ]);
+
+        $query = $this->scopedOrders($request)
+            ->where('status', SuborderStatus::Delivered->value)
+            ->whereHas('order', fn (Builder $orders) => $orders
+                ->whereDate('placed_at', '>=', $filters['from'])
+                ->whereDate('placed_at', '<=', $filters['to']));
+        if (isset($filters['branch_id'])) {
+            $query->where('branch_id', $filters['branch_id']);
+        }
+
+        $summary = $query->selectRaw(
+            'COUNT(*) as delivered_suborders, COALESCE(SUM(subtotal_halalas), 0) as subtotal_halalas, '.
+            'COALESCE(SUM(discount_halalas), 0) as discount_halalas'
+        )->first();
+
+        return response()->json(['data' => [
+            'from' => $filters['from'],
+            'to' => $filters['to'],
+            'currency' => 'SAR',
+            'delivered_suborders' => (int) $summary->delivered_suborders,
+            'subtotal_halalas' => (int) $summary->subtotal_halalas,
+            'discount_halalas' => (int) $summary->discount_halalas,
+            'net_merchandise_halalas' => (int) $summary->subtotal_halalas - (int) $summary->discount_halalas,
+            'note' => 'Merchandise totals only. This is not a commission or seller payout statement.',
+        ]]);
+    }
+
     public function exportOrders(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $filters = $request->validate([
