@@ -69,6 +69,12 @@ final class RefundAllocationFingerprintTest extends TestCase
         self::assertSame($fingerprint->hash('refund-1', $allocation), $fingerprint->hash('refund-1', $allocation));
     }
 
+    public function test_non_array_allocation_row_is_rejected_cleanly(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new RefundAllocationFingerprint())->hash('refund-1', ['invalid-row']);
+    }
+
     public function test_different_refund_has_different_fingerprint(): void
     {
         $fingerprint = new RefundAllocationFingerprint();
