@@ -20,6 +20,10 @@ final class TwoPersonApproval
             throw ValidationException::withMessages(['approval' => 'Invalid approval request.']);
         }
 
+        if ($operation === 'refund_allocation' && $payloadHash === null) {
+            throw ValidationException::withMessages(['approval' => 'Refund allocation requires a payload fingerprint.']);
+        }
+
         if ($payloadHash !== null && ! preg_match('/^[a-f0-9]{64}$/', $payloadHash)) {
             throw ValidationException::withMessages(['approval' => 'Invalid payload fingerprint.']);
         }
