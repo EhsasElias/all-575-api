@@ -13,16 +13,20 @@ use Illuminate\Validation\ValidationException;
  */
 final class TwoPersonApproval
 {
-    public function request(string $operation, string $reference, int $approverId): int
+    public function request(string $operation, string $reference, int $approverId, ?string $payloadHash = null): int
     {
         if ($operation === '' || $reference === '' || $approverId < 1 ||
             strlen($operation) > 60 || strlen($reference) > 100) {
             throw ValidationException::withMessages(['approval' => 'Invalid approval request.']);
         }
 
+        if ($payloadHash !== null && ! preg_match('/^[a-f0-9]{64}$/', $payloadHash)) {
+            throw ValidationException::withMessages(['approval' => 'Invalid payload fingerprint.']);
+        }
+
         $this->requireGrant($approverId, 'first');
 
-        return DB::transaction(function () use ($operation, $reference, $approverId): int {
+        return DB::transaction(function () use ($operation, $reference, $approverId, $payloadHash): int {
             if (DB::table('finance_approval_requests')
                 ->where('operation', $operation)->where('reference', $reference)->exists()) {
                 throw ValidationException::withMessages(['approval' => 'Request already exists.']);
@@ -31,6 +35,7 @@ final class TwoPersonApproval
             return DB::table('finance_approval_requests')->insertGetId([
                 'operation' => $operation,
                 'reference' => $reference,
+                'payload_hash' => $payloadHash,
                 'status' => 'pending_second_approval',
                 'first_approver_id' => $approverId,
                 'first_approved_at' => now(),
