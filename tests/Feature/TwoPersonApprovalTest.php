@@ -77,6 +77,69 @@ final class TwoPersonApprovalTest extends TestCase
         $service->approve($id, $second->id);
     }
 
+    public function test_revoked_second_approver_cannot_approve(): void
+    {
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->grant($second->id, 'second');
+        $service = app(TwoPersonApproval::class);
+        $id = $service->request('refund_allocation', 'revoked-ref', $first->id);
+
+        DB::table('finance_approver_grants')
+            ->where('user_id', $second->id)->where('role', 'second')
+            ->update(['is_active' => false]);
+
+        try {
+            $service->approve($id, $second->id);
+            self::fail('Revoked approver must be denied.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+            self::assertSame(403, $exception->getStatusCode());
+        }
+
+        $this->assertDatabaseHas('finance_approval_requests', [
+            'id' => $id,
+            'status' => 'pending_second_approval',
+        ]);
+        $this->assertDatabaseMissing('finance_audit_events', [
+            'approval_request_id' => $id,
+            'action' => 'approval_granted',
+        ]);
+    }
+
+    public function test_rejected_request_cannot_be_rejected_twice(): void
+    {
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->grant($second->id, 'second');
+        $service = app(TwoPersonApproval::class);
+        $id = $service->request('refund_allocation', 'reject-once', $first->id);
+        $service->reject($id, $second->id, 'Insufficient refund documentation.');
+
+        $this->expectException(ValidationException::class);
+        $service->reject($id, $second->id, 'Another rejection should not succeed.');
+    }
+
+    public function test_duplicate_approval_request_cannot_create_extra_audit_event(): void
+    {
+        $first = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $service = app(TwoPersonApproval::class);
+        $id = $service->request('refund_allocation', 'duplicate-ref', $first->id);
+
+        try {
+            $service->request('refund_allocation', 'duplicate-ref', $first->id);
+            self::fail('Duplicate request must be rejected.');
+        } catch (ValidationException $exception) {
+            self::assertNotEmpty($exception->errors());
+        }
+
+        self::assertSame(1, DB::table('finance_audit_events')
+            ->where('approval_request_id', $id)
+            ->where('action', 'approval_requested')->count());
+    }
+
     private function grant(int $userId, string $role): void
     {
         DB::table('finance_approver_grants')->insert([
