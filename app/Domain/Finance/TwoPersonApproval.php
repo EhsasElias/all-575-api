@@ -16,7 +16,7 @@ final class TwoPersonApproval
 {
     public function request(string $operation, string $reference, int $approverId, ?string $payloadHash = null): int
     {
-        if ($operation === '' || $reference === '' || $approverId < 1 ||
+        if (trim($operation) === '' || trim($reference) === '' || $approverId < 1 ||
             strlen($operation) > 60 || strlen($reference) > 100) {
             throw ValidationException::withMessages(['approval' => 'Invalid approval request.']);
         }
