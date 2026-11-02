@@ -36,8 +36,14 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         $this->grant($reviewer->id, 'second');
         $this->actingAs($reviewer);
 
-        $this->expectException(InvalidArgumentException::class);
-        app(RecordRefundAllocations::class)->record('01K00000000000000000000002', $this->allocation(), $reviewer->id);
+        try {
+            app(RecordRefundAllocations::class)->record('01K00000000000000000000002', $this->allocation(), $reviewer->id);
+            self::fail('A missing approval must block execution.');
+        } catch (InvalidArgumentException $exception) {
+            self::assertSame('Matching two-person approval is required.', $exception->getMessage());
+        }
+
+        self::assertSame(0, DB::table('seller_refund_allocations')->count());
     }
 
     public function test_executor_cannot_impersonate_another_finance_approver(): void
