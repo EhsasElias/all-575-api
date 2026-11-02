@@ -109,6 +109,41 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         ]);
     }
 
+    public function test_revoked_first_approver_blocks_execution(): void
+    {
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->grant($second->id, 'second');
+
+        $refundId = '01K00000000000000000000006';
+        $allocations = $this->allocation();
+        $hash = app(RefundAllocationFingerprint::class)->hash($refundId, $allocations);
+
+        $this->actingAs($first);
+        $id = app(TwoPersonApproval::class)->request('refund_allocation', $refundId, $first->id, $hash);
+        $this->actingAs($second);
+        app(TwoPersonApproval::class)->approve($id, $second->id);
+
+        DB::table('finance_approver_grants')
+            ->where('user_id', $first->id)
+            ->where('role', 'first')
+            ->update(['is_active' => false]);
+
+        try {
+            app(RecordRefundAllocations::class)->record($refundId, $allocations, $second->id);
+            self::fail('A revoked first approver must block execution.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+            self::assertSame(403, $exception->getStatusCode());
+        }
+
+        $this->assertDatabaseHas('finance_approval_requests', ['id' => $id, 'status' => 'approved']);
+        $this->assertDatabaseMissing('finance_audit_events', [
+            'approval_request_id' => $id,
+            'action' => 'refund_allocation_recorded',
+        ]);
+    }
+
     public function test_execution_rejects_approved_request_with_changed_amount(): void
     {
         $first = User::factory()->create();
