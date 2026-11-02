@@ -11,6 +11,8 @@ use App\Http\Resources\PaymentResource;
 use App\Http\Support\OrderPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class CheckoutController extends Controller
 {
@@ -35,7 +37,8 @@ class CheckoutController extends Controller
         ));
 
         if (! $placed->replayed) {
-            DB::table('customer_notifications')->insert([
+            try {
+                DB::table('customer_notifications')->insert([
                 'user_id' => $request->user()->id,
                 'type' => 'order_placed',
                 'title' => 'تم استلام طلبك',
@@ -43,7 +46,13 @@ class CheckoutController extends Controller
                 'target_path' => '/orders',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+                ]);
+            } catch (Throwable $exception) {
+                Log::warning('Customer notification could not be recorded', [
+                    'order_id' => $placed->order->id,
+                    'exception' => $exception->getMessage(),
+                ]);
+            }
         }
 
         return response()->json(['data' => [
