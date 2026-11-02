@@ -31,6 +31,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('staff', [SellerStaffController::class, 'index']);
         Route::get('returns', [SellerReturnController::class, 'index']);
         Route::get('returns/{case}', [SellerReturnController::class, 'show'])->whereUlid('case');
+        Route::post('returns/{case}/response', [SellerReturnController::class, 'respond'])->whereUlid('case')->middleware('throttle:10,1');
         Route::patch('staff/{membership}/deactivate', [SellerStaffController::class, 'deactivate'])->whereNumber('membership')->middleware('throttle:10,1');
         Route::get('products', [SellerCatalogWorkspaceController::class, 'products']);
         Route::get('products/import/template.csv', function (): \Symfony\Component\HttpFoundation\Response {
