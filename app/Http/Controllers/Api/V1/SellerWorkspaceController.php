@@ -125,7 +125,7 @@ class SellerWorkspaceController extends Controller
         return response()->streamDownload(static function () use ($query): void {
             $handle = fopen('php://output', 'wb');
             fputcsv($handle, ['Order number', 'Status', 'Branch ID', 'Placed at']);
-            foreach ($query->orderByDesc('id')->limit(5000)->cursor() as $suborder) {
+            foreach ($query->orderByDesc('id')->limit(5000)->lazy(200) as $suborder) {
                 fputcsv($handle, [
                     $suborder->order->number,
                     $suborder->status->value,
