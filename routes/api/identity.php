@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingProfileController;
 use App\Http\Controllers\Api\V1\CustomerDashboardController;
 use App\Http\Controllers\Api\V1\CustomerRequestController;
+use App\Http\Controllers\Api\V1\CustomerNotificationController;
 use App\Http\Controllers\Api\V1\FirebaseAuthController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\SavedProductController;
@@ -19,6 +20,9 @@ Route::prefix('auth/otp')->group(function (): void {
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(function (): void {
     Route::get('me/dashboard', CustomerDashboardController::class);
+    Route::get('me/notifications', [CustomerNotificationController::class, 'index']);
+    Route::patch('me/notifications/read-all', [CustomerNotificationController::class, 'readAll']);
+    Route::patch('me/notifications/{notification}/read', [CustomerNotificationController::class, 'read'])->whereNumber('notification');
     Route::delete('auth/session', [AuthController::class, 'logout']);
 
     Route::get('me/requests', [CustomerRequestController::class, 'index']);
