@@ -66,7 +66,9 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         $refundId = '01K00000000000000000000004';
         $allocations = $this->allocation();
         $hash = app(RefundAllocationFingerprint::class)->hash($refundId, $allocations);
+        $this->actingAs($first);
         $id = app(TwoPersonApproval::class)->request('refund_allocation', $refundId, $first->id, $hash);
+        $this->actingAs($second);
         app(TwoPersonApproval::class)->approve($id, $second->id);
 
         DB::table('finance_approval_requests')->where('id', $id)->update(['status' => 'executed']);
@@ -86,7 +88,9 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         $refundId = '01K00000000000000000000005';
         $allocations = $this->allocation();
         $hash = app(RefundAllocationFingerprint::class)->hash($refundId, $allocations);
+        $this->actingAs($first);
         $id = app(TwoPersonApproval::class)->request('refund_allocation', $refundId, $first->id, $hash);
+        $this->actingAs($second);
         app(TwoPersonApproval::class)->approve($id, $second->id);
 
         DB::table('finance_approver_grants')->where('user_id', $second->id)
@@ -116,7 +120,9 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         $allocation = $this->allocation();
         $hash = app(RefundAllocationFingerprint::class)->hash($refundId, $allocation);
 
+        $this->actingAs($first);
         $approval = app(TwoPersonApproval::class)->request('refund_allocation', $refundId, $first->id, $hash);
+        $this->actingAs($second);
         app(TwoPersonApproval::class)->approve($approval, $second->id);
 
         $allocation[0]['amount_halalas'] = 201;
