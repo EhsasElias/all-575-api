@@ -37,7 +37,14 @@ class SellerCatalogWorkspaceController extends Controller
     public function products(Request $request): JsonResponse
     {
         $userId = $request->user()->id;
-        $limit = min(max((int) $request->query('limit', 20), 1), 50);
+        $filters = $request->validate([
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            'seller_id' => ['sometimes', 'integer', 'min:1'],
+            'category_id' => ['sometimes', 'integer', 'min:1'],
+            'status' => ['sometimes', 'string', 'max:32'],
+            'before_id' => ['sometimes', 'integer', 'min:1'],
+        ]);
+        $limit = $filters['limit'] ?? 20;
 
         $products = DB::table('products')
             ->join('sellers', 'sellers.id', '=', 'products.seller_id')
@@ -49,9 +56,13 @@ class SellerCatalogWorkspaceController extends Controller
                     ->where('seller_staff_access.is_active', true)
                     ->whereIn('seller_staff_access.role', ['owner', 'branch_manager', 'picker']);
             })
+            ->when(isset($filters['seller_id']), fn ($query) => $query->where('products.seller_id', $filters['seller_id']))
+            ->when(isset($filters['category_id']), fn ($query) => $query->where('products.category_id', $filters['category_id']))
+            ->when(isset($filters['status']), fn ($query) => $query->where('products.status', $filters['status']))
+            ->when(isset($filters['before_id']), fn ($query) => $query->where('products.id', '<', $filters['before_id']))
             ->select('products.id', 'products.seller_id', 'products.category_id', 'products.slug',
                 'products.name_ar', 'products.name_en', 'products.status', 'products.created_at')
-            ->orderBy('products.id')->limit($limit)->get();
+            ->orderByDesc('products.id')->limit($limit)->get();
 
         return response()->json(['data' => $products]);
     }
@@ -63,6 +74,7 @@ class SellerCatalogWorkspaceController extends Controller
             'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
             'branch_id' => ['sometimes', 'integer', 'min:1'],
             'low_stock_below' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
+            'before_id' => ['sometimes', 'integer', 'min:1'],
         ]);
         $limit = $validated['limit'] ?? 20;
 
@@ -89,10 +101,11 @@ class SellerCatalogWorkspaceController extends Controller
                 '(branch_stock.on_hand - branch_stock.reserved) <= ?',
                 [$validated['low_stock_below']]
             ))
+            ->when(isset($validated['before_id']), fn ($query) => $query->where('branch_stock.id', '<', $validated['before_id']))
             ->select('branch_stock.id', 'branch_stock.branch_id', 'branch_stock.variant_id',
                 'branch_stock.on_hand', 'branch_stock.reserved', 'product_variants.sku', 'products.name_ar',
                 'products.name_en')
-            ->orderBy('branch_stock.id')->limit($limit)->get();
+            ->orderByDesc('branch_stock.id')->limit($limit)->get();
 
         return response()->json(['data' => $stock]);
     }
