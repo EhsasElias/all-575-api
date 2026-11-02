@@ -35,6 +35,7 @@ final class SellerEndpointSecurityTest extends TestCase
             '/api/v1/seller/products',
             '/api/v1/seller/stock',
             '/api/v1/seller/orders',
+            '/api/v1/seller/orders/01ARZ3NDEKTSV4RRFFQ69G5FAV',
             '/api/v1/seller/orders/export.csv',
         ] as $uri) {
             $this->getJson($uri)->assertUnauthorized();
