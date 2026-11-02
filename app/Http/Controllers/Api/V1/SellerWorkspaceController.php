@@ -41,8 +41,11 @@ class SellerWorkspaceController extends Controller
     public function dashboard(Request $request): JsonResponse
     {
         $base = $this->scopedOrders($request);
-        $counts = (clone $base)->selectRaw("status, COUNT(*) as total")
+        $counts = (clone $base)->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')->pluck('total', 'status');
+        $delivered = (clone $base)->where('status', SuborderStatus::Delivered->value)
+            ->selectRaw('COUNT(*) as order_count, COALESCE(SUM(subtotal_halalas - discount_halalas), 0) as merchandise_halalas')
+            ->first();
 
         return response()->json(['data' => [
             'awaiting_seller' => (int) ($counts['awaiting_seller'] ?? 0),
@@ -50,6 +53,8 @@ class SellerWorkspaceController extends Controller
             'ready' => (int) ($counts['ready'] ?? 0),
             'on_the_way' => (int) ($counts['on_the_way'] ?? 0),
             'delivered' => (int) ($counts['delivered'] ?? 0),
+            'delivered_merchandise_halalas' => (int) ($delivered?->merchandise_halalas ?? 0),
+            'currency' => 'SAR',
         ]]);
     }
 
