@@ -55,6 +55,56 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         );
     }
 
+    public function test_executed_approval_cannot_be_replayed(): void
+    {
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->grant($second->id, 'second');
+        $this->actingAs($second);
+
+        $refundId = '01K00000000000000000000004';
+        $allocations = $this->allocation();
+        $hash = app(RefundAllocationFingerprint::class)->hash($refundId, $allocations);
+        $id = app(TwoPersonApproval::class)->request('refund_allocation', $refundId, $first->id, $hash);
+        app(TwoPersonApproval::class)->approve($id, $second->id);
+
+        DB::table('finance_approval_requests')->where('id', $id)->update(['status' => 'executed']);
+
+        $this->expectException(InvalidArgumentException::class);
+        app(RecordRefundAllocations::class)->record($refundId, $allocations, $second->id);
+    }
+
+    public function test_revoked_second_approver_cannot_execute(): void
+    {
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->grant($second->id, 'second');
+        $this->actingAs($second);
+
+        $refundId = '01K00000000000000000000005';
+        $allocations = $this->allocation();
+        $hash = app(RefundAllocationFingerprint::class)->hash($refundId, $allocations);
+        $id = app(TwoPersonApproval::class)->request('refund_allocation', $refundId, $first->id, $hash);
+        app(TwoPersonApproval::class)->approve($id, $second->id);
+
+        DB::table('finance_approver_grants')->where('user_id', $second->id)
+            ->where('role', 'second')->update(['is_active' => false]);
+
+        try {
+            app(RecordRefundAllocations::class)->record($refundId, $allocations, $second->id);
+            self::fail('Revoked financial permission must prevent execution.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+            self::assertSame(403, $exception->getStatusCode());
+        }
+
+        $this->assertDatabaseHas('finance_approval_requests', ['id' => $id, 'status' => 'approved']);
+        $this->assertDatabaseMissing('finance_audit_events', [
+            'approval_request_id' => $id, 'action' => 'refund_allocation_recorded',
+        ]);
+    }
+
     public function test_execution_rejects_approved_request_with_changed_amount(): void
     {
         $first = User::factory()->create();
