@@ -18,6 +18,7 @@ final class RefundAllocationFingerprint
         foreach ($allocations as $allocation) {
             if (! isset($allocation['suborder_id'], $allocation['seller_id'], $allocation['amount_halalas'])
                 || ! is_string($allocation['suborder_id'])
+                || trim($allocation['suborder_id']) === ''
                 || ! is_int($allocation['seller_id'])
                 || ! is_int($allocation['amount_halalas'])
                 || $allocation['seller_id'] <= 0 || $allocation['amount_halalas'] <= 0) {
