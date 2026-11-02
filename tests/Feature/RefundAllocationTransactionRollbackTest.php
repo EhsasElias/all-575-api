@@ -6,7 +6,6 @@ namespace Tests\Feature;
 
 use App\Domain\Finance\RecordRefundAllocations;
 use App\Domain\Finance\RefundAllocationFingerprint;
-use App\Domain\Finance\RefundAllocationValidator;
 use App\Domain\Finance\TwoPersonApproval;
 use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,16 +46,12 @@ final class RefundAllocationTransactionRollbackTest extends TestCase
         $this->actingAs($second);
         app(TwoPersonApproval::class)->approve($approvalId, $second->id);
 
-        $validator = $this->mock(RefundAllocationValidator::class);
-        $validator->shouldReceive('validate')
-            ->once()->with($refundId, $allocations)
-            ->andThrow(ValidationException::withMessages(['allocations' => 'Invalid seller allocation.']));
-
+        // No refund exists for this ULID: the real validator must fail within the transaction.
         try {
             app(RecordRefundAllocations::class)->record($refundId, $allocations, $second->id);
             self::fail('Invalid allocation must be rejected.');
         } catch (ValidationException $exception) {
-            self::assertArrayHasKey('allocations', $exception->errors());
+            self::assertArrayHasKey('refund_id', $exception->errors());
         }
 
         $this->assertDatabaseHas('finance_approval_requests', [
