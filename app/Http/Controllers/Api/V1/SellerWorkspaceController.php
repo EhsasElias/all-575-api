@@ -38,6 +38,21 @@ class SellerWorkspaceController extends Controller
         });
     }
 
+    public function dashboard(Request $request): JsonResponse
+    {
+        $base = $this->scopedOrders($request);
+        $counts = (clone $base)->selectRaw("status, COUNT(*) as total")
+            ->groupBy('status')->pluck('total', 'status');
+
+        return response()->json(['data' => [
+            'awaiting_seller' => (int) ($counts['awaiting_seller'] ?? 0),
+            'preparing' => (int) ($counts['preparing'] ?? 0),
+            'ready' => (int) ($counts['ready'] ?? 0),
+            'on_the_way' => (int) ($counts['on_the_way'] ?? 0),
+            'delivered' => (int) ($counts['delivered'] ?? 0),
+        ]]);
+    }
+
     public function orders(Request $request): JsonResponse
     {
         $validated = $request->validate([
