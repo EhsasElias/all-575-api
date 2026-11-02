@@ -9,4 +9,5 @@ Route::prefix('v1')->group(function (): void {
     Route::group([], base_path('routes/api/cart.php'));
     Route::group([], base_path('routes/api/checkout.php'));
     Route::group([], base_path('routes/api/aftercare.php'));
+    Route::group([], base_path('routes/api/seller.php'));
 });
