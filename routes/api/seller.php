@@ -27,6 +27,13 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
     ->prefix('seller')->group(function (): void {
         Route::get('branches', [SellerCatalogWorkspaceController::class, 'branches']);
         Route::get('products', [SellerCatalogWorkspaceController::class, 'products']);
+        Route::get('products/import/template.csv', function (): \Symfony\Component\HttpFoundation\Response {
+            $header = "category_id,name_ar,name_en,price_halalas,vat_class,sku,barcode\r\n";
+            return response("\xEF\xBB\xBF".$header, 200, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="seller-products-template.csv"',
+            ]);
+        })->middleware('throttle:30,1');
         Route::post('products/import', SellerCatalogImportController::class)->middleware('throttle:5,1');
         Route::post('products', [SellerProductDraftController::class, 'store'])->middleware('throttle:30,1');
         Route::patch('products/{product}', [SellerProductDraftController::class, 'update'])->whereNumber('product');
