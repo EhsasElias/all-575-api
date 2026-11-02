@@ -25,5 +25,6 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('stock', [SellerCatalogWorkspaceController::class, 'stock']);
         Route::get('dashboard', [SellerWorkspaceController::class, 'dashboard']);
         Route::get('orders', [SellerWorkspaceController::class, 'orders']);
+        Route::get('orders/export.csv', [SellerWorkspaceController::class, 'exportOrders'])->middleware('throttle:10,1');
         Route::patch('orders/{suborder}/status', [SellerWorkspaceController::class, 'advance']);
     });
