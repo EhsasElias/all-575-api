@@ -13,7 +13,7 @@ use InvalidArgumentException;
  */
 final class RecordRefundAllocations
 {
-    public function __construct(private readonly RefundAllocationValidator $validator) {}
+    public function __construct(private readonly RefundAllocationValidator $validator, private readonly RefundAllocationFingerprint $fingerprint) {}
 
     /**
      * @param list<array{suborder_id: string, seller_id: int, amount_halalas: int}> $allocations
@@ -25,6 +25,18 @@ final class RecordRefundAllocations
         }
 
         return DB::transaction(function () use ($refundId, $allocations, $approverUserId): int {
+            $approval = DB::table('finance_approval_requests')
+                ->where('operation', 'refund_allocation')
+                ->where('reference', $refundId)
+                ->lockForUpdate()->first();
+
+            $digest = $this->fingerprint->hash($refundId, $allocations);
+            if ($approval === null || $approval->status !== 'approved'
+                || $approval->payload_hash === null || ! hash_equals($approval->payload_hash, $digest)
+                || (int) $approval->second_approver_id !== $approverUserId) {
+                throw new InvalidArgumentException('Matching two-person approval is required.');
+            }
+
             // Validation locks the refund row before reading current allocations.
             $this->validator->validate($refundId, $allocations);
 
@@ -41,6 +53,10 @@ final class RecordRefundAllocations
                     'updated_at' => $now,
                 ]);
             }
+
+            DB::table('finance_approval_requests')->where('id', $approval->id)->update([
+                'status' => 'executed', 'updated_at' => now(),
+            ]);
 
             return count($allocations);
         }, 3);
