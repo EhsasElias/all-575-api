@@ -21,6 +21,7 @@ final class TwoPersonApprovalTest extends TestCase
         $this->grant($user->id, 'first');
         $this->grant($user->id, 'second');
         $service = app(TwoPersonApproval::class);
+        $this->actingAs($user);
         $id = $service->request('refund_allocation', 'test-reference-one', $user->id, hash('sha256', 'fixture'));
 
         $this->expectException(ValidationException::class);
@@ -34,8 +35,10 @@ final class TwoPersonApprovalTest extends TestCase
         $this->grant($first->id, 'first');
         $this->grant($second->id, 'second');
         $service = app(TwoPersonApproval::class);
+        $this->actingAs($first);
         $id = $service->request('refund_allocation', 'test-reference-two', $first->id, hash('sha256', 'fixture'));
 
+        $this->actingAs($second);
         $service->approve($id, $second->id);
         $this->assertDatabaseHas('finance_audit_events', ['approval_request_id' => $id, 'actor_user_id' => $first->id, 'action' => 'approval_requested']);
         $this->assertDatabaseHas('finance_audit_events', ['approval_request_id' => $id, 'actor_user_id' => $second->id, 'action' => 'approval_granted']);
@@ -47,12 +50,14 @@ final class TwoPersonApprovalTest extends TestCase
         ]);
 
         $this->expectException(ValidationException::class);
+        $this->actingAs($second);
         $service->approve($id, $second->id);
     }
     public function test_ungranted_user_cannot_create_approval(): void
     {
         $user = User::factory()->create();
         $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->actingAs($user);
         app(TwoPersonApproval::class)->request('refund_allocation', 'ungranted', $user->id, hash('sha256', 'fixture'));
     }
 
@@ -63,8 +68,10 @@ final class TwoPersonApprovalTest extends TestCase
         $this->grant($first->id, 'first');
         $this->grant($second->id, 'second');
         $service = app(TwoPersonApproval::class);
+        $this->actingAs($first);
         $id = $service->request('refund_allocation', 'rejected-ref', $first->id, hash('sha256', 'fixture'));
 
+        $this->actingAs($second);
         $service->reject($id, $second->id, 'Missing supporting evidence for the refund.');
         $this->assertDatabaseHas('finance_audit_events', ['approval_request_id' => $id, 'actor_user_id' => $second->id, 'action' => 'approval_rejected']);
         $this->assertDatabaseHas('finance_approval_requests', [
@@ -74,6 +81,7 @@ final class TwoPersonApprovalTest extends TestCase
         ]);
 
         $this->expectException(ValidationException::class);
+        $this->actingAs($second);
         $service->approve($id, $second->id);
     }
 
@@ -84,6 +92,7 @@ final class TwoPersonApprovalTest extends TestCase
         $this->grant($first->id, 'first');
         $this->grant($second->id, 'second');
         $service = app(TwoPersonApproval::class);
+        $this->actingAs($first);
         $id = $service->request('refund_allocation', 'revoked-ref', $first->id, hash('sha256', 'fixture'));
 
         DB::table('finance_approver_grants')
@@ -91,6 +100,7 @@ final class TwoPersonApprovalTest extends TestCase
             ->update(['is_active' => false]);
 
         try {
+        $this->actingAs($second);
             $service->approve($id, $second->id);
             self::fail('Revoked approver must be denied.');
         } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
@@ -114,10 +124,13 @@ final class TwoPersonApprovalTest extends TestCase
         $this->grant($first->id, 'first');
         $this->grant($second->id, 'second');
         $service = app(TwoPersonApproval::class);
+        $this->actingAs($first);
         $id = $service->request('refund_allocation', 'reject-once', $first->id, hash('sha256', 'fixture'));
+        $this->actingAs($second);
         $service->reject($id, $second->id, 'Insufficient refund documentation.');
 
         $this->expectException(ValidationException::class);
+        $this->actingAs($second);
         $service->reject($id, $second->id, 'Another rejection should not succeed.');
     }
 
@@ -126,9 +139,11 @@ final class TwoPersonApprovalTest extends TestCase
         $first = User::factory()->create();
         $this->grant($first->id, 'first');
         $service = app(TwoPersonApproval::class);
+        $this->actingAs($first);
         $id = $service->request('refund_allocation', 'duplicate-ref', $first->id, hash('sha256', 'fixture'));
 
         try {
+        $this->actingAs($first);
             $service->request('refund_allocation', 'duplicate-ref', $first->id, hash('sha256', 'fixture'));
             self::fail('Duplicate request must be rejected.');
         } catch (ValidationException $exception) {
@@ -146,6 +161,7 @@ final class TwoPersonApprovalTest extends TestCase
         $this->grant($first->id, 'first');
 
         $this->expectException(ValidationException::class);
+        $this->actingAs($first);
         app(TwoPersonApproval::class)->request('refund_allocation', 'missing-fingerprint', $first->id);
     }
 
