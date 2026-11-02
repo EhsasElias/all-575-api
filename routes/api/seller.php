@@ -46,7 +46,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('orders', [SellerWorkspaceController::class, 'orders']);
         Route::get('reports/sales', [SellerWorkspaceController::class, 'salesSummary'])->middleware('throttle:30,1');
         Route::get('orders/{suborder}/packing-list', [SellerWorkspaceController::class, 'packingList'])->whereUlid('suborder');
-        Route::get('orders/{suborder}', [SellerWorkspaceController::class, 'showOrder'])->whereUlid('suborder');
         Route::get('orders/export.csv', [SellerWorkspaceController::class, 'exportOrders'])->middleware('throttle:10,1');
+        Route::get('orders/{suborder}', [SellerWorkspaceController::class, 'showOrder'])->whereUlid('suborder');
         Route::patch('orders/{suborder}/status', [SellerWorkspaceController::class, 'advance']);
     });
