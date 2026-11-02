@@ -150,6 +150,46 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         ]);
     }
 
+    public function test_execution_rejects_approved_request_with_changed_seller(): void
+    {
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->grant($second->id, 'second');
+
+        $refundId = '01K00000000000000000000007';
+        $allocations = $this->allocation();
+        $fingerprint = app(RefundAllocationFingerprint::class)->hash($refundId, $allocations);
+
+        $this->actingAs($first);
+        $approvalId = app(TwoPersonApproval::class)->request(
+            'refund_allocation', $refundId, $first->id, $fingerprint
+        );
+
+        $this->actingAs($second);
+        app(TwoPersonApproval::class)->approve($approvalId, $second->id);
+
+        // A caller must not redirect an approved refund to another seller.
+        $allocations[0]['seller_id'] = 2;
+
+        try {
+            app(RecordRefundAllocations::class)->record($refundId, $allocations, $second->id);
+            self::fail('Changing an approved seller must be rejected.');
+        } catch (InvalidArgumentException $exception) {
+            self::assertSame('Matching two-person approval is required.', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas('finance_approval_requests', [
+            'id' => $approvalId,
+            'status' => 'approved',
+        ]);
+        $this->assertDatabaseMissing('finance_audit_events', [
+            'approval_request_id' => $approvalId,
+            'action' => 'refund_allocation_recorded',
+        ]);
+        self::assertSame(0, DB::table('seller_refund_allocations')->count());
+    }
+
     public function test_execution_rejects_approved_request_with_changed_amount(): void
     {
         $first = User::factory()->create();
