@@ -58,11 +58,24 @@ class SellerWorkspaceController extends Controller
         $validated = $request->validate([
             'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
             'before_id' => ['sometimes', 'ulid'],
+            'status' => ['sometimes', Rule::in(array_map(
+                fn (SuborderStatus $status): string => $status->value,
+                SuborderStatus::cases()
+            ))],
+            'branch_id' => ['sometimes', 'integer', 'min:1'],
+            'from' => ['sometimes', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
         ]);
 
         $orders = $this->scopedOrders($request)
             ->whereHas('order', fn ($query) => $query->whereIn('status', ['confirmed', 'completed']))
             ->with(['items', 'branch', 'order:id,number,status,placed_at,slot_starts_at'])
+            ->when(isset($validated['status']), fn (Builder $query) => $query->where('status', $validated['status']))
+            ->when(isset($validated['branch_id']), fn (Builder $query) => $query->where('branch_id', $validated['branch_id']))
+            ->when(isset($validated['from']), fn (Builder $query) => $query->whereHas('order',
+                fn (Builder $orders) => $orders->whereDate('placed_at', '>=', $validated['from'])))
+            ->when(isset($validated['to']), fn (Builder $query) => $query->whereHas('order',
+                fn (Builder $orders) => $orders->whereDate('placed_at', '<=', $validated['to'])))
             ->when(isset($validated['before_id']), fn (Builder $query) => $query->where('id', '<', $validated['before_id']))
             ->orderByDesc('id')->limit($validated['limit'] ?? 20)->get();
 
