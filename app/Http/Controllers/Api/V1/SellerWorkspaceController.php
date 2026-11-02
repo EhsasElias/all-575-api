@@ -18,7 +18,7 @@ class SellerWorkspaceController extends Controller
     {
         $userId = $request->user()->id;
 
-        return Suborder::query()->whereIn('seller_id', function ($query) use ($userId): void {
+        return Suborder::query()->whereHas('seller', fn ($seller) => $seller->approved())->whereIn('seller_id', function ($query) use ($userId): void {
             $query->select('seller_id')->from('seller_staff_access')
                 ->where('user_id', $userId)->where('is_active', true);
         })->where(function ($query) use ($userId): void {
