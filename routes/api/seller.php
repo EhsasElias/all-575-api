@@ -20,6 +20,7 @@ Route::post('seller/session', [SellerAccessController::class, 'issue'])
 
 Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
     ->prefix('seller')->group(function (): void {
+        Route::get('branches', [SellerCatalogWorkspaceController::class, 'branches']);
         Route::get('products', [SellerCatalogWorkspaceController::class, 'products']);
         Route::get('stock', [SellerCatalogWorkspaceController::class, 'stock']);
         Route::get('dashboard', [SellerWorkspaceController::class, 'dashboard']);
