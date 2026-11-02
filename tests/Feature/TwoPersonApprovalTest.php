@@ -165,6 +165,22 @@ final class TwoPersonApprovalTest extends TestCase
         app(TwoPersonApproval::class)->request('refund_allocation', 'missing-fingerprint', $first->id);
     }
 
+    public function test_finance_actor_id_cannot_be_spoofed(): void
+    {
+        $first = User::factory()->create();
+        $outsider = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->actingAs($outsider);
+
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        app(TwoPersonApproval::class)->request(
+            'refund_allocation',
+            'spoofed-request',
+            $first->id,
+            hash('sha256', 'fixture')
+        );
+    }
+
     private function grant(int $userId, string $role): void
     {
         DB::table('finance_approver_grants')->insert([
