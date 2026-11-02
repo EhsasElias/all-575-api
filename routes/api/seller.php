@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\SellerProductVariantController;
 use App\Http\Controllers\Api\V1\SellerProductImageController;
 use App\Http\Controllers\Api\V1\SellerCatalogImportController;
 use App\Http\Controllers\Api\V1\SellerStaffController;
+use App\Http\Controllers\Api\V1\SellerReturnController;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
     Route::get('seller/application', [SellerApplicationController::class, 'show']);
@@ -28,6 +29,8 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
     ->prefix('seller')->group(function (): void {
         Route::get('branches', [SellerCatalogWorkspaceController::class, 'branches']);
         Route::get('staff', [SellerStaffController::class, 'index']);
+        Route::get('returns', [SellerReturnController::class, 'index']);
+        Route::get('returns/{case}', [SellerReturnController::class, 'show'])->whereUlid('case');
         Route::patch('staff/{membership}/deactivate', [SellerStaffController::class, 'deactivate'])->whereNumber('membership')->middleware('throttle:10,1');
         Route::get('products', [SellerCatalogWorkspaceController::class, 'products']);
         Route::get('products/import/template.csv', function (): \Symfony\Component\HttpFoundation\Response {
