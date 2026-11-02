@@ -52,6 +52,23 @@ final class RefundAllocationFingerprintTest extends TestCase
         ]);
     }
 
+    public function test_changing_seller_invalidates_fingerprint(): void
+    {
+        $fingerprint = new RefundAllocationFingerprint();
+        $original = [['suborder_id' => 'a', 'seller_id' => 1, 'amount_halalas' => 200]];
+        $changed = [['suborder_id' => 'a', 'seller_id' => 2, 'amount_halalas' => 200]];
+
+        self::assertNotSame($fingerprint->hash('refund-1', $original), $fingerprint->hash('refund-1', $changed));
+    }
+
+    public function test_identical_payload_produces_the_same_fingerprint(): void
+    {
+        $fingerprint = new RefundAllocationFingerprint();
+        $allocation = [['suborder_id' => 'a', 'seller_id' => 1, 'amount_halalas' => 200]];
+
+        self::assertSame($fingerprint->hash('refund-1', $allocation), $fingerprint->hash('refund-1', $allocation));
+    }
+
     public function test_different_refund_has_different_fingerprint(): void
     {
         $fingerprint = new RefundAllocationFingerprint();
