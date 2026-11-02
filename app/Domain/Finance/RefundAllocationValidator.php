@@ -15,6 +15,23 @@ final class RefundAllocationValidator
 {
     public function validate(string $refundId, array $allocations): void
     {
+        if ($allocations === []) {
+            throw ValidationException::withMessages(['allocations' => 'At least one allocation is required.']);
+        }
+
+        foreach ($allocations as $allocation) {
+            if (! is_array($allocation)
+                || ! isset($allocation['suborder_id'], $allocation['seller_id'], $allocation['amount_halalas'])
+                || ! is_string($allocation['suborder_id'])
+                || $allocation['suborder_id'] === ''
+                || ! is_int($allocation['seller_id'])
+                || $allocation['seller_id'] < 1
+                || ! is_int($allocation['amount_halalas'])
+                || $allocation['amount_halalas'] <= 0) {
+                throw ValidationException::withMessages(['allocations' => 'Invalid allocation fields.']);
+            }
+        }
+
         $refund = DB::table('refunds')->where('id', $refundId)->lockForUpdate()->first();
 
         if ($refund === null || $refund->status !== 'succeeded') {
