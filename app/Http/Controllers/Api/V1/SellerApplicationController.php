@@ -34,14 +34,14 @@ class SellerApplicationController extends Controller
         $userId = $request->user()->id;
         $application = DB::transaction(function () use ($userId, $details) {
             $existing = DB::table('seller_applications')->where('user_id', $userId)->lockForUpdate()->first();
-            abort_if($existing !== null && $existing->status !== 'draft', 409, 'Submitted applications cannot be edited.');
+            abort_if($existing !== null && ! in_array($existing->status, ['draft', 'correction'], true), 409, 'Submitted applications cannot be edited.');
 
             if ($existing === null) {
                 DB::table('seller_applications')->insert($details + [
                     'user_id' => $userId, 'status' => 'draft', 'created_at' => now(), 'updated_at' => now(),
                 ]);
             } else {
-                DB::table('seller_applications')->where('id', $existing->id)->update($details + ['updated_at' => now()]);
+                DB::table('seller_applications')->where('id', $existing->id)->update($details + ['status' => 'draft', 'review_note' => null, 'updated_at' => now()]);
             }
 
             return DB::table('seller_applications')->where('user_id', $userId)->first();
