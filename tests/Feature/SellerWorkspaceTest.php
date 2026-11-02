@@ -33,6 +33,29 @@ class SellerWorkspaceTest extends TestCase
         ])->assertNotFound();
     }
 
+    public function test_unassigned_customer_cannot_issue_seller_session(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $this->actingAsCustomer($user);
+        $this->postJson('/api/v1/seller/session', ['device_name' => 'test-device'])->assertForbidden();
+    }
+
+    public function test_inactive_seller_membership_cannot_issue_seller_session(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $seller = Seller::factory()->create();
+        DB::table('seller_staff_access')->insert([
+            'user_id' => $user->id,
+            'seller_id' => $seller->id,
+            'role' => 'owner',
+            'is_active' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->actingAsCustomer($user);
+        $this->postJson('/api/v1/seller/session', ['device_name' => 'test-device'])->assertForbidden();
+    }
+
     public function test_staff_access_is_disabled_by_default(): void
     {
         $user = User::factory()->create();
