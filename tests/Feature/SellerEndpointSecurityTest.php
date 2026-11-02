@@ -38,6 +38,7 @@ final class SellerEndpointSecurityTest extends TestCase
             '/api/v1/seller/finance/summary?seller_id=1&from=2026-01-01&to=2026-12-31',
             '/api/v1/seller/finance/ledger?seller_id=1&from=2026-01-01&to=2026-12-31',
             '/api/v1/seller/finance/commission-rates?seller_id=1',
+            '/api/v1/seller/finance/commission-preview?seller_id=1&from=2026-01-01&to=2026-12-31',
             '/api/v1/seller/returns',
             '/api/v1/seller/returns/01ARZ3NDEKTSV4RRFFQ69G5FAV',
             '/api/v1/seller/products',
