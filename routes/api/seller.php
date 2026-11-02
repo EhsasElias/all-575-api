@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\SellerWorkspaceController;
 use App\Http\Controllers\Api\V1\SellerAccessController;
 use App\Http\Controllers\Api\V1\SellerApplicationController;
+use App\Http\Controllers\Api\V1\SellerCatalogWorkspaceController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
@@ -19,6 +20,8 @@ Route::post('seller/session', [SellerAccessController::class, 'issue'])
 
 Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
     ->prefix('seller')->group(function (): void {
+        Route::get('products', [SellerCatalogWorkspaceController::class, 'products']);
+        Route::get('stock', [SellerCatalogWorkspaceController::class, 'stock']);
         Route::get('dashboard', [SellerWorkspaceController::class, 'dashboard']);
         Route::get('orders', [SellerWorkspaceController::class, 'orders']);
         Route::patch('orders/{suborder}/status', [SellerWorkspaceController::class, 'advance']);
