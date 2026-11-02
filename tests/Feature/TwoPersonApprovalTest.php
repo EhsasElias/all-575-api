@@ -257,6 +257,18 @@ final class TwoPersonApprovalTest extends TestCase
         ]);
     }
 
+    public function test_whitespace_only_reference_cannot_create_approval(): void
+    {
+        $first = User::factory()->create();
+        $this->grant($first->id, 'first');
+        $this->actingAs($first);
+
+        $this->expectException(ValidationException::class);
+        app(TwoPersonApproval::class)->request(
+            'refund_allocation', '   ', $first->id, hash('sha256', 'fixture')
+        );
+    }
+
     private function grant(int $userId, string $role): void
     {
         DB::table('finance_approver_grants')->insert([
