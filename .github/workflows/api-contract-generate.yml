@@ -1,0 +1,41 @@
+name: Generate API contract for review
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [v2]
+    paths:
+      - 'routes/**'
+      - 'app/Http/**'
+      - 'app/Domain/**'
+      - 'database/migrations/**'
+      - 'composer.json'
+      - '.github/workflows/api-contract-generate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_sqlite
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Regenerate API contract
+        run: composer openapi
+      - name: Verify generated contract matches committed contract
+        run: git diff --exit-code -- docs/api/openapi.json
+      - name: Preserve generated contract for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-openapi-generated
+          path: docs/api/openapi.json
+          retention-days: 7
