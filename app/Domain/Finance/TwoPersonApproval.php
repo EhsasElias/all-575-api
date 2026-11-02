@@ -20,6 +20,8 @@ final class TwoPersonApproval
             throw ValidationException::withMessages(['approval' => 'Invalid approval request.']);
         }
 
+        $this->requireGrant($approverId, 'first');
+
         return DB::transaction(function () use ($operation, $reference, $approverId): int {
             if (DB::table('finance_approval_requests')
                 ->where('operation', $operation)->where('reference', $reference)->exists()) {
@@ -44,6 +46,8 @@ final class TwoPersonApproval
             throw ValidationException::withMessages(['approval' => 'Invalid approval identifiers.']);
         }
 
+        $this->requireGrant($secondApproverId, 'second');
+
         DB::transaction(function () use ($requestId, $secondApproverId): void {
             $approval = DB::table('finance_approval_requests')
                 ->where('id', $requestId)->lockForUpdate()->first();
@@ -63,5 +67,13 @@ final class TwoPersonApproval
                 'updated_at' => now(),
             ]);
         }, 3);
+    }
+    private function requireGrant(int $userId, string $role): void
+    {
+        abort_unless(DB::table('finance_approver_grants')
+            ->where('user_id', $userId)
+            ->where('role', $role)
+            ->where('is_active', true)
+            ->exists(), 403, 'Finance approval permission is required.');
     }
 }
