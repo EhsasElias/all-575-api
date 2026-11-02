@@ -30,6 +30,13 @@ final class RecordRefundAllocations
                 ->where('reference', $refundId)
                 ->lockForUpdate()->first();
 
+            $authorized = DB::table('finance_approver_grants')
+                ->where('user_id', $approverUserId)
+                ->where('role', 'second')
+                ->where('is_active', true)
+                ->exists();
+            abort_unless($authorized, 403, 'Finance execution permission is required.');
+
             $digest = $this->fingerprint->hash($refundId, $allocations);
             if ($approval === null || $approval->status !== 'approved'
                 || $approval->payload_hash === null || ! hash_equals($approval->payload_hash, $digest)
@@ -56,6 +63,14 @@ final class RecordRefundAllocations
 
             DB::table('finance_approval_requests')->where('id', $approval->id)->update([
                 'status' => 'executed', 'updated_at' => now(),
+            ]);
+
+            DB::table('finance_audit_events')->insert([
+                'approval_request_id' => $approval->id,
+                'actor_user_id' => $approverUserId,
+                'action' => 'refund_allocation_recorded',
+                'payload_hash' => $digest,
+                'occurred_at' => now(),
             ]);
 
             return count($allocations);
