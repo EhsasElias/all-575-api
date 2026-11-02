@@ -40,7 +40,11 @@ final class RecordRefundAllocations
                 ->exists();
             abort_unless($authorized, 403, 'Finance execution permission is required.');
 
-            $firstApproverActive = $approval !== null && DB::table('finance_approver_grants')
+            if ($approval === null) {
+                throw new InvalidArgumentException('Matching two-person approval is required.');
+            }
+
+            $firstApproverActive = DB::table('finance_approver_grants')
                 ->where('user_id', $approval->first_approver_id)
                 ->where('role', 'first')
                 ->where('is_active', true)
