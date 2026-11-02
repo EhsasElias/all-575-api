@@ -94,6 +94,29 @@ class SellerWorkspaceController extends Controller
         ])->all()]);
     }
 
+    public function showOrder(Request $request, string $suborder): JsonResponse
+    {
+        $delivery = $this->scopedOrders($request)
+            ->whereKey($suborder)
+            ->whereHas('order', fn ($query) => $query->whereIn('status', ['confirmed', 'completed']))
+            ->with(['items', 'order:id,number,status,placed_at,slot_starts_at'])
+            ->firstOrFail();
+
+        return response()->json(['data' => [
+            'id' => $delivery->id,
+            'order_number' => $delivery->order->number,
+            'status' => $delivery->status->value,
+            'branch_id' => $delivery->branch_id,
+            'placed_at' => $delivery->order->placed_at,
+            'delivery_slot' => $delivery->order->slot_starts_at,
+            'items' => $delivery->items->map(fn ($item): array => [
+                'id' => $item->id,
+                'name' => ['ar' => $item->name_ar, 'en' => $item->name_en],
+                'quantity' => $item->quantity,
+            ])->all(),
+        ]]);
+    }
+
     public function exportOrders(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $filters = $request->validate([
