@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\SellerStockAdjustmentController;
 use App\Http\Controllers\Api\V1\SellerProductDraftController;
 use App\Http\Controllers\Api\V1\SellerProductVariantController;
+use App\Http\Controllers\Api\V1\SellerProductImageController;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
     Route::get('seller/application', [SellerApplicationController::class, 'show']);
@@ -29,6 +30,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::patch('products/{product}', [SellerProductDraftController::class, 'update'])->whereNumber('product');
         Route::post('products/{product}/submit', [SellerProductDraftController::class, 'submit'])->whereNumber('product');
         Route::post('products/{product}/variants', [SellerProductVariantController::class, 'store'])->whereNumber('product')->middleware('throttle:30,1');
+        Route::post('products/{product}/image', SellerProductImageController::class)->whereNumber('product')->middleware('throttle:10,1');
         Route::get('stock', [SellerCatalogWorkspaceController::class, 'stock']);
         Route::patch('stock/{stock}', SellerStockAdjustmentController::class)->whereNumber('stock')->middleware('throttle:30,1');
         Route::get('dashboard', [SellerWorkspaceController::class, 'dashboard']);
