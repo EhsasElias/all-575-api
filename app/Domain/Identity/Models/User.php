@@ -20,6 +20,9 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory;
 
+    /** Never serialize credential hashes or identity-provider binding IDs. */
+    protected $hidden = ['password', 'remember_token', 'firebase_uid'];
+
     /** @return array<string, string> */
     protected function casts(): array
     {
