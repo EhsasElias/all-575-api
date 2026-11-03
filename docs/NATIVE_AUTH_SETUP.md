@@ -34,11 +34,11 @@ Use a company SMTP account or an approved transactional email provider.
 ```dotenv
 OTP_DRIVER=mail
 MAIL_MAILER=smtp
+MAIL_SCHEME=smtp
 MAIL_HOST=your-smtp-host
 MAIL_PORT=587
 MAIL_USERNAME=your-smtp-user
 MAIL_PASSWORD=your-smtp-password
-MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=no-reply@market575.com
 MAIL_FROM_NAME="ALL 5.75"
 ```
