@@ -17,6 +17,9 @@ final class MailOtpSender implements OtpSender
 {
     public function send(OtpChannel $channel, string $destination, string $code, string $locale): void
     {
+        if (app()->isProduction() && in_array(config('mail.default'), ['log', 'array'], true)) {
+            throw new DomainRuleViolation('otp_delivery_unavailable', 'A real email delivery provider is required.', 503);
+        }
         if ($channel !== OtpChannel::Email) {
             throw new DomainRuleViolation('otp_delivery_unavailable', 'SMS gateway is not configured.', 503);
         }
