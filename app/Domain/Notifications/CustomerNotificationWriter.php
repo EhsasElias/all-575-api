@@ -12,7 +12,7 @@ use Throwable;
  */
 final class CustomerNotificationWriter
 {
-    public function orderPlaced(int $userId, int $orderId): void
+    public function orderPlaced(int $userId, string $orderId): void
     {
         try {
             DB::table('customer_notifications')->insertOrIgnore([
