@@ -21,11 +21,13 @@ final class SellerFinanceController extends Controller
 
         $sellerId = (int) $data['seller_id'];
         abort_unless(DB::table('seller_staff_access')
-            ->where('seller_id', $sellerId)
-            ->where('user_id', $request->user()->id)
-            ->where('role', 'owner')
-            ->where('is_active', true)
-            ->whereNull('branch_id')
+            ->join('sellers', 'sellers.id', '=', 'seller_staff_access.seller_id')
+            ->where('seller_staff_access.seller_id', $sellerId)
+            ->where('seller_staff_access.user_id', $request->user()->id)
+            ->where('seller_staff_access.role', 'owner')
+            ->where('seller_staff_access.is_active', true)
+            ->whereNull('seller_staff_access.branch_id')
+            ->where('sellers.status', 'approved')
             ->exists(), 404);
 
         $totals = DB::table('suborders')
