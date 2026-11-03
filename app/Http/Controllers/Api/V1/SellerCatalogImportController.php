@@ -26,6 +26,7 @@ final class SellerCatalogImportController extends Controller
     {
         $input = $request->validate([
             'seller_id' => ['required', 'integer', 'min:1'],
+            'dry_run' => ['sometimes', 'boolean'],
             'file' => ['required', 'file', 'max:1024', 'mimes:csv,txt'],
         ]);
 
@@ -112,6 +113,29 @@ final class SellerCatalogImportController extends Controller
 
         if ($errors !== []) {
             throw ValidationException::withMessages(['file' => array_slice($errors, 0, 20)]);
+        }
+
+        // Read-only preview uses the same validation as the real import.
+        // It checks existing SKUs/barcodes but never creates a draft.
+        if ($request->boolean('dry_run')) {
+            $skus = array_column($rows, 'sku');
+            $barcodes = array_values(array_filter(array_column($rows, 'barcode'), static fn ($v) => $v !== ''));
+            if (DB::table('product_variants')->whereIn('sku', $skus)
+                ->orWhereIn('barcode', $barcodes)->exists()) {
+                throw ValidationException::withMessages(['file' => ['One or more SKUs/barcodes already exist.']]);
+            }
+
+            return response()->json(['data' => [
+                'valid_rows' => count($rows),
+                'preview' => array_map(static fn (array $row): array => [
+                    'category_id' => (int) $row['category_id'],
+                    'name_ar' => $row['name_ar'],
+                    'name_en' => $row['name_en'],
+                    'price_halalas' => (int) $row['price_halalas'],
+                    'sku' => $row['sku'],
+                ], array_slice($rows, 0, 10)),
+                'created_drafts' => 0,
+            ]]);
         }
 
         $created = DB::transaction(function () use ($rows, $sellerId): int {
