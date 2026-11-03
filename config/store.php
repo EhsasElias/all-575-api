@@ -16,7 +16,8 @@ return [
 
     'otp' => [
         // log: writes the code to the application log (local and testing only).
-        // unconfigured: refuses to send until an SMS/email provider is contracted.
+        // mail: sends email OTP using Laravel Mail (requires SMTP or a mail provider); phone SMS remains unavailable.
+        // unconfigured: refuses to send until a provider is configured.
         'driver' => env('OTP_DRIVER', 'unconfigured'),
         'length' => 6,
         'ttl_seconds' => 300,
