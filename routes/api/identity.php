@@ -5,14 +5,11 @@ use App\Http\Controllers\Api\V1\BillingProfileController;
 use App\Http\Controllers\Api\V1\CustomerDashboardController;
 use App\Http\Controllers\Api\V1\CustomerRequestController;
 use App\Http\Controllers\Api\V1\CustomerNotificationController;
-use App\Http\Controllers\Api\V1\FirebaseAuthController;
 use App\Http\Controllers\Api\V1\EmailPasswordAuthController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\SavedProductController;
 use App\Http\Controllers\Api\V1\SessionController;
 use Illuminate\Support\Facades\Route;
-
-Route::post('auth/firebase/login', [FirebaseAuthController::class, 'login'])->middleware('throttle:otp-verify');
 
 Route::post('auth/email/register', [EmailPasswordAuthController::class, 'register'])->middleware('throttle:otp-request');
 Route::post('auth/email/login', [EmailPasswordAuthController::class, 'login'])->middleware('throttle:otp-verify');
