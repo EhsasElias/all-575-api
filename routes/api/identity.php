@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('auth/firebase/login', [FirebaseAuthController::class, 'login'])->middleware('throttle:otp-verify');
 
+Route::post('auth/email/register', [EmailPasswordAuthController::class, 'register'])->middleware('throttle:otp-request');
+Route::post('auth/email/login', [EmailPasswordAuthController::class, 'login'])->middleware('throttle:otp-verify');
+Route::post('auth/email/password-reset', [EmailPasswordAuthController::class, 'resetPassword'])->middleware('throttle:otp-verify');
+
 Route::prefix('auth/otp')->group(function (): void {
     Route::post('request', [AuthController::class, 'requestOtp'])->middleware('throttle:otp-request');
     Route::post('verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:otp-verify');
