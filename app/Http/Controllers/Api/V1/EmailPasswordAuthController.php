@@ -70,7 +70,7 @@ final class EmailPasswordAuthController extends Controller
         ]);
         $user = User::query()->where('email', strtolower(trim($data['email'])))->first();
         // Run an equivalent hash computation even for unknown accounts.
-        $hash = $user?->password ?: '$2y$12$hOAmU7NsV8RgcGtI/eGClOfsAJV9HPpvFuP/m9QEiD4XrF3f37.rG';
+        $hash = $user?->password ?: Hash::make('unavailable-password-placeholder');
         if (! Hash::check($data['password'], $hash) || ! $user || ! $user->is_active || ! $user->email_verified_at) {
             throw new DomainRuleViolation('invalid_credentials', 'Invalid credentials or unverified email. Use email code verification.', 401);
         }
@@ -121,12 +121,4 @@ final class EmailPasswordAuthController extends Controller
         ]]);
     }
 
-    public function setPassword(Request $request): JsonResponse
-    {
-        $data = $request->validate(['password' => ['required', 'string', 'max:128', Password::min(12)]]);
-        $user = $request->user();
-        abort_unless($user->isVerified(), 403);
-        $user->forceFill(['password' => Hash::make($data['password'])])->save();
-        return response()->json(['data' => ['updated' => true]]);
-    }
 }
