@@ -2,12 +2,7 @@
 
 return [
 
-    'firebase' => [
-        'enabled' => env('FIREBASE_AUTH_ENABLED', false),
-        'project_id' => env('FIREBASE_PROJECT_ID', ''),
-    ],
-
-    'geocoding' => [
+'geocoding' => [
         'url' => env('GEOCODING_REVERSE_URL', 'https://nominatim.openstreetmap.org/reverse'),
     ],
 
