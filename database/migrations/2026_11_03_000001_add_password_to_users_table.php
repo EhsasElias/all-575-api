@@ -19,8 +19,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table): void {
-            $table->dropColumn('password');
-        });
+        // Intentionally preserve credentials if rolling back: the column may have
+        // existed before this migration and deleting it could destroy real accounts.
+        // Column removal, if ever required, must be a separately approved migration.
     }
 };
