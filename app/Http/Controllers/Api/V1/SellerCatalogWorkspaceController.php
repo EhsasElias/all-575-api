@@ -61,7 +61,8 @@ class SellerCatalogWorkspaceController extends Controller
             ->when(isset($filters['status']), fn ($query) => $query->where('products.status', $filters['status']))
             ->when(isset($filters['before_id']), fn ($query) => $query->where('products.id', '<', $filters['before_id']))
             ->select('products.id', 'products.seller_id', 'products.category_id', 'products.slug',
-                'products.name_ar', 'products.name_en', 'products.status', 'products.created_at')
+                'products.name_ar', 'products.name_en', 'products.description_ar', 'products.description_en',
+                'products.price_halalas', 'products.vat_class', 'products.status', 'products.created_at')
             ->orderByDesc('products.id')->limit($limit)->get();
 
         return response()->json(['data' => $products]);
