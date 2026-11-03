@@ -17,12 +17,17 @@ return [
     'otp' => [
         // log: writes the code to the application log (local and testing only).
         // mail: sends email OTP using Laravel Mail (requires SMTP or a mail provider); phone SMS remains unavailable.
+        // taqnyat: sends email via SMTP and Saudi mobile OTP via Taqnyat SMS.
         // unconfigured: refuses to send until a provider is configured.
         'driver' => env('OTP_DRIVER', 'unconfigured'),
         'length' => 6,
         'ttl_seconds' => 300,
         'max_attempts' => 5,
         'resend_cooldown_seconds' => 60,
+        'taqnyat' => [
+            'token' => env('TAQNYAT_BEARER_TOKEN', ''),
+            'sender' => env('TAQNYAT_SENDER_NAME', ''),
+        ],
     ],
 
     'cart' => [
