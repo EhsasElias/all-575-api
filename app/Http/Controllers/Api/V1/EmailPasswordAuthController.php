@@ -38,7 +38,10 @@ final class EmailPasswordAuthController extends Controller
         ]);
         if ($data['consents']['terms_version'] !== config('store.terms_version')
             || $data['consents']['privacy_version'] !== config('store.privacy_version')) {
-            throw new DomainRuleViolation('consent_required', 'Accept current Terms and Privacy Policy.', 422);
+            throw new DomainRuleViolation('consent_required', 'Accept current Terms and Privacy Policy.', 422, [
+                'terms_version' => config('store.terms_version'),
+                'privacy_version' => config('store.privacy_version'),
+            ]);
         }
         $email = strtolower(trim($data['email']));
         if (User::query()->where('email', $email)->exists()) {
