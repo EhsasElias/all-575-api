@@ -30,7 +30,7 @@ final class EmailPasswordAuthController extends Controller
     {
         $data = $request->validate([
             'email' => ['required', 'email', 'max:254'],
-            'password' => ['required', 'string', Password::min(12)],
+            'password' => ['required', 'string', 'max:128', Password::min(12)],
             'consents' => ['required', 'array'],
             'consents.terms_version' => ['required', 'string', 'max:20'],
             'consents.privacy_version' => ['required', 'string', 'max:20'],
@@ -45,15 +45,14 @@ final class EmailPasswordAuthController extends Controller
             throw new DomainRuleViolation('email_exists', 'This email is already registered. Use sign in or account recovery.', 409);
         }
 
-        // The account starts unverified and receives no token until code verification succeeds.
-        $user = DB::transaction(function () use ($email, $data, $recordConsents, $request): User {
+        // Account creation and OTP delivery must succeed or fail together.
+        // No unverified orphan account remains if the mail provider rejects delivery.
+        $challenge = DB::transaction(function () use ($email, $data, $recordConsents, $request, $requestOtp): OtpChallenge {
             $user = User::query()->create(['email' => $email, 'locale' => app()->getLocale(), 'is_active' => true]);
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
             $recordConsents->handle($user, $data['consents'], app()->getLocale(), $request->ip());
-            return $user;
+            return $requestOtp->handle(OtpChannel::Email, $email, app()->getLocale(), $request->ip());
         });
-
-        $challenge = $requestOtp->handle(OtpChannel::Email, $email, app()->getLocale(), $request->ip());
 
         return response()->json(['data' => [
             'challenge_id' => $challenge->id,
@@ -66,7 +65,7 @@ final class EmailPasswordAuthController extends Controller
     {
         $data = $request->validate([
             'email' => ['required', 'email', 'max:254'],
-            'password' => ['required', 'string'],
+            'password' => ['required', 'string', 'max:128'],
             'device_name' => ['nullable', 'string', 'max:100'],
         ]);
         $user = User::query()->where('email', strtolower(trim($data['email'])))->first();
@@ -98,7 +97,7 @@ final class EmailPasswordAuthController extends Controller
         $data = $request->validate([
             'challenge_id' => ['required', 'string', 'size:26'],
             'code' => ['required', 'string', 'digits:6'],
-            'password' => ['required', 'string', Password::min(12)],
+            'password' => ['required', 'string', 'max:128', Password::min(12)],
             'device_name' => ['nullable', 'string', 'max:100'],
         ]);
         $challenge = OtpChallenge::query()->whereKey($data['challenge_id'])->where('channel', OtpChannel::Email->value)->first();
@@ -124,7 +123,7 @@ final class EmailPasswordAuthController extends Controller
 
     public function setPassword(Request $request): JsonResponse
     {
-        $data = $request->validate(['password' => ['required', 'string', Password::min(12)]]);
+        $data = $request->validate(['password' => ['required', 'string', 'max:128', Password::min(12)]]);
         $user = $request->user();
         abort_unless($user->isVerified(), 403);
         $user->forceFill(['password' => Hash::make($data['password'])])->save();
