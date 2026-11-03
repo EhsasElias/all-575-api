@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Domain\Identity\Contracts\OtpSender;
 use App\Domain\Identity\Services\LogOtpSender;
 use App\Domain\Identity\Services\MailOtpSender;
+use App\Domain\Identity\Services\TaqnyatOtpSender;
 use App\Domain\Identity\Services\UnconfiguredOtpSender;
 use App\Domain\Payments\Contracts\PaymentGateway;
 use App\Domain\Payments\Gateways\FakeGateway;
@@ -28,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(OtpSender::class, fn (): OtpSender => match (config('store.otp.driver')) {
             'log' => $this->guardLogDriver(),
             'mail' => new MailOtpSender,
+            'taqnyat' => new TaqnyatOtpSender(new MailOtpSender),
             default => new UnconfiguredOtpSender,
         });
 
