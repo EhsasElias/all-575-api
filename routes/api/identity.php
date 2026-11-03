@@ -24,6 +24,7 @@ Route::prefix('auth/otp')->group(function (): void {
 });
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(function (): void {
+    Route::put('auth/email/password', [EmailPasswordAuthController::class, 'setPassword'])->middleware('throttle:10,1');
     Route::get('me/dashboard', CustomerDashboardController::class);
     Route::get('me/notifications', [CustomerNotificationController::class, 'index']);
     Route::patch('me/notifications/read-all', [CustomerNotificationController::class, 'readAll']);
