@@ -21,6 +21,7 @@ final class SellerBranchProfileController extends Controller
             'name_ar' => ['required', 'string', 'max:180'],
             'name_en' => ['required', 'string', 'max:180'],
         ]);
+        abort_if(trim($data['name_ar']) === '' || trim($data['name_en']) === '', 422, 'Branch names cannot be blank.');
 
         $updated = DB::transaction(function () use ($request, $branch, $data): array {
             $row = DB::table('branches')
