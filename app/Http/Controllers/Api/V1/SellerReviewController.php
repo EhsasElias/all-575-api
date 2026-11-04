@@ -175,7 +175,8 @@ final class SellerReviewController extends Controller
                 abort_unless($item->variants()->where('is_active', true)->exists(), 422, 'Active variant required.');
                 abort_unless(DB::table('categories')->where('id', $item->category_id)
                     ->where('is_active', true)->exists(), 422, 'Active category required.');
-                abort_unless($item->image_path, 422, 'Product cover image required.');
+                abort_unless($item->image_path && Storage::disk('public')->exists($item->image_path),
+                    422, 'Uploaded product cover image is required.');
             }
 
             $item->status = $status;
