@@ -13,6 +13,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -52,6 +54,14 @@ final class SellerReviewController extends Controller
         $this->authorizeReviewer($request);
 
         $item = DB::table('seller_applications')->where('id', $application)->firstOrFail();
+        if ($item->iban) {
+            try {
+                $iban = Crypt::decryptString($item->iban);
+                $item->iban = substr($iban, 0, 4).'****************'.substr($iban, -4);
+            } catch (DecryptException) {
+                $item->iban = null;
+            }
+        }
         $documents = DB::table('seller_application_documents')->where('application_id', $application)
             ->select('id', 'document_type', 'original_name', 'mime_type', 'size_bytes', 'updated_at')->get();
 
