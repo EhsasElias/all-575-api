@@ -209,8 +209,10 @@ final class SellerReviewController extends Controller
         $this->authorizeReviewer($request);
 
         return response()->json(['data' => DB::table('branches')
+            ->join('seller_branch_proposals', 'seller_branch_proposals.branch_id', '=', 'branches.id')
             ->join('sellers', 'sellers.id', '=', 'branches.seller_id')
             ->where('branches.is_active', false)
+            ->where('seller_branch_proposals.status', 'pending')
             ->where('sellers.status', 'approved')
             ->select('branches.id', 'branches.seller_id', 'branches.service_zone_id',
                 'branches.code', 'branches.name_ar', 'branches.name_en',
@@ -226,6 +228,11 @@ final class SellerReviewController extends Controller
         ]);
 
         $result = DB::transaction(function () use ($request, $branch): array {
+            $proposal = DB::table('seller_branch_proposals')
+                ->where('branch_id', $branch)->lockForUpdate()->first();
+            abort_if($proposal === null, 404, 'No branch proposal exists.');
+            abort_unless($proposal->status === 'pending', 409, 'Proposal already reviewed.');
+
             $row = DB::table('branches')->where('id', $branch)->lockForUpdate()->first();
             abort_if($row === null, 404);
             abort_if($row->is_active, 409, 'Branch already active.');
@@ -238,6 +245,12 @@ final class SellerReviewController extends Controller
                 422, 'Branch location must belong to the active zone.');
 
             DB::table('branches')->where('id', $branch)->update(['is_active' => true, 'updated_at' => now()]);
+            DB::table('seller_branch_proposals')->where('id', $proposal->id)->update([
+                'status' => 'approved',
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+                'updated_at' => now(),
+            ]);
             $this->audit((int) $request->user()->id, 'branch', $branch,
                 'inactive', 'active', null);
 
