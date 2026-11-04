@@ -23,6 +23,7 @@ final class SellerStoreProfileController extends Controller
             'name_ar' => ['required', 'string', 'max:180'],
             'name_en' => ['required', 'string', 'max:180'],
         ]);
+        abort_if(trim($data['name_ar']) === '' || trim($data['name_en']) === '', 422, 'Store names cannot be blank.');
 
         $profile = DB::transaction(function () use ($request, $seller, $data): object {
             $this->authorizedStore($request, $seller);
