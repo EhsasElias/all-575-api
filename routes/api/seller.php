@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\SellerWorkspaceController;
 use App\Http\Controllers\Api\V1\SellerAccessController;
 use App\Http\Controllers\Api\V1\SellerApplicationController;
+use App\Http\Controllers\Api\V1\SellerApplicationDocumentController;
 use App\Http\Controllers\Api\V1\SellerCatalogWorkspaceController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\SellerStockAdjustmentController;
@@ -26,6 +27,8 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
     Route::get('seller/application', [SellerApplicationController::class, 'show']);
     Route::put('seller/application', [SellerApplicationController::class, 'save']);
     Route::post('seller/application/submit', [SellerApplicationController::class, 'submit']);
+    Route::get('seller/application/documents', [SellerApplicationDocumentController::class, 'index']);
+    Route::post('seller/application/documents', [SellerApplicationDocumentController::class, 'upload'])->middleware('throttle:10,1');
 });
 
 Route::get('seller/memberships', [SellerAccessController::class, 'memberships'])
