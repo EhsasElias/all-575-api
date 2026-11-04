@@ -190,6 +190,49 @@ final class SellerReviewController extends Controller
         return response()->json(['data' => $result]);
     }
 
+    public function branches(Request $request): JsonResponse
+    {
+        $this->authorizeReviewer($request);
+
+        return response()->json(['data' => DB::table('branches')
+            ->join('sellers', 'sellers.id', '=', 'branches.seller_id')
+            ->where('branches.is_active', false)
+            ->where('sellers.status', 'approved')
+            ->select('branches.id', 'branches.seller_id', 'branches.service_zone_id',
+                'branches.code', 'branches.name_ar', 'branches.name_en',
+                'branches.lat', 'branches.lng', 'branches.created_at')
+            ->orderByDesc('branches.id')->limit(50)->get()]);
+    }
+
+    public function decideBranch(Request $request, int $branch): JsonResponse
+    {
+        $this->authorizeReviewer($request);
+        $input = $request->validate([
+            'decision' => ['required', Rule::in(['activate'])],
+        ]);
+
+        $result = DB::transaction(function () use ($request, $branch): array {
+            $row = DB::table('branches')->where('id', $branch)->lockForUpdate()->first();
+            abort_if($row === null, 404);
+            abort_if($row->is_active, 409, 'Branch already active.');
+            abort_unless(DB::table('sellers')->where('id', $row->seller_id)
+                ->where('status', 'approved')->exists(), 409, 'Seller approval required.');
+
+            $zone = \App\Domain\Catalog\Models\ServiceZone::query()->active()
+                ->findOrFail($row->service_zone_id);
+            abort_unless($zone->distanceTo((float) $row->lat, (float) $row->lng) <= $zone->radius_meters,
+                422, 'Branch location must belong to the active zone.');
+
+            DB::table('branches')->where('id', $branch)->update(['is_active' => true, 'updated_at' => now()]);
+            $this->audit((int) $request->user()->id, 'branch', $branch,
+                'inactive', 'active', null);
+
+            return ['id' => $branch, 'is_active' => true];
+        }, 3);
+
+        return response()->json(['data' => $result]);
+    }
+
     private function audit(int $reviewerId, string $type, int $id, string $previous,
         string $next, ?string $reason): void
     {
