@@ -34,7 +34,8 @@ Use a dedicated test database and a test seller with an approved membership. Do 
 ## 2. Customer-to-seller registration
 
 - Register/sign in using email/password and a real email OTP in a safe test environment.
-- Save Seller application: legal name, commercial registration, optional 700 number and VAT number, contact name, email, phone, city.
+- Save Seller application: legal name, CR, optional 700/VAT, contact details and city.
+- Fill and reload the extended optional Saudi fields: entity type, CR status/issue/expiry dates, Chamber of Commerce number, building, postal code, additional number, street, district and IBAN. Verify stored values and validation errors for invalid dates.
 - Submit application for review. Check it cannot be modified while submitted.
 - Return a sample application for correction using the authorized administrative process; verify the seller sees the review note, edits, and resubmits.
 - Verify a newly registered unapproved seller cannot receive a Seller session token.
@@ -68,11 +69,11 @@ Use a dedicated test database and a test seller with an approved membership. Do 
 
 ## 5. Orders, packing, inventory
 
-- View orders by status, branch, and date range.
+- View orders by status, branch, and date range; with more than 50 records, use **Load more**.
 - Confirm order CSV export follows those filters.
 - Open packing list and compare product variants/quantities with the order.
 - Advance order Awaiting seller -> Preparing -> Ready with authorized staff only.
-- View inventory and adjust physical quantity; reject quantities below reserved stock and unauthorized branches.
+- View inventory and adjust physical quantity; reject quantities below reserved stock and unauthorized branches. Verify **Load more** with over 50 stock rows.
 - **Not yet complete:** full branch replenishment workflow and all delivery transitions.
 
 ## 6. Returns and staff
@@ -88,7 +89,7 @@ Use a dedicated test database and a test seller with an approved membership. Do 
 
 - View sales summary and ledger by date as an approved owner.
 - Verify branch managers and unrelated sellers cannot access owner financial data.
-- Check settlement-readiness checklist and confirm no transfer action exists.
+- Check settlement-readiness checklist (commission, refund allocation, finance approval) and confirm no transfer action exists.
 - Verify merchandise totals are not labelled seller payout.
 - **Not yet complete:** live payout execution, audited settlement approval and final reconciliation.
 
