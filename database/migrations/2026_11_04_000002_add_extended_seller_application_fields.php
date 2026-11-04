@@ -40,12 +40,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        foreach (array_keys(self::FIELDS) as $column) {
-            if (Schema::hasColumn('seller_applications', $column)) {
-                Schema::table('seller_applications', static function (Blueprint $table) use ($column): void {
-                    $table->dropColumn($column);
-                });
-            }
-        }
+        // Intentionally non-destructive: this migration skips pre-existing columns,
+        // so automatically dropping them during rollback could remove legacy data.
+        // A separately reviewed migration is required for destructive column removal.
     }
 };
