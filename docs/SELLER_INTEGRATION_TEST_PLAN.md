@@ -131,9 +131,9 @@ Record pass/fail and screenshots for every item. Before production deployment, r
 - Business sign-off for commissions, refunds, settlements and admin approvals.
 - A trusted database administrator must manually provision reviewer access with seller_review_grants (is_active = 1) only after organizational approval; no public self-service grant endpoint exists. Verify the intended reviewer user_id and never grant this role to seller accounts by default.
 - The reviewer must sign in with a **customer-scoped session** to open `/account/seller-review`; seller tokens are intentionally not accepted at the reviewer endpoints.
-- Review branch proposals and activate only after checking the physical location and service zone. Activation decisions and private document downloads are recorded in seller_review_audits.
+- Review only pending seller_branch_proposals and activate only after checking the physical location and service zone. Previously disabled branches must never appear in the proposal queue or be reactivated by this workflow. Activation decisions and private document downloads are recorded in seller_review_audits.
 - Registration IBAN values are encrypted at rest with Laravel APP_KEY. Validate existing column width on staging; loss or rotation of APP_KEY without a migration plan can make stored encrypted values unreadable.
 - Check both GitHub Actions workflows named **Seller backend checks** and **Seller frontend checks** on branch v2. A commit without a passing check is not considered tested.
-- Review the new seller_application_documents, seller_review_grants, seller_review_audits, approved_seller_id and IBAN migrations in staging before applying to production. Never run migrations on production without approval and backup.
+- Review the new seller_application_documents, seller_review_grants, seller_review_audits, seller_branch_proposals, approved_seller_id and IBAN migrations in staging before applying to production. Never run migrations on production without approval and backup.
 
 Code committed to GitHub is not equivalent to tested, deployed or accepted functionality.
