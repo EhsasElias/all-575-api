@@ -17,7 +17,7 @@ class MapAddressTest extends TestCase
         parent::setUp();
         Cache::flush();
         Http::preventStrayRequests();
-        config(['services.geocoding.url' => 'https://geocoding.example.test/reverse']);
+        config([\n            'services.geocoding.url' => 'https://geocoding.example.test/reverse',\n            'services.geocoding.fallback_url' => null,\n        ]);
     }
 
     public function test_lookup_requires_customer_and_valid_coordinates(): void
@@ -44,6 +44,37 @@ class MapAddressTest extends TestCase
             && count($request->data()) === 5 && str_contains($request->header('User-Agent')[0], 'ALL575'));
         $this->getJson('/api/v1/addresses/resolve?lat=25&lng=46')->assertStatus(429);
         Http::assertSentCount(1);
+    }
+
+    public function test_secondary_provider_is_used_when_primary_cannot_connect(): void
+    {
+        $this->actingAsCustomer(User::factory()->create());
+        config(['services.geocoding.fallback_url' => 'https://backup.example.test/reverse']);
+        Http::fake([
+            'geocoding.example.test/*' => Http::failedConnection(),
+            'backup.example.test/*' => Http::response(['address' => [
+                'country_code' => 'sa', 'city' => 'Riyadh', 'road' => 'Test road',
+            ]]),
+        ]);
+
+        $url = '/api/v1/addresses/resolve?lat=24.7136&lng=46.6753';
+        $this->getJson($url)->assertOk()->assertJsonPath('data.city', 'Riyadh');
+        $this->getJson($url)->assertOk();
+        Http::assertSentCount(2);
+    }
+
+    public function test_both_providers_failing_returns_safe_error_without_provider_data(): void
+    {
+        $this->actingAsCustomer(User::factory()->create());
+        config(['services.geocoding.fallback_url' => 'https://backup.example.test/reverse']);
+        Http::fake([
+            'geocoding.example.test/*' => Http::response(['secret' => 'primary'], 503),
+            'backup.example.test/*' => Http::response(['secret' => 'backup'], 502),
+        ]);
+
+        $this->getJson('/api/v1/addresses/resolve?lat=24&lng=46')
+            ->assertStatus(503)->assertDontSee('primary')->assertDontSee('backup');
+        Http::assertSentCount(2);
     }
 
     public function test_missing_or_invalid_numbers_are_not_invented(): void
