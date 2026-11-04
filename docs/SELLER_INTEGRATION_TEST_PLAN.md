@@ -15,6 +15,7 @@ php artisan migrate:status
 php artisan test --filter=SellerStoreProfileTest
 php artisan test --filter=SellerCatalogImportPreviewTest
 php artisan test --filter=SellerApplicationDocumentTest
+php artisan test --filter=SellerExtendedApplicationTest
 php artisan test --filter=SellerWorkspaceTest
 ```
 
