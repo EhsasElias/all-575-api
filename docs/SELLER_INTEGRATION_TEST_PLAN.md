@@ -16,6 +16,8 @@ php artisan test --filter=SellerStoreProfileTest
 php artisan test --filter=SellerCatalogImportPreviewTest
 php artisan test --filter=SellerApplicationDocumentTest
 php artisan test --filter=SellerExtendedApplicationTest
+php artisan test --filter=SellerReviewWorkflowTest
+php artisan test --filter=SellerProductReviewTest
 php artisan test --filter=SellerWorkspaceTest
 ```
 
@@ -42,7 +44,11 @@ Use a dedicated test database and a test seller with an approved membership. Do 
 - Verify a newly registered unapproved seller cannot receive a Seller session token.
 - Upload sample registration, VAT, national address and IBAN documents (PDF/JPG/PNG, max 10 MB) before submitting. Verify private metadata listing and that submitted applications reject further uploads.
 - Confirm documents are stored on the Laravel **local/private disk**, never public product-image storage.
-- **Not yet complete:** approved administrator download/review interface, expanded Saudi national address fields, document authenticity review and full back-office approval UI.
+- Authorized reviewers can inspect applications and download private documents; approve only after manually verifying commercial registration, national address and IBAN certificate. The server requires those three document types before approval.
+- An approved application creates one approved store and one active owner membership. Repeating the same decision must return HTTP 409.
+- Correction and rejection need a detailed note (10-2000 characters); the applicant sees the note for correction. Reviewer decisions are recorded in seller_review_audits.
+- Review pending products from the back-office screen. Publish only when an active SKU, active category and cover image exist. Rejections require a reason visible to the seller.
+- **Not yet complete:** external document authenticity/KYC verification, legal business identity reconciliation and payment provider compliance checks.
 
 ## 3. Seller ownership and store/branches
 
@@ -66,7 +72,7 @@ Use a dedicated test database and a test seller with an approved membership. Do 
 - Confirm import; verify only draft products were created.
 - Upload malformed rows and duplicate SKUs; confirm errors and no partial import.
 - Check product listing **Load more** with over 50 products.
-- **Not yet complete:** native .xlsx upload, barcode scanning hardware integration, admin review UI and product gallery.
+- **Not yet complete:** native .xlsx upload, hardware barcode scanning and multi-image product gallery.
 
 ## 5. Orders, packing, inventory
 
@@ -102,6 +108,8 @@ Record pass/fail and screenshots for every item. Before production deployment, r
 - Privacy/security review of document storage, staff permissions and financial endpoints.
 - Verified mail provider and OTP flow.
 - Business sign-off for commissions, refunds, settlements and admin approvals.
+- A trusted database administrator must manually provision reviewer access with seller_review_grants (is_active = 1) only after organizational approval; no public self-service grant endpoint exists. Verify the intended reviewer user_id and never grant this role to seller accounts by default.
+- Check both GitHub Actions workflows named **Seller backend checks** and **Seller frontend checks** on branch v2. A commit without a passing check is not considered tested.
 - Review the new seller_application_documents migration in staging before applying to production. Never run migrations on production without approval and backup.
 
 Code committed to GitHub is not equivalent to tested, deployed or accepted functionality.
