@@ -64,7 +64,7 @@ class SellerApplicationController extends Controller
             return DB::table('seller_applications')->where('user_id', $userId)->first();
         });
 
-        return response()->json(['data' => $application]);
+        return response()->json(['data' => $this->displayApplication($application)]);
     }
 
     private function displayApplication(?object $application): ?object
@@ -100,6 +100,6 @@ class SellerApplicationController extends Controller
             return $query->first();
         });
 
-        return response()->json(['data' => $application]);
+        return response()->json(['data' => $this->displayApplication($application)]);
     }
 }
