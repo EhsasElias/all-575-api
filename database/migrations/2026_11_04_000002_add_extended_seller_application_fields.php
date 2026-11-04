@@ -29,7 +29,9 @@ return new class extends Migration
                 continue;
             }
             Schema::table('seller_applications', static function (Blueprint $table) use ($column, $type): void {
-                if ($type === 'date') {
+                if ($column === 'iban') {
+                    $table->text($column)->nullable();
+                } elseif ($type === 'date') {
                     $table->date($column)->nullable();
                 } else {
                     $table->string($column, $column === 'street' ? 180 : 100)->nullable();
