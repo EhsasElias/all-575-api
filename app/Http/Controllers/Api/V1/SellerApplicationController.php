@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Contracts\Encryption\DecryptException;
 
 class SellerApplicationController extends Controller
 {
@@ -13,7 +15,7 @@ class SellerApplicationController extends Controller
     {
         $application = DB::table('seller_applications')->where('user_id', $request->user()->id)->first();
 
-        return response()->json(['data' => $application]);
+        return response()->json(['data' => $this->displayApplication($application)]);
     }
 
     public function save(Request $request): JsonResponse
@@ -42,6 +44,10 @@ class SellerApplicationController extends Controller
             'iban' => ['nullable', 'string', 'max:100'],
         ]);
 
+        if (isset($details['iban']) && trim($details['iban']) !== '') {
+            $details['iban'] = Crypt::encryptString(strtoupper(trim($details['iban'])));
+        }
+
         $userId = $request->user()->id;
         $application = DB::transaction(function () use ($userId, $details) {
             $existing = DB::table('seller_applications')->where('user_id', $userId)->lockForUpdate()->first();
@@ -59,6 +65,24 @@ class SellerApplicationController extends Controller
         });
 
         return response()->json(['data' => $application]);
+    }
+
+    private function displayApplication(?object $application): ?object
+    {
+        if ($application === null) {
+            return null;
+        }
+        if (isset($application->iban) && $application->iban !== '') {
+            try {
+                $application->iban = Crypt::decryptString($application->iban);
+            } catch (DecryptException) {
+                // Legacy plaintext records may exist in test environments.
+                // Never echo ciphertext back to users if a stored value is unreadable.
+                $application->iban = null;
+            }
+        }
+
+        return $application;
     }
 
     public function submit(Request $request): JsonResponse
