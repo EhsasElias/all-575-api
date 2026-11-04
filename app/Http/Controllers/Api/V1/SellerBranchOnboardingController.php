@@ -24,6 +24,7 @@ final class SellerBranchOnboardingController extends Controller
 
     public function create(Request $request): JsonResponse
     {
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code', '')))]);
         $input = $request->validate([
             'seller_id' => ['required', 'integer', 'min:1'],
             'service_zone_id' => ['required', 'integer', Rule::exists('service_zones', 'id')->where('is_active', true)],
