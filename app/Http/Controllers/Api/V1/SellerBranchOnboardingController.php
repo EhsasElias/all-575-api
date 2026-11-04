@@ -52,16 +52,27 @@ final class SellerBranchOnboardingController extends Controller
         abort_unless($zone->distanceTo((float) $input['lat'], (float) $input['lng']) <= $zone->radius_meters,
             422, 'Branch location is outside the selected delivery zone.');
 
-        $branch = Branch::query()->create([
-            'seller_id' => $sellerId,
-            'service_zone_id' => $zone->id,
-            'code' => strtoupper($input['code']),
-            'name_ar' => trim($input['name_ar']),
-            'name_en' => trim($input['name_en']),
-            'lat' => $input['lat'],
-            'lng' => $input['lng'],
-            'is_active' => false,
-        ]);
+        $branch = DB::transaction(function () use ($input, $sellerId, $zone, $request): Branch {
+            $branch = Branch::query()->create([
+                'seller_id' => $sellerId,
+                'service_zone_id' => $zone->id,
+                'code' => strtoupper($input['code']),
+                'name_ar' => trim($input['name_ar']),
+                'name_en' => trim($input['name_en']),
+                'lat' => $input['lat'],
+                'lng' => $input['lng'],
+                'is_active' => false,
+            ]);
+            DB::table('seller_branch_proposals')->insert([
+                'branch_id' => $branch->id,
+                'requested_by' => $request->user()->id,
+                'status' => 'pending',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return $branch;
+        }, 3);
 
         return response()->json(['data' => [
             'id' => $branch->id,
