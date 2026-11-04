@@ -54,12 +54,9 @@ class DemoSellerAccountSeederTest extends TestCase
     {
         config(['demo.seller_email' => 'existing@example.test']);
         $this->seed(DemoCatalogSeeder::class);
-        $existing = User::factory()->create(['email' => 'existing@example.test']);
+        User::factory()->create(['email' => 'existing@example.test']);
 
         $this->expectException(\LogicException::class);
         $this->seed(DemoSellerAccountSeeder::class);
-
-        $this->assertFalse(DB::table('seller_staff_access')
-            ->where('user_id', $existing->id)->exists());
     }
 }
