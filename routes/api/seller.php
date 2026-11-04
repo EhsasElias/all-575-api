@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\SellerCommissionPreviewController;
 use App\Http\Controllers\Api\V1\SellerSettlementPreviewController;
 use App\Http\Controllers\Api\V1\SellerRefundAllocationController;
 use App\Http\Controllers\Api\V1\SellerBranchProfileController;
+use App\Http\Controllers\Api\V1\SellerStoreProfileController;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
     Route::get('seller/application', [SellerApplicationController::class, 'show']);
@@ -35,6 +36,8 @@ Route::post('seller/session', [SellerAccessController::class, 'issue'])
 
 Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
     ->prefix('seller')->group(function (): void {
+        Route::get('stores/{seller}', [SellerStoreProfileController::class, 'show'])->whereNumber('seller');
+        Route::patch('stores/{seller}', [SellerStoreProfileController::class, 'update'])->whereNumber('seller')->middleware('throttle:20,1');
         Route::get('branches', [SellerCatalogWorkspaceController::class, 'branches']);
         Route::patch('branches/{branch}', [SellerBranchProfileController::class, 'update'])->whereNumber('branch')->middleware('throttle:20,1');
         Route::get('staff', [SellerStaffController::class, 'index']);
