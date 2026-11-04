@@ -11,6 +11,7 @@ use App\Domain\Catalog\Models\Seller;
 use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -30,6 +31,7 @@ final class SellerProductReviewTest extends TestCase
 
     public function test_reviewer_cannot_publish_without_image_or_active_variant(): void
     {
+        Storage::fake('public');
         $this->reviewer();
         $seller = Seller::factory()->create();
         $category = Category::factory()->create();
@@ -40,6 +42,7 @@ final class SellerProductReviewTest extends TestCase
         $this->postJson('/api/v1/seller-review/products/'.$product->id.'/decision',
             ['decision' => 'publish'])->assertStatus(422);
 
+        Storage::disk('public')->put('products/cover.jpg', 'fake-image-content');
         $product->update(['image_path' => 'products/cover.jpg']);
         $this->postJson('/api/v1/seller-review/products/'.$product->id.'/decision',
             ['decision' => 'publish'])->assertStatus(422);
