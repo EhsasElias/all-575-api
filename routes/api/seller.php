@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\SellerCommissionPreviewController;
 use App\Http\Controllers\Api\V1\SellerSettlementPreviewController;
 use App\Http\Controllers\Api\V1\SellerRefundAllocationController;
 use App\Http\Controllers\Api\V1\SellerBranchProfileController;
+use App\Http\Controllers\Api\V1\SellerBranchOnboardingController;
 use App\Http\Controllers\Api\V1\SellerStoreProfileController;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
@@ -42,6 +43,8 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:20,
             [SellerReviewController::class, 'document'])->whereNumber('application')->whereNumber('document');
         Route::post('applications/{application}/decision',
             [SellerReviewController::class, 'decideApplication'])->whereNumber('application')->middleware('throttle:10,1');
+        Route::get('branches', [SellerReviewController::class, 'branches']);
+        Route::post('branches/{branch}/decision', [SellerReviewController::class, 'decideBranch'])->whereNumber('branch')->middleware('throttle:10,1');
         Route::get('products', [SellerReviewController::class, 'products']);
         Route::post('products/{product}/decision',
             [SellerReviewController::class, 'decideProduct'])->whereNumber('product')->middleware('throttle:10,1');
@@ -58,6 +61,8 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('stores/{seller}', [SellerStoreProfileController::class, 'show'])->whereNumber('seller');
         Route::patch('stores/{seller}', [SellerStoreProfileController::class, 'update'])->whereNumber('seller')->middleware('throttle:20,1');
         Route::get('branches', [SellerCatalogWorkspaceController::class, 'branches']);
+        Route::get('service-zones', [SellerBranchOnboardingController::class, 'serviceZones']);
+        Route::post('branches', [SellerBranchOnboardingController::class, 'create'])->middleware('throttle:10,1');
         Route::patch('branches/{branch}', [SellerBranchProfileController::class, 'update'])->whereNumber('branch')->middleware('throttle:20,1');
         Route::get('staff', [SellerStaffController::class, 'index']);
         Route::get('returns', [SellerReturnController::class, 'index']);
