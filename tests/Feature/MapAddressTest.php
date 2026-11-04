@@ -49,6 +49,52 @@ class MapAddressTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_geoapify_free_provider_autofills_saudi_address_without_leaking_key(): void
+    {
+        $this->actingAsCustomer(User::factory()->create());
+        config([
+            'services.geocoding.provider' => 'geoapify',
+            'services.geocoding.geoapify_key' => 'fake-private-key',
+        ]);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response(['features' => [[
+                'properties' => [
+                    'country_code' => 'sa', 'state' => 'Riyadh Region', 'city' => 'Riyadh',
+                    'suburb' => 'Olaya', 'street' => 'King Fahd Road',
+                    'housenumber' => '1234', 'postcode' => '12211',
+                ],
+            ]]]),
+        ]);
+        $this->getJson('/api/v1/addresses/resolve?lat=24.7136&lng=46.6753')
+            ->assertOk()->assertJsonPath('data.city', 'Riyadh')
+            ->assertJsonPath('data.district', 'Olaya')
+            ->assertJsonPath('data.street', 'King Fahd Road')
+            ->assertJsonPath('data.postal_code', '12211')
+            ->assertDontSee('fake-private-key');
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'api.geoapify.com')
+            && $request['apiKey'] === 'fake-private-key');
+    }
+
+    public function test_geoapify_provider_failure_uses_nominatim_fallback(): void
+    {
+        $this->actingAsCustomer(User::factory()->create());
+        config([
+            'services.geocoding.provider' => 'geoapify',
+            'services.geocoding.geoapify_key' => 'test-key',
+        ]);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response([], 503),
+            'geocoding.example.test/*' => Http::response(['address' => [
+                'country_code' => 'sa', 'city' => 'Riyadh',
+            ]]),
+        ]);
+        $this->getJson('/api/v1/addresses/resolve?lat=24.7136&lng=46.6753')
+            ->assertOk()->assertJsonPath('data.city', 'Riyadh');
+        Http::assertSentCount(2);
+    }
+
     public function test_secondary_provider_is_used_when_primary_cannot_connect(): void
     {
         $this->actingAsCustomer(User::factory()->create());
