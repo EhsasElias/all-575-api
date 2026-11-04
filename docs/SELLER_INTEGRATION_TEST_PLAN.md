@@ -14,6 +14,7 @@ php artisan optimize:clear
 php artisan migrate:status
 php artisan test --filter=SellerStoreProfileTest
 php artisan test --filter=SellerCatalogImportPreviewTest
+php artisan test --filter=SellerApplicationDocumentTest
 php artisan test --filter=SellerWorkspaceTest
 ```
 
@@ -37,7 +38,9 @@ Use a dedicated test database and a test seller with an approved membership. Do 
 - Submit application for review. Check it cannot be modified while submitted.
 - Return a sample application for correction using the authorized administrative process; verify the seller sees the review note, edits, and resubmits.
 - Verify a newly registered unapproved seller cannot receive a Seller session token.
-- **Not yet complete:** dedicated official-document upload, expanded Saudi national address and full back-office approval interface.
+- Upload sample registration, VAT, national address and IBAN documents (PDF/JPG/PNG, max 10 MB) before submitting. Verify private metadata listing and that submitted applications reject further uploads.
+- Confirm documents are stored on the Laravel **local/private disk**, never public product-image storage.
+- **Not yet complete:** approved administrator download/review interface, expanded Saudi national address fields, document authenticity review and full back-office approval UI.
 
 ## 3. Seller ownership and store/branches
 
@@ -97,5 +100,6 @@ Record pass/fail and screenshots for every item. Before production deployment, r
 - Privacy/security review of document storage, staff permissions and financial endpoints.
 - Verified mail provider and OTP flow.
 - Business sign-off for commissions, refunds, settlements and admin approvals.
+- Review the new seller_application_documents migration in staging before applying to production. Never run migrations on production without approval and backup.
 
 Code committed to GitHub is not equivalent to tested, deployed or accepted functionality.
