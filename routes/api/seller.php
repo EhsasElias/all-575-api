@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\SellerWorkspaceController;
 use App\Http\Controllers\Api\V1\SellerAccessController;
 use App\Http\Controllers\Api\V1\SellerApplicationController;
 use App\Http\Controllers\Api\V1\SellerApplicationDocumentController;
+use App\Http\Controllers\Api\V1\SellerReviewController;
 use App\Http\Controllers\Api\V1\SellerCatalogWorkspaceController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\SellerStockAdjustmentController;
@@ -30,6 +31,21 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
     Route::get('seller/application/documents', [SellerApplicationDocumentController::class, 'index']);
     Route::post('seller/application/documents', [SellerApplicationDocumentController::class, 'upload'])->middleware('throttle:10,1');
 });
+
+// Review rights require a separately provisioned active seller_review_grants row.
+// Customer authentication alone never grants access; controller checks every request.
+Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:20,1'])
+    ->prefix('seller-review')->group(function (): void {
+        Route::get('applications', [SellerReviewController::class, 'applications']);
+        Route::get('applications/{application}', [SellerReviewController::class, 'application'])->whereNumber('application');
+        Route::get('applications/{application}/documents/{document}',
+            [SellerReviewController::class, 'document'])->whereNumber('application')->whereNumber('document');
+        Route::post('applications/{application}/decision',
+            [SellerReviewController::class, 'decideApplication'])->whereNumber('application')->middleware('throttle:10,1');
+        Route::get('products', [SellerReviewController::class, 'products']);
+        Route::post('products/{product}/decision',
+            [SellerReviewController::class, 'decideProduct'])->whereNumber('product')->middleware('throttle:10,1');
+    });
 
 Route::get('seller/memberships', [SellerAccessController::class, 'memberships'])
     ->middleware(['auth:sanctum', 'abilities:customer', 'active']);
