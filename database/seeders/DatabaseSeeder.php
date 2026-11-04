@@ -10,6 +10,9 @@ class DatabaseSeeder extends Seeder
     {
         if (! app()->isProduction()) {
             $this->call(DemoCatalogSeeder::class);
+            if (trim((string) config('demo.seller_email', '')) !== '') {
+                $this->call(DemoSellerAccountSeeder::class);
+            }
         }
     }
 }
