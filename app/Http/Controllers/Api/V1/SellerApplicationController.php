@@ -29,6 +29,17 @@ class SellerApplicationController extends Controller
             'contact_email' => ['required', 'email', 'max:180'],
             'contact_phone' => ['required', 'string', 'max:20'],
             'city' => ['required', 'string', 'max:100'],
+            'entity_type' => ['nullable', 'string', 'max:100'],
+            'commercial_registration_status' => ['nullable', 'string', 'max:100'],
+            'commercial_registration_issue_date' => ['nullable', 'date_format:Y-m-d'],
+            'commercial_registration_expiry_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:commercial_registration_issue_date'],
+            'chamber_of_commerce_number' => ['nullable', 'string', 'max:100'],
+            'building_number' => ['nullable', 'string', 'max:100'],
+            'postal_code' => ['nullable', 'string', 'max:100'],
+            'additional_number' => ['nullable', 'string', 'max:100'],
+            'street' => ['nullable', 'string', 'max:180'],
+            'district' => ['nullable', 'string', 'max:100'],
+            'iban' => ['nullable', 'string', 'max:100'],
         ]);
 
         $userId = $request->user()->id;
