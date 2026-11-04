@@ -103,7 +103,6 @@ class ReverseGeocoder
                     ...$point,
                     'apiKey' => $apiKey,
                     'lang' => in_array($language, ['ar', 'en', 'fr'], true) ? $language : 'en',
-                    'type' => 'amenity',
                 ]);
         } catch (ConnectionException) {
             return null;
