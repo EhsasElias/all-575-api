@@ -4,6 +4,8 @@ return [
 
 'geocoding' => [
         'url' => env('GEOCODING_REVERSE_URL', 'https://nominatim.openstreetmap.org/reverse'),
+        // Optional second Nominatim-compatible HTTPS endpoint. Leave unset until contracted/hosted.
+        'fallback_url' => env('GEOCODING_FALLBACK_REVERSE_URL'),
     ],
 
     /*
