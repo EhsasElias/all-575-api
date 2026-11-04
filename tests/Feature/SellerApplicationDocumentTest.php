@@ -56,7 +56,7 @@ final class SellerApplicationDocumentTest extends TestCase
     public function test_unverified_account_cannot_upload_document(): void
     {
         Storage::fake('local');
-        $user = User::factory()->create(['email_verified_at' => null]);
+        $user = User::factory()->create(['email_verified_at' => null, 'phone_verified_at' => null]);
         $this->actingAsCustomer($user);
 
         $this->post('/api/v1/seller/application/documents', [
