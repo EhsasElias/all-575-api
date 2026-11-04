@@ -39,6 +39,11 @@ final class SellerExtendedApplicationTest extends TestCase
             ->assertJsonPath('data.postal_code', '12345')
             ->assertJsonPath('data.iban', 'SA0380000000608010167519');
 
+        $rawIban = \\Illuminate\\Support\\Facades\\DB::table('seller_applications')->value('iban');
+        $this->assertNotSame('SA0380000000608010167519', $rawIban);
+        $this->assertSame('SA0380000000608010167519',
+            \\Illuminate\\Support\\Facades\\Crypt::decryptString($rawIban));
+
         $this->getJson('/api/v1/seller/application')->assertOk()
             ->assertJsonPath('data.building_number', '1234')
             ->assertJsonPath('data.commercial_registration_expiry_date', '2030-01-01');
