@@ -34,6 +34,25 @@ npm run dev
 
 Use a dedicated test database and a test seller with an approved membership. Do not run destructive operations against production.
 
+## Local-only reviewer setup
+
+The reviewer screen is hidden until an explicitly authorized reviewer grant exists.
+In a **local test database only**, after the migration, a developer can grant an already verified test administrator account by running:
+
+```powershell
+php artisan tinker
+```
+
+```php
+$id = 123; // Replace with the verified LOCAL TEST reviewer user ID.
+DB::table('seller_review_grants')->updateOrInsert(
+    ['user_id' => $id],
+    ['is_active' => true, 'updated_at' => now(), 'created_at' => now()]
+);
+```
+
+Never use an arbitrary user ID or repeat this operation on production without approved access governance. Then log in to the app with that reviewer's **customer** session and open `/account/seller-review`.
+
 ## 2. Customer-to-seller registration
 
 - Register/sign in using email/password and a real email OTP in a safe test environment.
