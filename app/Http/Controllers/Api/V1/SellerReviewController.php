@@ -77,6 +77,9 @@ final class SellerReviewController extends Controller
             ->where('application_id', $application)->firstOrFail();
         abort_unless(Storage::disk('local')->exists($item->file_path), 404);
 
+        $this->audit((int) $request->user()->id, 'document', $item->id,
+            'private', 'downloaded', 'Application '.$application.' document accessed');
+
         return response()->download(
             Storage::disk('local')->path($item->file_path),
             'document-'.$item->id.'.'.($item->mime_type === 'application/pdf' ? 'pdf'
