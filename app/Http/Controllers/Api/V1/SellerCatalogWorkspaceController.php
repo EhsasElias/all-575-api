@@ -63,6 +63,15 @@ class SellerCatalogWorkspaceController extends Controller
             ->select('products.id', 'products.seller_id', 'products.category_id', 'products.slug',
                 'products.name_ar', 'products.name_en', 'products.description_ar', 'products.description_en',
                 'products.price_halalas', 'products.vat_class', 'products.status', 'products.created_at')
+            ->selectSub(function ($query): void {
+                $query->from('seller_review_audits')
+                    ->select('reason')
+                    ->where('subject_type', 'product')
+                    ->where('new_status', 'rejected')
+                    ->whereColumn('subject_id', 'products.id')
+                    ->orderByDesc('id')
+                    ->limit(1);
+            }, 'rejection_reason')
             ->orderByDesc('products.id')->limit($limit)->get();
 
         return response()->json(['data' => $products]);
