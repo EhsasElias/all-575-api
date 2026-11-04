@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Domain\Catalog\Models\Seller;
+use App\Domain\Catalog\Models\Branch;
 use App\Domain\Catalog\Models\ServiceZone;
 use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -79,4 +80,22 @@ final class SellerBranchOnboardingTest extends TestCase
         $this->postJson('/api/v1/seller/branches', $data)->assertStatus(422);
         $this->assertDatabaseCount('branches', 0);
     }
+    public function test_legacy_disabled_branch_is_not_a_pending_proposal(): void
+    {
+        $seller = Seller::factory()->create();
+        $branch = Branch::factory()->for($seller)->create(['is_active' => false]);
+        $reviewer = User::factory()->create();
+        DB::table('seller_review_grants')->insert([
+            'user_id' => $reviewer->id, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        Sanctum::actingAs($reviewer, ['customer']);
+
+        $this->getJson('/api/v1/seller-review/branches')
+            ->assertOk()->assertJsonCount(0, 'data');
+        $this->postJson('/api/v1/seller-review/branches/'.$branch->id.'/decision',
+            ['decision' => 'activate'])->assertNotFound();
+        $this->assertDatabaseHas('branches', ['id' => $branch->id, 'is_active' => false]);
+    }
+
 }
