@@ -1,0 +1,39 @@
+name: Seller backend checks
+on:
+  push:
+    branches: [v2]
+  workflow_dispatch:
+
+jobs:
+  seller-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, sqlite3, pdo_sqlite, fileinfo
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare Laravel test application
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan config:clear
+      - name: Check application and schema tests
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          MAIL_MAILER: array
+          OTP_DRIVER: log
+          PAYMENT_DRIVER: fake
+        run: |
+          php artisan test --filter=SellerReviewWorkflowTest
+          php artisan test --filter=SellerProductReviewTest
+          php artisan test --filter=SellerApplicationDocumentTest
+          php artisan test --filter=SellerExtendedApplicationTest
+          php artisan test --filter=SellerStoreProfileTest
+          php artisan test --filter=SellerCatalogImportPreviewTest
+          php artisan test --filter=SellerWorkspaceTest
