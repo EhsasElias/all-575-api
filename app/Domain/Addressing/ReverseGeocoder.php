@@ -11,6 +11,17 @@ class ReverseGeocoder
     /** Only coordinates/language are shared with the provider, never account or form data. */
     public function lookup(float $lat, float $lng, string $language): array
     {
+        // Geoapify's free tier is optional; its API key stays on the Laravel server.
+        // If it is unavailable, the configured Nominatim-compatible providers are attempted.
+        $provider = config('services.geocoding.provider', 'nominatim');
+        $geoapifyKey = config('services.geocoding.geoapify_key');
+        if ($provider === 'geoapify' && is_string($geoapifyKey) && $geoapifyKey !== '') {
+            $geoapify = $this->geoapifyLookup($lat, $lng, $language, $geoapifyKey);
+            if ($geoapify !== null) {
+                return $geoapify;
+            }
+        }
+
         $primary = config('services.geocoding.url');
         $fallback = config('services.geocoding.fallback_url');
         $endpoints = array_values(array_unique(array_filter(
@@ -64,6 +75,62 @@ class ReverseGeocoder
         }
 
         abort(503, 'Address lookup unavailable.');
+    }
+
+    /**
+     * Paid plans are not required for low-volume testing; availability and quota
+     * depend on the provider's current free-tier policy. Never send the API key to browsers.
+     */
+    private function geoapifyLookup(float $lat, float $lng, string $language, string $apiKey): ?array
+    {
+        $endpoint = 'https://api.geoapify.com/v1/geocode/reverse';
+        $point = ['lat' => round($lat, 5), 'lon' => round($lng, 5)];
+        $key = 'address-lookup:geoapify:'.hash('sha256', json_encode([$point, $language]));
+        $cached = Cache::get($key);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        // A separate gate protects the free quota against bursts.
+        if (! Cache::add('address-lookup:geoapify-gate', true, 1)) {
+            return null;
+        }
+
+        try {
+            $response = Http::acceptJson()
+                ->withUserAgent('ALL575/1.0 ('.config('app.url').')')
+                ->connectTimeout(2)->timeout(5)->get($endpoint, [
+                    ...$point,
+                    'apiKey' => $apiKey,
+                    'lang' => in_array($language, ['ar', 'en', 'fr'], true) ? $language : 'en',
+                    'type' => 'amenity',
+                ]);
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $properties = $response->json('features.0.properties');
+        if (! is_array($properties)) {
+            return null;
+        }
+
+        $raw = [
+            'country_code' => $properties['country_code'] ?? null,
+            'state' => $properties['state'] ?? null,
+            'city' => $properties['city'] ?? null,
+            'suburb' => $properties['suburb'] ?? ($properties['district'] ?? null),
+            'road' => $properties['street'] ?? null,
+            'house_number' => $properties['housenumber'] ?? null,
+            'postcode' => $properties['postcode'] ?? null,
+        ];
+        $fields = $this->fields($raw);
+        Cache::put($key, $fields, now()->addDay());
+
+        return $fields;
     }
 
     private function fields(array $address): array
