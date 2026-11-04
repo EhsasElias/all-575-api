@@ -11,34 +11,59 @@ class ReverseGeocoder
     /** Only coordinates/language are shared with the provider, never account or form data. */
     public function lookup(float $lat, float $lng, string $language): array
     {
-        $endpoint = config('services.geocoding.url');
-        abort_unless(is_string($endpoint) && $endpoint !== '', 503, 'Address lookup unavailable.');
+        $primary = config('services.geocoding.url');
+        $fallback = config('services.geocoding.fallback_url');
+        $endpoints = array_values(array_unique(array_filter(
+            [$primary, $fallback],
+            static fn ($url): bool => is_string($url) && str_starts_with($url, 'https://')
+        )));
+        abort_if($endpoints === [], 503, 'Address lookup unavailable.');
+
         $point = ['lat' => round($lat, 5), 'lon' => round($lng, 5)];
-        $key = 'address-lookup:'.hash('sha256', $endpoint.json_encode([$point, $language]));
+        $key = 'address-lookup:'.hash('sha256', json_encode([$endpoints, $point, $language]));
         $cached = Cache::get($key);
         if (is_array($cached)) {
             return $cached;
         }
 
-        // App-wide, not per customer: stay below the public provider's 1 request/second limit.
-        // Production instances must share the cache store to share this gate and results.
-        abort_unless(Cache::add('address-lookup:provider-gate', true, 2), 429, 'Try address lookup again shortly.');
-        try {
-            $response = Http::acceptJson()
-                ->withUserAgent('ALL575/1.0 ('.config('app.url').')')
-                ->connectTimeout(2)->timeout(5)->get($endpoint, [
-                    ...$point, 'format' => 'jsonv2', 'addressdetails' => 1, 'accept-language' => $language,
-                ]);
-        } catch (ConnectionException) {
-            abort(503, 'Address lookup unavailable.');
-        }
-        abort_unless($response->successful(), 503, 'Address lookup unavailable.');
-        $raw = $response->json('address');
-        abort_unless(is_array($raw), 503, 'Address lookup unavailable.');
-        $fields = $this->fields($raw);
-        Cache::put($key, $fields, now()->addDay());
+        // One shared request gate per endpoint, across customers and app instances.
+        // The public Nominatim service must not be called more than once per second.
+        foreach ($endpoints as $endpoint) {
+            $gate = 'address-lookup:provider-gate:'.hash('sha256', $endpoint);
+            if (! Cache::add($gate, true, 2)) {
+                // Preserve the existing 429 contract for the primary-only configuration.
+                if (count($endpoints) === 1) {
+                    abort(429, 'Try address lookup again shortly.');
+                }
+                continue;
+            }
 
-        return $fields;
+            try {
+                $response = Http::acceptJson()
+                    ->withUserAgent('ALL575/1.0 ('.config('app.url').')')
+                    ->connectTimeout(2)->timeout(5)->get($endpoint, [
+                        ...$point, 'format' => 'jsonv2', 'addressdetails' => 1, 'accept-language' => $language,
+                    ]);
+            } catch (ConnectionException) {
+                continue;
+            }
+
+            if (! $response->successful()) {
+                continue;
+            }
+
+            $raw = $response->json('address');
+            if (! is_array($raw)) {
+                continue;
+            }
+
+            $fields = $this->fields($raw);
+            Cache::put($key, $fields, now()->addDay());
+
+            return $fields;
+        }
+
+        abort(503, 'Address lookup unavailable.');
     }
 
     private function fields(array $address): array
