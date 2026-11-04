@@ -17,7 +17,10 @@ class MapAddressTest extends TestCase
         parent::setUp();
         Cache::flush();
         Http::preventStrayRequests();
-        config([\n            'services.geocoding.url' => 'https://geocoding.example.test/reverse',\n            'services.geocoding.fallback_url' => null,\n        ]);
+        config([
+            'services.geocoding.url' => 'https://geocoding.example.test/reverse',
+            'services.geocoding.fallback_url' => null,
+        ]);
     }
 
     public function test_lookup_requires_customer_and_valid_coordinates(): void
