@@ -13,6 +13,7 @@
         "dedoc/scramble": "^0.13.49",
         "laravel/framework": "^13.17",
         "laravel/sanctum": "^4.0",
+        "laravel/passkeys": "^0.2.1",
         "laravel/tinker": "^3.0"
     },
     "require-dev": {
