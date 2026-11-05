@@ -20,12 +20,14 @@ use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Passkeys\Passkeys;
 use LogicException;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        Passkeys::ignoreRoutes();
         $this->app->bind(OtpSender::class, fn (): OtpSender => match (config('store.otp.driver')) {
             'log' => $this->guardLogDriver(),
             'mail' => new MailOtpSender,
