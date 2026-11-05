@@ -115,6 +115,8 @@ final class EmailPasswordAuthController extends Controller
         // Revoke old credentials/sessions after a verified recovery. The newly issued token remains valid.
         DB::transaction(function () use ($user, $data, $login): void {
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
+            // Account recovery must revoke saved passkeys as well as old sessions.
+            $user->passkeys()->delete();
             $user->tokens()->where('id', '!=', $login->token->accessToken->id)->delete();
         });
         return response()->json(['data' => [
