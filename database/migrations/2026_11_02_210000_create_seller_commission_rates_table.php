@@ -10,7 +10,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // MySQL can leave this table behind when an index creation fails.\n        // Resume safely without dropping any existing commission data.\n        if (! Schema::hasTable('seller_commission_rates')) {\n            Schema::create('seller_commission_rates', function (Blueprint $table): void {
+        // MySQL can leave this table behind when an index creation fails.
+        // Resume safely without dropping any existing commission data.
+        if (! Schema::hasTable('seller_commission_rates')) {
+            Schema::create('seller_commission_rates', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('seller_id')->constrained('sellers')->restrictOnDelete();
             $table->unsignedSmallInteger('rate_basis_points');
