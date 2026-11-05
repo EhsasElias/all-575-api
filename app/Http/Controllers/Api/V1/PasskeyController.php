@@ -33,6 +33,11 @@ use Webauthn\PublicKeyCredentialRequestOptions;
  */
 final class PasskeyController extends Controller
 {
+    public function status(): JsonResponse
+    {
+        return response()->json(['data' => ['enabled' => config('passkeys.api_enabled') === true]]);
+    }
+
     private function enabled(): void
     {
         abort_unless(config('passkeys.api_enabled') === true, 404);
