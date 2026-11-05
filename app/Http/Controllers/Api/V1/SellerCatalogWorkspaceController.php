@@ -28,7 +28,8 @@ class SellerCatalogWorkspaceController extends Controller
                     });
             })
             ->select('branches.id', 'branches.seller_id', 'branches.code',
-                'branches.name_ar', 'branches.name_en', 'branches.is_active')
+                'branches.name_ar', 'branches.name_en', 'branches.is_active',
+                'branches.lat', 'branches.lng', 'branches.service_zone_id')
             ->orderBy('branches.id')->limit(100)->get();
 
         return response()->json(['data' => $branches]);
