@@ -18,6 +18,10 @@ class MapAddressTest extends TestCase
         Cache::flush();
         Http::preventStrayRequests();
         config([
+            // Isolate Nominatim tests from local .env / cached Geoapify settings.
+            // Geoapify-specific tests explicitly opt in with a fake credential.
+            'services.geocoding.provider' => 'nominatim',
+            'services.geocoding.geoapify_key' => null,
             'services.geocoding.url' => 'https://geocoding.example.test/reverse',
             'services.geocoding.fallback_url' => null,
         ]);
