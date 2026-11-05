@@ -16,6 +16,7 @@ Route::post('auth/email/register', [EmailPasswordAuthController::class, 'registe
 Route::post('auth/email/login', [EmailPasswordAuthController::class, 'login'])->middleware('throttle:otp-verify');
 Route::post('auth/email/password-reset', [EmailPasswordAuthController::class, 'resetPassword'])->middleware('throttle:otp-verify');
 
+Route::get('auth/passkeys/status', [PasskeyController::class, 'status']);
 Route::post('auth/passkeys/options', [PasskeyController::class, 'loginOptions'])->middleware('throttle:otp-request');
 Route::post('auth/passkeys/verify', [PasskeyController::class, 'login'])->middleware('throttle:otp-verify');
 
