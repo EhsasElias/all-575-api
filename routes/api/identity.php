@@ -9,11 +9,15 @@ use App\Http\Controllers\Api\V1\EmailPasswordAuthController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\SavedProductController;
 use App\Http\Controllers\Api\V1\SessionController;
+use App\Http\Controllers\Api\V1\PasskeyController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/email/register', [EmailPasswordAuthController::class, 'register'])->middleware('throttle:otp-request');
 Route::post('auth/email/login', [EmailPasswordAuthController::class, 'login'])->middleware('throttle:otp-verify');
 Route::post('auth/email/password-reset', [EmailPasswordAuthController::class, 'resetPassword'])->middleware('throttle:otp-verify');
+
+Route::post('auth/passkeys/options', [PasskeyController::class, 'loginOptions'])->middleware('throttle:otp-request');
+Route::post('auth/passkeys/verify', [PasskeyController::class, 'login'])->middleware('throttle:otp-verify');
 
 Route::prefix('auth/otp')->group(function (): void {
     Route::post('request', [AuthController::class, 'requestOtp'])->middleware('throttle:otp-request');
@@ -41,6 +45,11 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(funct
     Route::get('me', [MeController::class, 'show']);
     Route::patch('me', [MeController::class, 'update']);
     Route::put('me/consents/marketing', [MeController::class, 'updateMarketingConsent']);
+
+    Route::get('me/passkeys', [PasskeyController::class, 'index']);
+    Route::post('me/passkeys/options', [PasskeyController::class, 'registrationOptions'])->middleware('throttle:otp-request');
+    Route::post('me/passkeys', [PasskeyController::class, 'register'])->middleware('throttle:otp-verify');
+    Route::delete('me/passkeys/{passkey}', [PasskeyController::class, 'destroy'])->whereNumber('passkey')->middleware('throttle:otp-verify');
 
     Route::get('me/sessions', [SessionController::class, 'index']);
     Route::delete('me/sessions/{session}', [SessionController::class, 'destroy'])->whereNumber('session');
