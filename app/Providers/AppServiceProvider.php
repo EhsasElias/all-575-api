@@ -102,6 +102,9 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('webhooks', fn (Request $request): Limit => Limit::perMinute(300)->by('webhooks:'.$request->ip()));
 
+        RateLimiter::for('passkey-issue', fn (Request $request): Limit => Limit::perMinute(10)->by('passkey-issue:'.$request->ip()));
+        RateLimiter::for('passkey-verify', fn (Request $request): Limit => Limit::perMinute(10)->by('passkey-verify:'.$request->ip()));
+
         RateLimiter::for('otp-request', fn (Request $request): array => [
             Limit::perMinute(10)->by('otp-ip:'.$request->ip()),
             Limit::perHour(5)->by('otp-destination:'.$this->canonicalDestination((string) $request->input('destination'))),
