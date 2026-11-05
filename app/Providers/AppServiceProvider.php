@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Domain\Identity\Contracts\OtpSender;
+use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Services\LogOtpSender;
 use App\Domain\Identity\Services\MailOtpSender;
 use App\Domain\Identity\Services\TaqnyatOtpSender;
@@ -28,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         Passkeys::ignoreRoutes();
+        Passkeys::useUserModel(User::class);
         $this->app->bind(OtpSender::class, fn (): OtpSender => match (config('store.otp.driver')) {
             'log' => $this->guardLogDriver(),
             'mail' => new MailOtpSender,
