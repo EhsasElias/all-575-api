@@ -12,13 +12,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\PasskeyAuthenticatable;
 
 #[UseFactory(UserFactory::class)]
 #[Fillable(['name', 'phone', 'email', 'phone_verified_at', 'email_verified_at', 'locale', 'is_active', 'last_login_at'])]
-class User extends Authenticatable
+class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory;
+    use HasApiTokens, HasFactory, PasskeyAuthenticatable;
 
     /** Never serialize credential hashes or identity-provider binding IDs. */
     protected $hidden = ['password', 'remember_token', 'firebase_uid'];
