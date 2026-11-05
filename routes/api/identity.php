@@ -49,7 +49,7 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(funct
     Route::get('me/passkeys', [PasskeyController::class, 'index']);
     Route::post('me/passkeys/options', [PasskeyController::class, 'registrationOptions'])->middleware('throttle:otp-request');
     Route::post('me/passkeys', [PasskeyController::class, 'register'])->middleware('throttle:otp-verify');
-    Route::delete('me/passkeys/{passkey}', [PasskeyController::class, 'destroy'])->whereNumber('passkey')->middleware('throttle:otp-verify');
+    Route::post('me/passkeys/{passkey}/revoke', [PasskeyController::class, 'destroy'])->whereNumber('passkey')->middleware('throttle:otp-verify');
 
     Route::get('me/sessions', [SessionController::class, 'index']);
     Route::delete('me/sessions/{session}', [SessionController::class, 'destroy'])->whereNumber('session');
