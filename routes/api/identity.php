@@ -13,11 +13,11 @@ use App\Http\Controllers\Api\V1\PasskeyController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/email/register', [EmailPasswordAuthController::class, 'register'])->middleware('throttle:otp-request');
-Route::post('auth/email/login', [EmailPasswordAuthController::class, 'login'])->middleware('throttle:otp-verify');
+Route::post('auth/email/login', [EmailPasswordAuthController::class, 'login'])->middleware('throttle:passkey-verify');
 Route::post('auth/email/password-reset', [EmailPasswordAuthController::class, 'resetPassword'])->middleware('throttle:otp-verify');
 
 Route::get('auth/passkeys/status', [PasskeyController::class, 'status']);
-Route::post('auth/passkeys/options', [PasskeyController::class, 'loginOptions'])->middleware('throttle:otp-request');
+Route::post('auth/passkeys/options', [PasskeyController::class, 'loginOptions'])->middleware('throttle:passkey-issue');
 Route::post('auth/passkeys/verify', [PasskeyController::class, 'login'])->middleware('throttle:otp-verify');
 
 Route::prefix('auth/otp')->group(function (): void {
@@ -48,9 +48,9 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(funct
     Route::put('me/consents/marketing', [MeController::class, 'updateMarketingConsent']);
 
     Route::get('me/passkeys', [PasskeyController::class, 'index']);
-    Route::post('me/passkeys/options', [PasskeyController::class, 'registrationOptions'])->middleware('throttle:otp-request');
-    Route::post('me/passkeys', [PasskeyController::class, 'register'])->middleware('throttle:otp-verify');
-    Route::post('me/passkeys/{passkey}/revoke', [PasskeyController::class, 'destroy'])->whereNumber('passkey')->middleware('throttle:otp-verify');
+    Route::post('me/passkeys/options', [PasskeyController::class, 'registrationOptions'])->middleware('throttle:passkey-issue');
+    Route::post('me/passkeys', [PasskeyController::class, 'register'])->middleware('throttle:passkey-verify');
+    Route::post('me/passkeys/{passkey}/revoke', [PasskeyController::class, 'destroy'])->whereNumber('passkey')->middleware('throttle:passkey-verify');
 
     Route::get('me/sessions', [SessionController::class, 'index']);
     Route::delete('me/sessions/{session}', [SessionController::class, 'destroy'])->whereNumber('session');
