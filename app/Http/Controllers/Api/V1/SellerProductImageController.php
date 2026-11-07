@@ -41,6 +41,9 @@ final class SellerProductImageController extends Controller
             409, 'Only draft or rejected products can change images.');
 
         $path = $data['image']->store("products/{$item->seller_id}", 'public');
+        if ($path === false) {
+            abort(500, 'Unable to store product image.');
+        }
 
         try {
             $oldPath = DB::transaction(function () use ($item, $path): ?string {
