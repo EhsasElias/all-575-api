@@ -32,6 +32,18 @@ class SellerCatalogWorkspaceController extends Controller
                 'branches.lat', 'branches.lng', 'branches.service_zone_id')
             ->orderBy('branches.id')->limit(100)->get();
 
+        $coverage = DB::table('branch_service_zones')
+            ->whereIn('branch_id', $branches->pluck('id')->all())
+            ->orderBy('service_zone_id')
+            ->get(['branch_id', 'service_zone_id'])
+            ->groupBy('branch_id');
+        $branches->transform(function ($branch) use ($coverage) {
+            $zoneIds = ($coverage->get($branch->id) ?? collect())
+                ->pluck('service_zone_id')->map(fn ($id): int => (int) $id)->all();
+            $branch->service_zone_ids = $zoneIds === [] ? [(int) $branch->service_zone_id] : $zoneIds;
+            return $branch;
+        });
+
         return response()->json(['data' => $branches]);
     }
 
