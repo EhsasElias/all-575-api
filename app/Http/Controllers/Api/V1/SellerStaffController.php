@@ -27,7 +27,7 @@ final class SellerStaffController extends Controller
 
         $members = DB::table('seller_staff_access')
             ->where('seller_id', $sellerId)
-            ->select('id', 'user_id', 'seller_id', 'branch_id', 'role', 'is_active')
+            ->select('id', 'user_id', 'employee_number', 'seller_id', 'branch_id', 'role', 'is_active')
             ->orderBy('id')
             ->limit($filters['limit'] ?? 50)
             ->get();
@@ -53,7 +53,7 @@ final class SellerStaffController extends Controller
                     ->update(['is_active' => false]);
             }
 
-            return ['id' => $target->id, 'is_active' => false];
+            return ['id' => $target->id, 'employee_number' => $target->employee_number, 'is_active' => false];
         }, 3);
 
         return response()->json(['data' => $result]);
@@ -73,19 +73,30 @@ final class SellerStaffController extends Controller
         abort_unless(DB::table('users')->where('id', $input['user_id'])->exists(), 422);
 
         $result = DB::transaction(function () use ($input, $sellerId): array {
+            // Serialize numbering within a store. Concurrent invitations cannot share a number.
+            DB::table('sellers')->where('id', $sellerId)->lockForUpdate()->first();
             $existing = DB::table('seller_staff_access')
                 ->where('seller_id', $sellerId)->where('user_id', $input['user_id'])
                 ->lockForUpdate()->first();
             abort_if($existing !== null, 409, 'This account already has store access. Edit its existing membership instead.');
 
+            $lastNumber = DB::table('seller_staff_access')->where('seller_id', $sellerId)
+                ->whereNotNull('employee_number')->orderByDesc('employee_number')
+                ->value('employee_number');
+            $sequence = $lastNumber ? (int) substr((string) $lastNumber, 4) : 0;
+            abort_if($sequence >= 999999, 422, 'Employee number range exhausted.');
+            $employeeNumber = sprintf('EMP-%06d', $sequence + 1);
+
             $id = DB::table('seller_staff_access')->insertGetId([
                 'seller_id' => $sellerId,
                 'user_id' => (int) $input['user_id'],
+                'employee_number' => $employeeNumber,
                 'branch_id' => (int) $input['branch_id'],
                 'role' => $input['role'],
                 'is_active' => true,
             ]);
             return ['id' => $id, 'user_id' => (int) $input['user_id'],
+                'employee_number' => $employeeNumber,
                 'seller_id' => $sellerId, 'branch_id' => (int) $input['branch_id'],
                 'role' => $input['role'], 'is_active' => true];
         }, 3);
@@ -113,6 +124,7 @@ final class SellerStaffController extends Controller
                 'is_active' => (bool) $input['is_active'],
             ]);
             return ['id' => (int) $target->id, 'user_id' => (int) $target->user_id,
+                'employee_number' => $target->employee_number,
                 'seller_id' => (int) $target->seller_id,
                 'role' => $input['role'], 'branch_id' => (int) $input['branch_id'],
                 'is_active' => (bool) $input['is_active']];
