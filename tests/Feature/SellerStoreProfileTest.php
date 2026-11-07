@@ -29,7 +29,7 @@ final class SellerStoreProfileTest extends TestCase
         ]);
     }
 
-    public function test_owner_can_update_store_and_branch_display_names_only(): void
+    public function test_owner_can_update_store_and_branch_names_without_changing_activation(): void
     {
         $seller = Seller::factory()->create(['status' => 'approved']);
         $branch = Branch::factory()->for($seller)->create();
@@ -53,11 +53,16 @@ final class SellerStoreProfileTest extends TestCase
             'name_ar' => 'فرع جديد',
             'name_en' => 'New Branch',
             'is_active' => false,
-            'lat' => 0,
         ])->assertOk()->assertJsonPath('data.name_en', 'New Branch');
         $this->assertDatabaseHas('branches', [
             'id' => $branch->id, 'name_en' => 'New Branch', 'is_active' => true,
         ]);
+        // Location is now explicitly editable, but invalid coordinates are rejected.
+        $this->patchJson('/api/v1/seller/branches/'.$branch->id, [
+            'name_ar' => 'فرع جديد',
+            'name_en' => 'New Branch',
+            'lat' => 0,
+        ])->assertUnprocessable()->assertJsonValidationErrors('lat');
     }
 
     public function test_member_of_another_store_cannot_read_or_change_profile(): void
