@@ -40,16 +40,20 @@ final class SellerBranchProfileController extends Controller
 
     public function update(Request $request, int $branch): JsonResponse
     {
-        $request->merge(['code' => strtoupper(trim((string) $request->input('code', '')))]);
+        // Older app versions send the two names only. Keep those requests working.
+        if ($request->exists('code')) {
+            $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+        }
+
         $data = $request->validate([
-            'code' => ['required', 'string', 'min:2', 'max:32', 'regex:/^[A-Za-z0-9_-]+$/',
-                Rule::unique('branches', 'code')->ignore($branch)],
+            'code' => ['sometimes', 'required', 'string', 'min:2', 'max:32',
+                'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('branches', 'code')->ignore($branch)],
             'name_ar' => ['required', 'string', 'max:180'],
             'name_en' => ['required', 'string', 'max:180'],
-            'service_zone_id' => ['required', 'integer',
+            'service_zone_id' => ['sometimes', 'required', 'integer',
                 Rule::exists('service_zones', 'id')->where('is_active', true)],
-            'lat' => ['required', 'numeric', 'between:-90,90'],
-            'lng' => ['required', 'numeric', 'between:-180,180'],
+            'lat' => ['sometimes', 'required', 'numeric', 'between:-90,90'],
+            'lng' => ['sometimes', 'required', 'numeric', 'between:-180,180'],
         ]);
         if (trim($data['name_ar']) === '' || trim($data['name_en']) === '') {
             throw ValidationException::withMessages([
@@ -57,34 +61,40 @@ final class SellerBranchProfileController extends Controller
             ]);
         }
 
-        $zone = ServiceZone::query()->active()->findOrFail($data['service_zone_id']);
-        if ($zone->distanceTo((float) $data['lat'], (float) $data['lng']) > $zone->radius_meters) {
-            throw ValidationException::withMessages([
-                'lat' => ['موقع الفرع خارج منطقة التوصيل. حدد موقعاً داخل المنطقة.'],
-            ]);
-        }
-
         $updated = DB::transaction(function () use ($request, $branch, $data): array {
             $row = $this->ownerBranch($request, $branch);
+            $code = $data['code'] ?? $row->code;
+            $zoneId = (int) ($data['service_zone_id'] ?? $row->service_zone_id);
+            $lat = (float) ($data['lat'] ?? $row->lat);
+            $lng = (float) ($data['lng'] ?? $row->lng);
+
+            // Always validate the final combined coordinates/zone, including partial changes.
+            $zone = ServiceZone::query()->active()->findOrFail($zoneId);
+            if ($zone->distanceTo($lat, $lng) > $zone->radius_meters) {
+                throw ValidationException::withMessages([
+                    'lat' => ['موقع الفرع خارج منطقة التوصيل. حدد موقعاً داخل المنطقة.'],
+                ]);
+            }
+
             DB::table('branches')->where('id', $row->id)->update([
-                'code' => $data['code'],
+                'code' => $code,
                 'name_ar' => trim($data['name_ar']),
                 'name_en' => trim($data['name_en']),
-                'service_zone_id' => (int) $data['service_zone_id'],
-                'lat' => (float) $data['lat'],
-                'lng' => (float) $data['lng'],
+                'service_zone_id' => $zoneId,
+                'lat' => $lat,
+                'lng' => $lng,
                 'updated_at' => now(),
             ]);
 
             return [
                 'id' => $row->id,
                 'seller_id' => $row->seller_id,
-                'code' => $data['code'],
+                'code' => $code,
                 'name_ar' => trim($data['name_ar']),
                 'name_en' => trim($data['name_en']),
-                'service_zone_id' => (int) $data['service_zone_id'],
-                'lat' => (float) $data['lat'],
-                'lng' => (float) $data['lng'],
+                'service_zone_id' => $zoneId,
+                'lat' => $lat,
+                'lng' => $lng,
                 'is_active' => (bool) $row->is_active,
             ];
         }, 3);
