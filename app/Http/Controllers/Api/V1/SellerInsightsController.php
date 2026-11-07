@@ -73,7 +73,7 @@ final class SellerInsightsController extends Controller
         return $orders;
     }
 
-    private function rows(Request $request, array $filters): array
+    private function rows(Request $request, array $filters, int $limit = 200): array
     {
         $metric = $filters['metric'];
         $base = $this->metricOrders($this->allowedOrders($request, $filters), $metric);
@@ -82,7 +82,7 @@ final class SellerInsightsController extends Controller
             $records = $base->join('order_items', 'order_items.suborder_id', '=', 'suborders.id')
                 ->selectRaw('order_items.product_id as id, order_items.name_ar, order_items.name_en, SUM(order_items.quantity) as units, SUM(order_items.line_total_halalas) as sales_halalas')
                 ->groupBy('order_items.product_id', 'order_items.name_ar', 'order_items.name_en')
-                ->orderByDesc('units')->limit(100)->get();
+                ->orderByDesc('units')->limit($limit)->get();
             return [
                 ['Product ID', 'Arabic name', 'English name', 'Units', 'Merchandise SAR'],
                 $records->map(static fn ($row) => [
@@ -95,7 +95,7 @@ final class SellerInsightsController extends Controller
         if ($metric === 'branches') {
             $records = $base->selectRaw('branches.id, branches.name_ar, branches.name_en, COUNT(*) as orders, SUM(CASE WHEN suborders.status = \'delivered\' THEN suborders.subtotal_halalas - suborders.discount_halalas ELSE 0 END) as delivered_sales_halalas')
                 ->groupBy('branches.id', 'branches.name_ar', 'branches.name_en')
-                ->orderByDesc('orders')->limit(100)->get();
+                ->orderByDesc('orders')->limit($limit)->get();
             return [
                 ['Branch ID', 'Arabic name', 'English name', 'Orders', 'Delivered merchandise SAR'],
                 $records->map(static fn ($row) => [
@@ -129,7 +129,7 @@ final class SellerInsightsController extends Controller
                 })
                 ->select('branches.name_ar as branch', 'product_variants.sku', 'products.name_ar',
                     'branch_stock.on_hand', 'branch_stock.reserved')
-                ->orderBy('branch_stock.id')->limit(200)->get();
+                ->orderBy('branch_stock.id')->limit($limit)->get();
             return [
                 ['Branch', 'SKU', 'Product', 'On hand', 'Reserved', 'Available'],
                 $records->map(static fn ($row) => [
@@ -145,7 +145,7 @@ final class SellerInsightsController extends Controller
                 'branches.name_ar as branch', 'suborders.status', 'suborders.subtotal_halalas',
                 'suborders.discount_halalas')
             ->orderByDesc('orders.placed_at')->orderByDesc('suborders.id')
-            ->limit(200)->get();
+            ->limit($limit)->get();
         return [
             ['Order', 'Date', 'Branch', 'Status', 'Subtotal SAR', 'Discount SAR', 'Merchandise SAR'],
             $records->map(static fn ($row) => [
@@ -188,8 +188,8 @@ final class SellerInsightsController extends Controller
             'columns' => $columns,
             'rows' => $rows,
             'returned_rows' => count($rows),
-            'max_rows' => $filters['metric'] === 'stock' || !in_array($filters['metric'], ['products', 'branches'], true) ? 200 : 100,
-            'note' => 'Merchandise only; not profit or payout. Rows are capped; narrow your dates/branch for complete exports.',
+            'max_rows' => 200,
+            'note' => 'Preview is capped at 200 rows; export includes up to 5000. Merchandise is not profit or payout.',
         ]]);
     }
 
@@ -197,7 +197,7 @@ final class SellerInsightsController extends Controller
     {
         abort_unless(in_array($format, ['csv', 'xlsx'], true), 404);
         $filters = $this->filters($request);
-        [$columns, $rows] = $this->rows($request, $filters);
+        [$columns, $rows] = $this->rows($request, $filters, 5000);
         $filename = 'seller-'.$filters['metric'].'-'.$filters['from'].'-'.$filters['to'].'.'.$format;
         if ($format === 'xlsx') {
             return $xlsx->download($columns, $rows, $filename);
