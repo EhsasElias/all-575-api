@@ -224,7 +224,7 @@ class SellerWorkspaceController extends Controller
             ]);
 
         return $xlsx->download(
-            ['Order number', 'Status', 'Branch ID', 'Placed at'],
+            ['رقم الطلب', 'حالة الطلب', 'رقم الفرع', 'تاريخ الطلب'],
             $rows,
             'seller-orders.xlsx'
         );
@@ -236,7 +236,8 @@ class SellerWorkspaceController extends Controller
 
         return response()->streamDownload(static function () use ($query): void {
             $handle = fopen('php://output', 'wb');
-            fputcsv($handle, ['Order number', 'Status', 'Branch ID', 'Placed at']);
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['رقم الطلب', 'حالة الطلب', 'رقم الفرع', 'تاريخ الطلب']);
             foreach ($query->orderByDesc('id')->limit(5000)->lazy(200) as $suborder) {
                 fputcsv($handle, [
                     $suborder->order->number,
