@@ -23,7 +23,12 @@ final class Availability
 
         return DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
-            ->where('branches.service_zone_id', $zoneId)
+            ->whereExists(function ($query) use ($zoneId): void {
+                $query->selectRaw('1')
+                    ->from('branch_service_zones')
+                    ->whereColumn('branch_service_zones.branch_id', 'branches.id')
+                    ->where('branch_service_zones.service_zone_id', $zoneId);
+            })
             ->where('branches.is_active', true)
             ->whereIn('branch_stock.variant_id', $variantIds)
             ->groupBy('branch_stock.variant_id')
@@ -46,7 +51,12 @@ final class Availability
         return DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
             ->join('product_variants', 'product_variants.id', '=', 'branch_stock.variant_id')
-            ->where('branches.service_zone_id', $zoneId)
+            ->whereExists(function ($query) use ($zoneId): void {
+                $query->selectRaw('1')
+                    ->from('branch_service_zones')
+                    ->whereColumn('branch_service_zones.branch_id', 'branches.id')
+                    ->where('branch_service_zones.service_zone_id', $zoneId);
+            })
             ->where('branches.is_active', true)
             ->where('product_variants.is_active', true)
             ->whereIn('product_variants.product_id', $productIds)
