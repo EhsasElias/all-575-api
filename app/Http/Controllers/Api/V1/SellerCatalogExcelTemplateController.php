@@ -75,7 +75,7 @@ final class SellerCatalogExcelTemplateController extends Controller
 
         // Put the selectable values in hidden columns on this sheet: Excel list
         // validation accepts same-sheet references even without named ranges.
-        $count = max(1, ...array_map('count', $lists));
+        $count = max(1, ...array_values(array_map('count', $lists)));
         for ($row = 2; $row <= $count + 1; ++$row) {
             $cells = '';
             foreach ($lists as $column => $values) {
