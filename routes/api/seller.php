@@ -81,7 +81,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('products/code-lookup', SellerProductCodeLookupController::class)->middleware('throttle:30,1');
         Route::get('products/import/template.csv', function (): \Symfony\Component\HttpFoundation\Response {
             // Headers mirror the seller's Add Product form. Store is chosen at import time.
-            $header = "رمز SKU (إجباري),الباركود (اختياري),المتجر (اختياري),التصنيف (إجباري),اسم المنتج بالعربية (إجباري),اسم المنتج بالإنجليزية (إجباري),الوصف بالعربية (اختياري),الوصف بالإنجليزية (اختياري),السعر بالريال (1–10) (إجباري),فئة الضريبة (إجباري),اسم وحدة البيع بالعربية (اختياري),اسم وحدة البيع بالإنجليزية (اختياري)\r\n";
+            $header = "رمز SKU (إجباري),الباركود (اختياري),المتجر (اختياري),التصنيف (إجباري),اسم المنتج بالعربية (إجباري),اسم المنتج بالإنجليزية (إجباري),الوصف بالعربية (اختياري),الوصف بالإنجليزية (اختياري),السعر بالريال (1–10) (إجباري),فئة الضريبة (إجباري),اسم وحدة البيع بالعربية (اختياري),اسم وحدة البيع بالإنجليزية (اختياري),رابط صورة المنتج HTTPS (اختياري),صورة داخل Excel (اختياري)\r\n";
             return response("\xEF\xBB\xBF".$header, 200, [
                 'Content-Type' => 'text/csv; charset=UTF-8',
                 'Content-Disposition' => 'attachment; filename="seller-products-template.csv"',
