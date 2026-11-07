@@ -80,7 +80,7 @@ final class SellerCatalogImportController extends Controller
 
     /**
      * Read the first Excel worksheet into a temporary CSV stream. Restrict the
-     * input to the ten visible product columns; ignore the hidden dropdown lists.
+     * input to the twelve visible product columns; ignore the hidden dropdown lists.
      * Any Excel formula is rejected rather than executed or interpreted.
      */
     private function xlsxAsCsv(string $file): string
@@ -130,13 +130,13 @@ final class SellerCatalogImportController extends Controller
                 foreach ($xp->query('/*[local-name()="worksheet"]/*[local-name()="sheetData"]/*[local-name()="row"]') as $row) {
                     $number = (int) $row->attributes?->getNamedItem('r')?->nodeValue;
                     if ($number < 1) continue;
-                    $cells = array_fill(0, 10, '');
+                    $cells = array_fill(0, 12, '');
                     $hasProductCell = false;
                     foreach ($xp->query('./*[local-name()="c"]', $row) as $cell) {
                         $reference = (string) $cell->attributes?->getNamedItem('r')?->nodeValue;
                         if (!preg_match('/^([A-Z]+)[0-9]+$/', $reference, $m)) continue;
                         $column = $m[1];
-                        if (strlen($column) !== 1 || $column < 'A' || $column > 'J') continue;
+                        if (strlen($column) !== 1 || $column < 'A' || $column > 'L') continue;
                         $index = ord($column) - 65;
                         if ($xp->query('./*[local-name()="f"]', $cell)->length > 0) {
                             throw ValidationException::withMessages(['file' => ['Formula cells are not allowed in product imports.']]);
