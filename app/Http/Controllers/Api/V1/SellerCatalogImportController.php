@@ -49,6 +49,23 @@ final class SellerCatalogImportController extends Controller
         'Price SAR (1–10) (required)', 'VAT class (required)',
         'Arabic variant name (optional)', 'English variant name (optional)',
     ];
+    private const IMAGE_FORM_HEADERS = [
+        'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
+        'التصنيف (إجباري)', 'اسم المنتج بالعربية (إجباري)',
+        'اسم المنتج بالإنجليزية (إجباري)', 'الوصف بالعربية (اختياري)',
+        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–10) (إجباري)',
+        'فئة الضريبة (إجباري)', 'اسم وحدة البيع بالعربية (اختياري)',
+        'اسم وحدة البيع بالإنجليزية (اختياري)',
+        'رابط صورة المنتج HTTPS (اختياري)', 'صورة داخل Excel (اختياري)',
+    ];
+    private const IMAGE_ENGLISH_HEADERS = [
+        'SKU code (required)', 'Barcode (optional)', 'Store (optional)', 'Category (required)',
+        'Arabic product name (required)', 'English product name (required)',
+        'Arabic description (optional)', 'English description (optional)',
+        'Price SAR (1–10) (required)', 'VAT class (required)',
+        'Arabic variant name (optional)', 'English variant name (optional)',
+        'HTTPS image URL (optional)', 'Embedded Excel image (optional)',
+    ];
     // Prior Arabic layout (same values, earlier captions) remains supported.
     private const PREVIOUS_FORM_HEADERS = [
         'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
@@ -208,7 +225,10 @@ final class SellerCatalogImportController extends Controller
             $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
-            $extendedForm = in_array($header, [
+            $imageForm = in_array($header, [
+                self::IMAGE_FORM_HEADERS, self::IMAGE_ENGLISH_HEADERS,
+            ], true);
+            $extendedForm = $imageForm || in_array($header, [
                 self::EXTENDED_FORM_HEADERS, self::EXTENDED_ENGLISH_FORM_HEADERS,
             ], true);
             $formTemplate = $extendedForm || in_array($header, [
@@ -259,8 +279,9 @@ final class SellerCatalogImportController extends Controller
                     $errors[] = 'Maximum 200 rows per upload.';
                     break;
                 }
-                $expectedColumns = $extendedForm ? count(self::EXTENDED_FORM_HEADERS)
-                        : ($formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS));
+                $expectedColumns = $imageForm ? count(self::IMAGE_FORM_HEADERS)
+                        : ($extendedForm ? count(self::EXTENDED_FORM_HEADERS)
+                        : ($formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS)));
                 if (count($cells) !== $expectedColumns) {
                     $actual = count($cells);
                     $errors[] = "الصف {$line} - الأعمدة: الملف يحتوي على {$actual} أعمدة، والمطلوب {$expectedColumns}. احتفظ بترتيب الأعمدة ولا تحذف أعمدة القالب.";
@@ -272,6 +293,12 @@ final class SellerCatalogImportController extends Controller
                         $descriptionAr, $descriptionEn, $priceSar, $vatLabel] = array_slice($values, 0, 10);
                     $variantNameAr = $extendedForm ? $values[10] : '';
                     $variantNameEn = $extendedForm ? $values[11] : '';
+                    $imageUrl = $imageForm ? $values[12] : '';
+                    if ($imageUrl !== '' && (!filter_var($imageUrl, FILTER_VALIDATE_URL) ||
+                        !str_starts_with($imageUrl, 'https://') || strlen($imageUrl) > 2048)) {
+                        $errors[] = "الصف {$line} - رابط الصورة: أدخل رابط HTTPS صالحًا أو اتركه فارغًا.";
+                        continue;
+                    }
                     if ($storeValue !== '' && !in_array($storeValue, $validStoreNames, true)) {
                         $expected = trim((string) ($store?->name_ar ?? '')) ?: (string) $sellerId;
                         $errors[] = "الصف {$line} - عمود المتجر: القيمة «{$storeValue}» لا تطابق المتجر المحدد «{$expected}» (رقم {$sellerId}). اترك الخانة فارغة لاستخدام المتجر المحدد تلقائيًا، أو أدخل اسمه/رقمه الصحيح.";
@@ -310,6 +337,8 @@ final class SellerCatalogImportController extends Controller
                         'barcode' => $barcode,
                         'variant_name_ar' => $variantNameAr,
                         'variant_name_en' => $variantNameEn,
+                        'image_url' => $imageUrl,
+                        'image_bytes' => $isExcel ? ($this->embeddedImages[$line] ?? null) : null,
                     ];
                 } else {
                     $row = array_combine(self::HEADERS, $values);
@@ -317,10 +346,14 @@ final class SellerCatalogImportController extends Controller
                     $row['description_en'] = '';
                     $row['variant_name_ar'] = '';
                     $row['variant_name_en'] = '';
+                    $row['image_url'] = '';
+                    $row['image_bytes'] = null;
                 }
                 $sku = $row['sku'];
                 $barcode = $row['barcode'];
                 $rowErrors = [];
+                if ($row['image_url'] !== '' && $row['image_bytes'] !== null)
+                    $rowErrors[] = 'الصورة: استخدم رابط الصورة أو الصورة المضمنة، وليس كليهما';
                 if (mb_strlen($row['variant_name_ar']) > 180) $rowErrors[] = 'اسم وحدة البيع بالعربية: الحد الأقصى 180 حرفًا';
                 if (mb_strlen($row['variant_name_en']) > 180) $rowErrors[] = 'اسم وحدة البيع بالإنجليزية: الحد الأقصى 180 حرفًا';
                 if ($sku === '') $rowErrors[] = 'رمز SKU: مطلوب؛ أدخل رمزًا فريدًا للمنتج';
