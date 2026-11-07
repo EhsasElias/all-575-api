@@ -21,6 +21,7 @@ use Illuminate\Validation\ValidationException;
 final class SellerCatalogImportController extends Controller
 {
     private const HEADERS = ['category_id', 'name_ar', 'name_en', 'price_halalas', 'vat_class', 'sku', 'barcode'];
+    private const ARABIC_HEADERS = ['رقم التصنيف', 'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'السعر بالهللة', 'فئة الضريبة', 'رمز المنتج SKU', 'الباركود (اختياري)'];
 
     public function __invoke(Request $request): JsonResponse
     {
@@ -51,8 +52,12 @@ final class SellerCatalogImportController extends Controller
                 throw ValidationException::withMessages(['file' => ['CSV is empty.']]);
             }
             $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
-            if ($header !== self::HEADERS) {
-                throw ValidationException::withMessages(['file' => ['Invalid column order. Expected: '.implode(', ', self::HEADERS)]]);
+            // Friendly localized headers are converted to the internal schema by position.
+            // Existing CSV files with technical headers remain fully supported.
+            if ($header !== self::HEADERS && $header !== self::ARABIC_HEADERS) {
+                throw ValidationException::withMessages(['file' => [
+                    'Invalid column headers. Download the latest template, or use: '.implode(', ', self::HEADERS),
+                ]]);
             }
 
             $rows = [];
