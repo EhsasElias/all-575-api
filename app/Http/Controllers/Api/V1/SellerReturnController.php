@@ -44,6 +44,7 @@ final class SellerReturnController extends Controller
                 'order_items.name_ar',
                 'order_items.name_en'
             )
+            ->selectRaw('CASE WHEN seller_case_responses.id IS NULL THEN 0 ELSE 1 END AS seller_responded')
             ->orderByDesc('customer_cases.id')
             ->limit($filters['limit'] ?? 20)
             ->get();
@@ -69,6 +70,7 @@ final class SellerReturnController extends Controller
                 'order_items.name_ar',
                 'order_items.name_en'
             )
+            ->selectRaw('CASE WHEN seller_case_responses.id IS NULL THEN 0 ELSE 1 END AS seller_responded')
             ->firstOrFail();
 
         return response()->json(['data' => $result]);
@@ -121,6 +123,10 @@ final class SellerReturnController extends Controller
             ->join('order_items', 'order_items.id', '=', 'customer_cases.order_item_id')
             ->join('suborders', 'suborders.id', '=', 'order_items.suborder_id')
             ->join('sellers', 'sellers.id', '=', 'suborders.seller_id')
+            ->leftJoin('seller_case_responses', function ($join): void {
+                $join->on('seller_case_responses.customer_case_id', '=', 'customer_cases.id')
+                    ->on('seller_case_responses.seller_id', '=', 'suborders.seller_id');
+            })
             ->whereColumn('customer_cases.order_id', 'suborders.order_id')
             ->where('customer_cases.kind', 'return')
             ->where('sellers.status', 'approved')
