@@ -77,6 +77,15 @@ class SellerCatalogWorkspaceController extends Controller
                 'products.name_ar', 'products.name_en', 'products.description_ar', 'products.description_en',
                 'products.image_path', 'products.price_halalas', 'products.vat_class', 'products.status', 'products.created_at')
             ->selectSub(function ($query): void {
+                $query->from('product_variants')
+                    ->select('sku')
+                    ->whereColumn('product_variants.product_id', 'products.id')
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->limit(1);
+            }, 'sku')
+            ->selectSub(function ($query): void {
                 $query->from('seller_review_audits')
                     ->select('reason')
                     ->where('subject_type', 'product')
