@@ -20,7 +20,7 @@
                             "text/csv; charset=UTF-8": {
                                 "schema": {
                                     "type": "string",
-                                    "const": "\ufeff\u0631\u0645\u0632 SKU (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0645\u062a\u062c\u0631 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u062a\u0635\u0646\u064a\u0641 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062a\u062c \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062a\u062c \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0644\u0648\u0635\u0641 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0648\u0635\u0641 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0633\u0639\u0631 \u0628\u0627\u0644\u0631\u064a\u0627\u0644 (1\u201310) (\u0625\u062c\u0628\u0627\u0631\u064a),\u0641\u0626\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a)\r\n"
+                                    "const": "\ufeff\u0631\u0645\u0632 SKU (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0645\u062a\u062c\u0631 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u062a\u0635\u0646\u064a\u0641 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062a\u062c \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062a\u062c \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0644\u0648\u0635\u0641 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0648\u0635\u0641 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0633\u0639\u0631 \u0628\u0627\u0644\u0631\u064a\u0627\u0644 (1\u201310) (\u0625\u062c\u0628\u0627\u0631\u064a),\u0641\u0626\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0648\u062d\u062f\u0629 \u0627\u0644\u0628\u064a\u0639 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0633\u0645 \u0648\u062d\u062f\u0629 \u0627\u0644\u0628\u064a\u0639 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0631\u0627\u0628\u0637 \u0635\u0648\u0631\u0629 \u0627\u0644\u0645\u0646\u062a\u062c HTTPS (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0635\u0648\u0631\u0629 \u062f\u0627\u062e\u0644 Excel (\u0627\u062e\u062a\u064a\u0627\u0631\u064a)\r\n"
                                 }
                             }
                         },
@@ -5337,6 +5337,83 @@
                 }
             }
         },
+        "/v1/seller/products/import/template.xlsx": {
+            "get": {
+                "operationId": "v1.sellerCatalogExcelTemplate",
+                "tags": [
+                    "SellerCatalogExcelTemplate"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "attachment; filename=seller-products-template.xlsx"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/seller/products/import": {
             "post": {
                 "operationId": "v1.sellerCatalogImport",
@@ -5361,7 +5438,7 @@
                                         "type": "string",
                                         "format": "binary",
                                         "contentMediaType": "application/octet-stream",
-                                        "description": "Maximum file size: 1024 kilobytes."
+                                        "description": "Maximum file size: 20480 kilobytes."
                                     }
                                 },
                                 "required": [
@@ -6331,6 +6408,13 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "name": "lang",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "responses": {
@@ -6647,22 +6731,29 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "multipart/form-data": {
                             "schema": {
                                 "type": "object",
                                 "properties": {
                                     "image": {
-                                        "type": "string",
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
                                         "format": "binary",
                                         "contentMediaType": "application/octet-stream",
                                         "description": "Maximum file size: 5000 kilobytes."
+                                    },
+                                    "image_url": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "format": "uri",
+                                        "maxLength": 2048
                                     }
-                                },
-                                "required": [
-                                    "image"
-                                ]
+                                }
                             }
                         }
                     }
@@ -6710,28 +6801,6 @@
                                             "description": "Error overview.",
                                             "examples": [
                                                 "Only draft or rejected products can change images."
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "description": "Error overview.",
-                                            "examples": [
-                                                "Unable to store product image."
                                             ]
                                         }
                                     },
@@ -7998,6 +8067,9 @@
                                                 "user_id": {
                                                     "type": "integer"
                                                 },
+                                                "employee_number": {
+                                                    "type": "string"
+                                                },
                                                 "seller_id": {
                                                     "type": "integer"
                                                 },
@@ -8014,6 +8086,7 @@
                                             "required": [
                                                 "id",
                                                 "user_id",
+                                                "employee_number",
                                                 "seller_id",
                                                 "branch_id",
                                                 "role",
@@ -8101,6 +8174,9 @@
                                                 "user_id": {
                                                     "type": "integer"
                                                 },
+                                                "employee_number": {
+                                                    "type": "string"
+                                                },
                                                 "seller_id": {
                                                     "type": "integer"
                                                 },
@@ -8117,6 +8193,7 @@
                                             "required": [
                                                 "id",
                                                 "user_id",
+                                                "employee_number",
                                                 "seller_id",
                                                 "role",
                                                 "branch_id",
@@ -8170,12 +8247,16 @@
                                                 "id": {
                                                     "type": "string"
                                                 },
+                                                "employee_number": {
+                                                    "type": "string"
+                                                },
                                                 "is_active": {
                                                     "type": "boolean"
                                                 }
                                             },
                                             "required": [
                                                 "id",
+                                                "employee_number",
                                                 "is_active"
                                             ]
                                         }
