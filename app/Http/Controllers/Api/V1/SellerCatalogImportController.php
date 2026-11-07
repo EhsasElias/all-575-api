@@ -82,6 +82,19 @@ final class SellerCatalogImportController extends Controller
                 trim((string) ($store?->name_en ?? '')),
             ], static fn (string $value): bool => $value !== '');
 
+            // The form shows category names; accept category names or IDs in the CSV.
+            // Duplicate names are ambiguous, so sellers can use a numeric ID instead.
+            $categoryNames = [];
+            foreach (DB::table('categories')->where('is_active', true)->get(['id', 'name_ar', 'name_en']) as $item) {
+                foreach ([$item->name_ar, $item->name_en] as $name) {
+                    $name = trim((string) $name);
+                    if ($name === '') {
+                        continue;
+                    }
+                    $categoryNames[$name] = isset($categoryNames[$name]) ? null : (int) $item->id;
+                }
+            }
+
             $rows = [];
             $seenSkus = [];
             $seenBarcodes = [];
@@ -124,6 +137,13 @@ final class SellerCatalogImportController extends Controller
                         'معفاة', 'Exempt', 'exempt' => 'exempt',
                         default => $vatLabel,
                     };
+                    if (!ctype_digit($category)) {
+                        if (!isset($categoryNames[$category])) {
+                            $errors[] = "Line {$line}: unknown or ambiguous category name.";
+                            continue;
+                        }
+                        $category = (string) $categoryNames[$category];
+                    }
                     $row = [
                         'category_id' => $category,
                         'name_ar' => $nameAr,
