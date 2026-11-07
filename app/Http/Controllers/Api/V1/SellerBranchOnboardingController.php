@@ -34,6 +34,9 @@ final class SellerBranchOnboardingController extends Controller
             'name_en' => ['required', 'string', 'max:180'],
             'lat' => ['required', 'numeric', 'between:-90,90'],
             'lng' => ['required', 'numeric', 'between:-180,180'],
+            'service_zone_ids' => ['sometimes', 'array', 'min:1', 'max:30'],
+            'service_zone_ids.*' => ['required', 'integer', 'distinct',
+                Rule::exists('service_zones', 'id')->where('is_active', true)],
         ]);
         abort_unless(trim($input['name_ar']) !== '' && trim($input['name_en']) !== '', 422);
 
@@ -53,9 +56,16 @@ final class SellerBranchOnboardingController extends Controller
         abort_unless($zone->distanceTo((float) $input['lat'], (float) $input['lng']) <= $zone->radius_meters,
             422, 'Branch location is outside the selected delivery zone.');
 
+        $coverageZoneIds = array_map('intval', $input['service_zone_ids'] ?? [$zone->id]);
+        if (! in_array($zone->id, $coverageZoneIds, true)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'service_zone_ids' => ['يجب تضمين المنطقة الأساسية ضمن مناطق تغطية الفرع.'],
+            ]);
+        }
+
         $demoDirect = SellerDemoMode::allows($request, $sellerId);
 
-        $branch = DB::transaction(function () use ($input, $sellerId, $zone, $request, $demoDirect): Branch {
+        $branch = DB::transaction(function () use ($input, $sellerId, $zone, $request, $demoDirect, $coverageZoneIds): Branch {
             $branch = Branch::query()->create([
                 'seller_id' => $sellerId,
                 'service_zone_id' => $zone->id,
@@ -66,6 +76,14 @@ final class SellerBranchOnboardingController extends Controller
                 'lng' => $input['lng'],
                 'is_active' => $demoDirect,
             ]);
+            DB::table('branch_service_zones')->insert(
+                array_map(static fn (int $zoneId): array => [
+                    'branch_id' => $branch->id,
+                    'service_zone_id' => $zoneId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ], $coverageZoneIds)
+            );
             if (! $demoDirect) {
                 DB::table('seller_branch_proposals')->insert([
                     'branch_id' => $branch->id,
@@ -84,6 +102,8 @@ final class SellerBranchOnboardingController extends Controller
             'seller_id' => $branch->seller_id,
             'code' => $branch->code,
             'is_active' => $demoDirect,
+            'service_zone_id' => $zone->id,
+            'service_zone_ids' => $coverageZoneIds,
             'review_required' => ! $demoDirect,
         ]], 201);
     }
