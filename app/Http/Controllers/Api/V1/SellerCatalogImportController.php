@@ -242,7 +242,8 @@ final class SellerCatalogImportController extends Controller
                 }
                 $expectedColumns = $formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS);
                 if (count($cells) !== $expectedColumns) {
-                    $errors[] = "الصف {$line}: يجب أن يحتوي على {$expectedColumns} أعمدة بنفس ترتيب القالب.";
+                    $actual = count($cells);
+                    $errors[] = "الصف {$line} - الأعمدة: الملف يحتوي على {$actual} أعمدة، والمطلوب {$expectedColumns}. احتفظ بترتيب الأعمدة ولا تحذف أعمدة القالب.";
                     continue;
                 }
                 $values = array_map('trim', $cells);
@@ -250,12 +251,13 @@ final class SellerCatalogImportController extends Controller
                     [$sku, $barcode, $storeValue, $category, $nameAr, $nameEn,
                         $descriptionAr, $descriptionEn, $priceSar, $vatLabel] = $values;
                     if ($storeValue !== '' && !in_array($storeValue, $validStoreNames, true)) {
-                        $errors[] = "الصف {$line}: المتجر لا يطابق المتجر المحدد في صفحة الاستيراد.";
+                        $expected = trim((string) ($store?->name_ar ?? '')) ?: (string) $sellerId;
+                        $errors[] = "الصف {$line} - عمود المتجر: القيمة «{$storeValue}» لا تطابق المتجر المحدد «{$expected}» (رقم {$sellerId}). اترك الخانة فارغة لاستخدام المتجر المحدد تلقائيًا، أو أدخل اسمه/رقمه الصحيح.";
                         continue;
                     }
                     // Avoid float rounding for prices; the UI shows SAR and the API stores halalas.
                     if (!preg_match('/^[0-9]+(?:\\.[0-9]{1,2})?$/D', $priceSar)) {
-                        $errors[] = "الصف {$line}: السعر بالريال إجباري ويجب كتابته كرقم مثل 5.75.";
+                        $errors[] = "الصف {$line} - عمود السعر بالريال: القيمة «{$priceSar}» غير صحيحة. أدخل رقمًا من 1 إلى 10 مثل 5.75، بفاصلة عشرية نقطة وبحد أقصى منزلتين.";
                         continue;
                     }
                     $priceParts = explode('.', $priceSar, 2);
@@ -269,7 +271,7 @@ final class SellerCatalogImportController extends Controller
                     };
                     if (!ctype_digit($category)) {
                         if (!isset($categoryNames[$category])) {
-                            $errors[] = "الصف {$line}: التصنيف إجباري؛ اكتب اسم تصنيف صحيحًا غير مكرر أو رقمه.";
+                            $errors[] = "الصف {$line} - عمود التصنيف: القيمة «{$category}» غير معروفة أو اسم مكرر. اختر تصنيفًا نشطًا من قائمة القالب أو اكتب رقم التصنيف الصحيح.";
                             continue;
                         }
                         $category = (string) $categoryNames[$category];
@@ -293,17 +295,20 @@ final class SellerCatalogImportController extends Controller
                 $sku = $row['sku'];
                 $barcode = $row['barcode'];
                 $rowErrors = [];
-                if ($sku === '') $rowErrors[] = 'رمز SKU (إجباري)';
-                if ($row['category_id'] === '' || !ctype_digit($row['category_id'])) $rowErrors[] = 'التصنيف (إجباري)';
-                if ($row['name_ar'] === '') $rowErrors[] = 'اسم المنتج بالعربية (إجباري)';
-                if ($row['name_en'] === '') $rowErrors[] = 'اسم المنتج بالإنجليزية (إجباري)';
+                if ($sku === '') $rowErrors[] = 'رمز SKU: مطلوب؛ أدخل رمزًا فريدًا للمنتج';
+                if ($row['category_id'] === '' || !ctype_digit($row['category_id']))
+                    $rowErrors[] = 'التصنيف: أدخل رقم تصنيف نشط أو اسمه الصحيح';
+                if ($row['name_ar'] === '') $rowErrors[] = 'الاسم بالعربية: مطلوب';
+                if ($row['name_en'] === '') $rowErrors[] = 'الاسم بالإنجليزية: مطلوب';
                 if ($row['price_halalas'] === '' || !ctype_digit($row['price_halalas']) ||
                     (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 1000)
-                    $rowErrors[] = 'السعر بالريال (إجباري، من 1 إلى 10)';
+                    $rowErrors[] = 'السعر: يجب أن يكون من 1 إلى 10 ريال';
                 if (!in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true))
-                    $rowErrors[] = 'فئة الضريبة (إجباري: قياسية أو صفرية أو معفاة)';
+                    $rowErrors[] = 'فئة الضريبة: القيمة «'.$row['vat_class'].'» غير صحيحة؛ اختر قياسية أو صفرية أو معفاة';
                 if ($rowErrors !== []) {
-                    $errors[] = "الصف {$line}: تحقق من ".implode('، ', $rowErrors).".";
+                    foreach ($rowErrors as $problem) {
+                        $errors[] = "الصف {$line} - {$problem}.";
+                    }
                     continue;
                 }
                 if (!ctype_digit($row['category_id']) || !ctype_digit($row['price_halalas'])
@@ -318,7 +323,7 @@ final class SellerCatalogImportController extends Controller
                     continue;
                 }
                 if (isset($seenSkus[$sku]) || ($barcode !== '' && isset($seenBarcodes[$barcode]))) {
-                    $errors[] = "الصف {$line}: رمز SKU أو الباركود مكرر في الملف.";
+                    $errors[] = "الصف {$line} - رمز SKU أو الباركود: قيمة مكررة داخل الملف (SKU: {$sku}). يجب أن يكون كل SKU والباركود فريدين.";
                     continue;
                 }
                 $seenSkus[$sku] = true;
@@ -332,14 +337,19 @@ final class SellerCatalogImportController extends Controller
             if ($converted !== null) @unlink($converted);
         }
 
-        if ($rows === []) {
-            $errors[] = 'No valid product rows.';
+        if ($rows === [] && $errors === []) {
+            $errors[] = 'لا يحتوي الملف على أي منتجات. أدخل منتجًا واحدًا على الأقل بعد صف العناوين.';
         }
 
         $categoryIds = array_unique(array_map(static fn (array $row): int => (int) $row['category_id'], $rows));
         $validCategories = DB::table('categories')->where('is_active', true)->whereIn('id', $categoryIds)->pluck('id')->all();
         if (count($validCategories) !== count($categoryIds)) {
-            $errors[] = 'Some categories do not exist or are inactive.';
+            $invalidIds = array_diff($categoryIds, $validCategories);
+            foreach ($rows as $index => $row) {
+                if (in_array((int) $row['category_id'], $invalidIds, true)) {
+                    $errors[] = 'الصف '.($index + 2).' - التصنيف: الرقم '.$row['category_id'].' غير موجود أو غير نشط.';
+                }
+            }
         }
 
         if ($errors !== []) {
