@@ -70,9 +70,13 @@ final class SellerBranchProfileController extends Controller
             $zoneId = (int) ($data['service_zone_id'] ?? $row->service_zone_id);
             $lat = (float) ($data['lat'] ?? $row->lat);
             $lng = (float) ($data['lng'] ?? $row->lng);
-            $coverageZoneIds = array_map('intval',
-                $data['service_zone_ids'] ?? [$zoneId]
-            );
+            $existingCoverage = DB::table('branch_service_zones')
+                ->where('branch_id', $row->id)->pluck('service_zone_id')->map(fn ($id): int => (int) $id)->all();
+            // Older clients do not send zone arrays. Preserve previously assigned coverage.
+            $coverageZoneIds = array_values(array_unique(array_map('intval',
+                $data['service_zone_ids'] ??
+                    array_merge($existingCoverage, [$zoneId])
+            )));
             if (! in_array($zoneId, $coverageZoneIds, true)) {
                 throw ValidationException::withMessages([
                     'service_zone_ids' => ['يجب تضمين المنطقة الأساسية ضمن مناطق تغطية الفرع.'],
