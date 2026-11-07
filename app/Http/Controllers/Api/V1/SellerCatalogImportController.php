@@ -95,9 +95,74 @@ final class SellerCatalogImportController extends Controller
     ];
 
 
+    /** @var array<int, string> Excel row number to JPEG/PNG/WebP bytes. */
+    private array $embeddedImages = [];
+
+    /**
+     * Read floating pictures placed over image column N, anchored to a data row.
+     * Excel's "Pictures > Place over Cells" workflow is supported. Excel 365
+     * IMAGE() formulas and rich-data in-cell images are not supported.
+     */
+    private function readEmbeddedImages(ZipArchive $zip): array
+    {
+        $drawing = $zip->getFromName('xl/drawings/drawing1.xml');
+        $relations = $zip->getFromName('xl/drawings/_rels/drawing1.xml.rels');
+        if ($drawing === false || $relations === false ||
+            strlen($drawing) > 1024 * 1024 || strlen($relations) > 1024 * 1024) {
+            return [];
+        }
+
+        $drawingDoc = new DOMDocument();
+        $relsDoc = new DOMDocument();
+        if (!@$drawingDoc->loadXML($drawing, LIBXML_NONET) ||
+            !@$relsDoc->loadXML($relations, LIBXML_NONET)) {
+            throw ValidationException::withMessages(['file' => ['Invalid Excel image definitions.']]);
+        }
+        $relXp = new DOMXPath($relsDoc);
+        $targets = [];
+        foreach ($relXp->query('//*[local-name()="Relationship"]') as $rel) {
+            $id = $rel->attributes?->getNamedItem('Id')?->nodeValue;
+            $target = $rel->attributes?->getNamedItem('Target')?->nodeValue;
+            $mode = $rel->attributes?->getNamedItem('TargetMode')?->nodeValue;
+            if (!is_string($id) || !is_string($target) || $mode === 'External') continue;
+            $name = basename(str_replace('\\', '/', $target));
+            if (preg_match('/^[\w.-]+\.(png|jpe?g|webp)$/iD', $name)) {
+                $targets[$id] = 'xl/media/'.$name;
+            }
+        }
+
+        $xp = new DOMXPath($drawingDoc);
+        $images = [];
+        $totalBytes = 0;
+        foreach ($xp->query('/*[local-name()="wsDr"]/*[local-name()="oneCellAnchor" or local-name()="twoCellAnchor"]') as $anchor) {
+            $col = $xp->query('./*[local-name()="from"]/*[local-name()="col"]', $anchor)->item(0)?->textContent;
+            $row = $xp->query('./*[local-name()="from"]/*[local-name()="row"]', $anchor)->item(0)?->textContent;
+            if ($col === null || $row === null || (int) $col !== 13) continue;
+            $sheetRow = (int) $row + 1;
+            if ($sheetRow < 2 || $sheetRow > 201) continue;
+            $blip = $xp->query('.//*[local-name()="blip"]', $anchor)->item(0);
+            if ($blip === null) continue;
+            $id = $blip->getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed');
+            $name = $targets[$id] ?? null;
+            if ($name === null || isset($images[$sheetRow])) {
+                throw ValidationException::withMessages(['file' => ["Row {$sheetRow}: unsupported or duplicate embedded image."]]);
+            }
+            $bytes = $zip->getFromName($name);
+            if ($bytes === false || strlen($bytes) > 5 * 1024 * 1024) {
+                throw ValidationException::withMessages(['file' => ["Row {$sheetRow}: image is missing or exceeds 5 MB."]]);
+            }
+            $totalBytes += strlen($bytes);
+            if ($totalBytes > 20 * 1024 * 1024) {
+                throw ValidationException::withMessages(['file' => ['Embedded images exceed the 20 MB total limit.']]);
+            }
+            $images[$sheetRow] = $bytes;
+        }
+        return $images;
+    }
+
     /**
      * Read the first Excel worksheet into a temporary CSV stream. Restrict the
-     * input to the twelve visible product columns; ignore the hidden dropdown lists.
+     * input to the fourteen visible product columns; ignore the hidden dropdown lists.
      * Any Excel formula is rejected rather than executed or interpreted.
      */
     private function xlsxAsCsv(string $file): string
@@ -107,6 +172,7 @@ final class SellerCatalogImportController extends Controller
             throw ValidationException::withMessages(['file' => ['Excel file is invalid or corrupt.']]);
         }
         try {
+            $this->embeddedImages = $this->readEmbeddedImages($zip);
             $sheet = $zip->getFromName('xl/worksheets/sheet1.xml');
             if ($sheet === false || strlen($sheet) > 4 * 1024 * 1024) {
                 throw ValidationException::withMessages(['file' => ['Excel first sheet is missing or too large.']]);
@@ -147,13 +213,13 @@ final class SellerCatalogImportController extends Controller
                 foreach ($xp->query('/*[local-name()="worksheet"]/*[local-name()="sheetData"]/*[local-name()="row"]') as $row) {
                     $number = (int) $row->attributes?->getNamedItem('r')?->nodeValue;
                     if ($number < 1) continue;
-                    $cells = array_fill(0, 12, '');
+                    $cells = array_fill(0, 14, '');
                     $hasProductCell = false;
                     foreach ($xp->query('./*[local-name()="c"]', $row) as $cell) {
                         $reference = (string) $cell->attributes?->getNamedItem('r')?->nodeValue;
                         if (!preg_match('/^([A-Z]+)[0-9]+$/', $reference, $m)) continue;
                         $column = $m[1];
-                        if (strlen($column) !== 1 || $column < 'A' || $column > 'L') continue;
+                        if (strlen($column) !== 1 || $column < 'A' || $column > 'N') continue;
                         $index = ord($column) - 65;
                         if ($xp->query('./*[local-name()="f"]', $cell)->length > 0) {
                             throw ValidationException::withMessages(['file' => ['Formula cells are not allowed in product imports.']]);
