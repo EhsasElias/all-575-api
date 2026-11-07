@@ -8,10 +8,12 @@ use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Pricing\VatClass;
 use App\Http\Controllers\Controller;
+use App\Support\SellerProductImageSource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use DOMDocument;
 use DOMXPath;
@@ -508,7 +510,19 @@ final class SellerCatalogImportController extends Controller
             ]]);
         }
 
-        $created = DB::transaction(function () use ($rows, $sellerId): int {
+        // Download and validate images before opening the database transaction.
+        // Clean up every stored file if any image or DB operation fails.
+        $storedImages = [];
+        try {
+            foreach ($rows as $index => $row) {
+                if ($row['image_bytes'] !== null) {
+                    $storedImages[$index] = SellerProductImageSource::storeBytes($row['image_bytes'], $sellerId);
+                } elseif ($row['image_url'] !== '') {
+                    $storedImages[$index] = SellerProductImageSource::storeUrl($row['image_url'], $sellerId);
+                }
+            }
+
+        $created = DB::transaction(function () use ($rows, $sellerId, $storedImages): int {
             $skus = array_column($rows, 'sku');
             $barcodes = array_values(array_filter(array_column($rows, 'barcode'), static fn ($v) => $v !== ''));
             if (DB::table('product_variants')->whereIn('sku', $skus)
@@ -516,7 +530,7 @@ final class SellerCatalogImportController extends Controller
                 throw ValidationException::withMessages(['file' => ['One or more SKUs/barcodes already exist.']]);
             }
 
-            foreach ($rows as $row) {
+            foreach ($rows as $index => $row) {
                 $product = Product::query()->create([
                     'seller_id' => $sellerId,
                     'category_id' => (int) $row['category_id'],
@@ -525,6 +539,7 @@ final class SellerCatalogImportController extends Controller
                     'name_en' => $row['name_en'],
                     'description_ar' => $row['description_ar'] !== '' ? $row['description_ar'] : null,
                     'description_en' => $row['description_en'] !== '' ? $row['description_en'] : null,
+                    'image_path' => $storedImages[$index] ?? null,
                     'price_halalas' => (int) $row['price_halalas'],
                     'vat_class' => $row['vat_class'],
                     'status' => ProductStatus::Draft,
@@ -543,6 +558,12 @@ final class SellerCatalogImportController extends Controller
             }
             return count($rows);
         }, 3);
+        } catch (\Throwable $exception) {
+            if ($storedImages !== []) {
+                Storage::disk('public')->delete(array_values($storedImages));
+            }
+            throw $exception;
+        }
 
         return response()->json(['data' => ['created_drafts' => $created]], 201);
     }
