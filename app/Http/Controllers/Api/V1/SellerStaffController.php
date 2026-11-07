@@ -26,9 +26,13 @@ final class SellerStaffController extends Controller
         $this->ensureOwner($request, $sellerId);
 
         $members = DB::table('seller_staff_access')
-            ->where('seller_id', $sellerId)
-            ->select('id', 'user_id', 'employee_number', 'seller_id', 'branch_id', 'role', 'is_active')
-            ->orderBy('id')
+            ->join('users', 'users.id', '=', 'seller_staff_access.user_id')
+            ->where('seller_staff_access.seller_id', $sellerId)
+            ->select('seller_staff_access.id', 'seller_staff_access.user_id',
+                'seller_staff_access.employee_number', 'seller_staff_access.seller_id',
+                'seller_staff_access.branch_id', 'seller_staff_access.role',
+                'seller_staff_access.is_active', 'users.name')
+            ->orderBy('seller_staff_access.id')
             ->limit($filters['limit'] ?? 50)
             ->get();
 
