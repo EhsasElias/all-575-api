@@ -50,10 +50,21 @@ final class SellerCatalogExcelTemplateController extends Controller
             ->orderBy('id')->limit(100)->get(['id', 'name_ar']);
         abort_if($sellers->isEmpty(), 403);
 
-        $categories = DB::table('categories')->where('is_active', true)
-            ->orderBy('id')->limit(1000)->pluck('id')->map(fn ($id): string => (string) $id)->all();
-
-        $storeOptions = $sellers->map(fn ($seller): string => (string) $seller->id)->all();
+        $categoryRecords = DB::table('categories')->where('is_active', true)
+            ->orderBy('id')->limit(1000)->get(['id', 'name_ar', 'name_en']);
+        $counts = [];
+        foreach ($categoryRecords as $category) {
+            foreach ([(string) $category->name_ar, (string) $category->name_en] as $name) {
+                if (trim($name) !== '') $counts[trim($name)] = ($counts[trim($name)] ?? 0) + 1;
+            }
+        }
+        $categories = $categoryRecords->map(static function ($category) use ($counts): string {
+            $name = trim((string) $category->name_ar);
+            return $name !== '' && ($counts[$name] ?? 0) === 1 ? $name : (string) $category->id;
+        })->all();
+        $storeOptions = $sellers->map(fn ($seller): string =>
+            trim((string) $seller->name_ar) !== '' ? $seller->name_ar : (string) $seller->id
+        )->all();
         $vatOptions = ['قياسية', 'صفرية', 'معفاة'];
         $lists = ['L' => $categories, 'M' => $storeOptions, 'N' => $vatOptions];
         $rows = '<row r="1" ht="34" customHeight="1">';
