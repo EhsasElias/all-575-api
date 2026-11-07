@@ -31,7 +31,7 @@ final class SellerCatalogImportController extends Controller
     private const LEGACY_FORM_HEADERS = [
         'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
         'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'الوصف بالعربية',
-        'الوصف بالإنجليزية', 'السعر بالريال (1–10)', 'فئة الضريبة',
+        'الوصف بالإنجليزية', 'السعر بالريال (1–5.75)', 'فئة الضريبة',
     ];
     private const LEGACY_ENGLISH_FORM_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store', 'Category',
