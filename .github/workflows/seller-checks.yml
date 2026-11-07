@@ -34,6 +34,7 @@ jobs:
           php artisan test --filter=SellerProductReviewTest
           php artisan test --filter=SellerBranchOnboardingTest
           php artisan test --filter=SellerApplicationDocumentTest
+          php artisan test --filter=SellerProductImageUploadTest
           php artisan test --filter=SellerExtendedApplicationTest
           php artisan test --filter=SellerStoreProfileTest
           php artisan test --filter=SellerCatalogImportPreviewTest
