@@ -48,14 +48,22 @@ final class SellerBranchOnboardingController extends Controller
             ->where('is_active', true)
             ->exists();
         abort_unless($authorized, 403);
+        // Keep delivery pricing consistent with the existing geographic zone.
+        // A demo seller cannot override fees for customers by creating a new zone.
+        $parentZone = ServiceZone::resolve((float) $data['center_lat'], (float) $data['center_lng']);
+        if ($parentZone === null) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'center_lat' => ['حدد مركز المنطقة ضمن نطاق توصيل قائم.'],
+            ]);
+        }
         $zone = ServiceZone::query()->create([
             'name_ar' => trim($data['name_ar']),
             'name_en' => trim($data['name_en']),
             'center_lat' => (float) $data['center_lat'],
             'center_lng' => (float) $data['center_lng'],
             'radius_meters' => (int) $data['radius_meters'],
-            'delivery_fee_halalas' => 0,
-            'free_delivery_threshold_halalas' => null,
+            'delivery_fee_halalas' => $parentZone->delivery_fee_halalas,
+            'free_delivery_threshold_halalas' => $parentZone->free_delivery_threshold_halalas,
             'is_active' => true,
         ]);
         return response()->json(['data' => $zone->only([
