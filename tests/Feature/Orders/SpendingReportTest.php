@@ -103,7 +103,7 @@ class SpendingReportTest extends TestCase
         $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
         $this->assertStringContainsString($order->number, $csv);
         $this->assertStringContainsString(',21.50,', $csv);
-        $this->assertStringContainsString('"Order date","Payment date","Refund date"', $csv);
+        $this->assertStringContainsString('"تاريخ الطلب","تاريخ الدفع","تاريخ الاسترداد"', $csv);
         $this->assertDatabaseHas('audit_logs', ['action' => 'report.exported', 'user_id' => $s->user->id]);
     }
 
