@@ -75,7 +75,7 @@ class SellerCatalogWorkspaceController extends Controller
             ->when(isset($filters['before_id']), fn ($query) => $query->where('products.id', '<', $filters['before_id']))
             ->select('products.id', 'products.seller_id', 'products.category_id', 'products.slug',
                 'products.name_ar', 'products.name_en', 'products.description_ar', 'products.description_en',
-                'products.price_halalas', 'products.vat_class', 'products.status', 'products.created_at')
+                'products.image_path', 'products.price_halalas', 'products.vat_class', 'products.status', 'products.created_at')
             ->selectSub(function ($query): void {
                 $query->from('seller_review_audits')
                     ->select('reason')
