@@ -87,6 +87,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::post('products/import', SellerCatalogImportController::class)->middleware('throttle:5,1');
         Route::post('products', [SellerProductDraftController::class, 'store'])->middleware('throttle:30,1');
         Route::patch('products/{product}', [SellerProductDraftController::class, 'update'])->whereNumber('product');
+        Route::delete('products/{product}', [SellerProductDraftController::class, 'destroy'])->whereNumber('product')->middleware('throttle:10,1');
         Route::post('products/{product}/submit', [SellerProductDraftController::class, 'submit'])->whereNumber('product');
         Route::post('products/{product}/variants', [SellerProductVariantController::class, 'store'])->whereNumber('product')->middleware('throttle:30,1');
         Route::post('products/{product}/image', SellerProductImageController::class)->whereNumber('product')->middleware('throttle:10,1');
