@@ -22,6 +22,18 @@ final class SellerCatalogImportController extends Controller
 {
     private const HEADERS = ['category_id', 'name_ar', 'name_en', 'price_halalas', 'vat_class', 'sku', 'barcode'];
     private const ARABIC_HEADERS = ['رقم التصنيف', 'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'السعر بالهللة', 'فئة الضريبة', 'رمز المنتج SKU', 'الباركود (اختياري)'];
+    // The same names and order as the Add Product form.
+    private const FORM_HEADERS = [
+        'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
+        'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'الوصف بالعربية',
+        'الوصف بالإنجليزية', 'السعر بالريال (1–5.75)', 'فئة الضريبة',
+    ];
+    private const ENGLISH_FORM_HEADERS = [
+        'SKU code (required)', 'Barcode (optional)', 'Store', 'Category',
+        'Arabic product name', 'English product name', 'Arabic description',
+        'English description', 'Price SAR (1–5.75)', 'VAT class',
+    ];
+
 
     public function __invoke(Request $request): JsonResponse
     {
@@ -54,11 +66,21 @@ final class SellerCatalogImportController extends Controller
             $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
-            if ($header !== self::HEADERS && $header !== self::ARABIC_HEADERS) {
+            $formTemplate = $header === self::FORM_HEADERS || $header === self::ENGLISH_FORM_HEADERS;
+            if (! $formTemplate && $header !== self::HEADERS && $header !== self::ARABIC_HEADERS) {
                 throw ValidationException::withMessages(['file' => [
-                    'Invalid column headers. Download the latest template, or use: '.implode(', ', self::HEADERS),
+                    'Invalid column headers. Download the latest template and keep its column order.',
                 ]]);
             }
+            // Store selection already belongs to the authenticated upload request. For the
+            // form-aligned template the store cell can be blank, its numeric ID, or its name.
+            $store = DB::table('sellers')->where('id', $sellerId)
+                ->first(['name_ar', 'name_en']);
+            $validStoreNames = array_filter([
+                (string) $sellerId,
+                trim((string) ($store?->name_ar ?? '')),
+                trim((string) ($store?->name_en ?? '')),
+            ], static fn (string $value): bool => $value !== '');
 
             $rows = [];
             $seenSkus = [];
@@ -75,11 +97,49 @@ final class SellerCatalogImportController extends Controller
                     $errors[] = 'Maximum 200 rows per upload.';
                     break;
                 }
-                if (count($cells) !== count(self::HEADERS)) {
-                    $errors[] = "Line {$line}: expected 7 columns.";
+                $expectedColumns = $formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS);
+                if (count($cells) !== $expectedColumns) {
+                    $errors[] = "Line {$line}: expected {$expectedColumns} columns.";
                     continue;
                 }
-                $row = array_combine(self::HEADERS, array_map('trim', $cells));
+                $values = array_map('trim', $cells);
+                if ($formTemplate) {
+                    [$sku, $barcode, $storeValue, $category, $nameAr, $nameEn,
+                        $descriptionAr, $descriptionEn, $priceSar, $vatLabel] = $values;
+                    if ($storeValue !== '' && !in_array($storeValue, $validStoreNames, true)) {
+                        $errors[] = "Line {$line}: store does not match the selected seller.";
+                        continue;
+                    }
+                    // Avoid float rounding for prices; the UI shows SAR and the API stores halalas.
+                    if (!preg_match('/^[0-9]+(?:\\.[0-9]{1,2})?$/D', $priceSar)) {
+                        $errors[] = "Line {$line}: invalid SAR price.";
+                        continue;
+                    }
+                    $priceParts = explode('.', $priceSar, 2);
+                    $priceHalalas = (int) $priceParts[0] * 100
+                        + (int) str_pad($priceParts[1] ?? '0', 2, '0', STR_PAD_RIGHT);
+                    $vatClass = match ($vatLabel) {
+                        'قياسية', 'Standard', 'standard' => 'standard',
+                        'صفرية', 'Zero-rated', 'zero' => 'zero',
+                        'معفاة', 'Exempt', 'exempt' => 'exempt',
+                        default => $vatLabel,
+                    };
+                    $row = [
+                        'category_id' => $category,
+                        'name_ar' => $nameAr,
+                        'name_en' => $nameEn,
+                        'description_ar' => $descriptionAr,
+                        'description_en' => $descriptionEn,
+                        'price_halalas' => (string) $priceHalalas,
+                        'vat_class' => $vatClass,
+                        'sku' => $sku,
+                        'barcode' => $barcode,
+                    ];
+                } else {
+                    $row = array_combine(self::HEADERS, $values);
+                    $row['description_ar'] = '';
+                    $row['description_en'] = '';
+                }
                 $sku = $row['sku'];
                 $barcode = $row['barcode'];
                 if (!ctype_digit($row['category_id']) || !ctype_digit($row['price_halalas'])
@@ -88,7 +148,8 @@ final class SellerCatalogImportController extends Controller
                     || $sku === '' || strlen($sku) > 100
                     || $barcode !== '' && strlen($barcode) > 100
                     || $row['name_ar'] === '' || $row['name_en'] === ''
-                    || mb_strlen($row['name_ar']) > 180 || mb_strlen($row['name_en']) > 180) {
+                    || mb_strlen($row['name_ar']) > 180 || mb_strlen($row['name_en']) > 180
+                    || mb_strlen($row['description_ar']) > 10000 || mb_strlen($row['description_en']) > 10000) {
                     $errors[] = "Line {$line}: invalid product fields.";
                     continue;
                 }
@@ -136,6 +197,8 @@ final class SellerCatalogImportController extends Controller
                     'category_id' => (int) $row['category_id'],
                     'name_ar' => $row['name_ar'],
                     'name_en' => $row['name_en'],
+                    'description_ar' => $row['description_ar'] ?: null,
+                    'description_en' => $row['description_en'] ?: null,
                     'price_halalas' => (int) $row['price_halalas'],
                     'sku' => $row['sku'],
                 ], array_slice($rows, 0, 10)),
