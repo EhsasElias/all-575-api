@@ -22,6 +22,7 @@ final class SellerCatalogExcelTemplateController extends Controller
         'اسم المنتج بالإنجليزية (إجباري)', 'الوصف بالعربية (اختياري)',
         'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–10) (إجباري)',
         'فئة الضريبة (إجباري)',
+        'اسم وحدة البيع بالعربية (اختياري)', 'اسم وحدة البيع بالإنجليزية (اختياري)',
     ];
 
     private static function xml(string $value): string
@@ -66,7 +67,7 @@ final class SellerCatalogExcelTemplateController extends Controller
             trim((string) $seller->name_ar) !== '' ? $seller->name_ar : (string) $seller->id
         )->all();
         $vatOptions = ['قياسية', 'صفرية', 'معفاة'];
-        $lists = ['L' => $categories, 'M' => $storeOptions, 'N' => $vatOptions];
+        $lists = ['N' => $categories, 'O' => $storeOptions, 'P' => $vatOptions];
         $rows = '<row r="1" ht="34" customHeight="1">';
         foreach (self::HEADERS as $index => $header) {
             $rows .= self::cell(chr(65 + $index).'1', $header, 1);
@@ -87,7 +88,7 @@ final class SellerCatalogExcelTemplateController extends Controller
         }
 
         $validations = '';
-        foreach (['C' => 'M', 'D' => 'L', 'J' => 'N'] as $target => $source) {
+        foreach (['C' => 'O', 'D' => 'N', 'J' => 'P'] as $target => $source) {
             $last = max(2, count($lists[$source]) + 1);
             $validations .= '<dataValidation type="list" allowBlank="1" showDropDown="0" '.
                 'showErrorMessage="1" errorTitle="اختيار غير صالح" error="اختر قيمة من القائمة" '.
@@ -105,10 +106,10 @@ final class SellerCatalogExcelTemplateController extends Controller
             '<col min="1" max="2" width="24" customWidth="1"/>'.
             '<col min="3" max="4" width="22" customWidth="1"/>'.
             '<col min="5" max="8" width="35" customWidth="1"/>'.
-            '<col min="9" max="10" width="28" customWidth="1"/>'.
-            '<col min="12" max="14" hidden="1"/>'.
+            '<col min="9" max="12" width="28" customWidth="1"/>'.
+            '<col min="14" max="16" hidden="1"/>'.
             '</cols><sheetData>'.$rows.'</sheetData>'.
-            '<autoFilter ref="A1:J201"/>'.
+            '<autoFilter ref="A1:L201"/>'.
             '<dataValidations count="4">'.$validations.'</dataValidations>'.
             '</worksheet>';
 
