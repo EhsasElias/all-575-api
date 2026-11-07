@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[UseFactory(BranchFactory::class)]
 #[Fillable(['seller_id', 'service_zone_id', 'code', 'name_ar', 'name_en', 'lat', 'lng', 'is_active'])]
@@ -32,5 +33,11 @@ class Branch extends Model
     public function serviceZone(): BelongsTo
     {
         return $this->belongsTo(ServiceZone::class);
+    }
+
+    /** @return BelongsToMany<ServiceZone, $this> */
+    public function coverageZones(): BelongsToMany
+    {
+        return $this->belongsToMany(ServiceZone::class, 'branch_service_zones');
     }
 }
