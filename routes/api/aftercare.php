@@ -19,4 +19,5 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(funct
 
     Route::get('me/reports/spending', [SpendingReportController::class, 'show']);
     Route::get('me/reports/spending.csv', [SpendingReportController::class, 'csv'])->middleware('throttle:10,1');
+    Route::get('me/reports/spending.xlsx', [SpendingReportController::class, 'excel'])->middleware('throttle:10,1');
 });
