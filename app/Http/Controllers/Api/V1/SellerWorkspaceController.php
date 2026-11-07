@@ -221,8 +221,8 @@ class SellerWorkspaceController extends Controller
     private function orderExportHeaders(string $locale): array
     {
         return $locale === 'ar'
-            ? ['رقم الطلب', 'حالة الطلب', 'الفرع', 'تاريخ الطلب']
-            : ['Order', 'Status', 'Branch', 'Date'];
+            ? ['رقم الطلب', 'حالة الطلب', 'اسم الفرع', 'تاريخ الطلب']
+            : ['Order number', 'Order status', 'Branch name', 'Order date'];
     }
 
     private function orderExportRow(Suborder $suborder, string $locale): array
@@ -241,13 +241,15 @@ class SellerWorkspaceController extends Controller
         $status = $suborder->status->value;
         $branch = $suborder->branch;
         $branchName = $branch !== null
-            ? ($locale === 'ar' ? $branch->name_ar : $branch->name_en)
-            : null;
+            ? ($locale === 'ar'
+                ? (trim((string) $branch->name_ar) ?: trim((string) $branch->name_en))
+                : (trim((string) $branch->name_en) ?: trim((string) $branch->name_ar)))
+            : '';
         return [
             $suborder->order->number,
             $labels[$status] ?? $status,
-            $branchName ?: '#'.$suborder->branch_id,
-            (string) $suborder->order->placed_at,
+            $branchName !== '' ? $branchName : ($locale === 'ar' ? 'فرع غير محدد' : 'Unnamed branch'),
+            $suborder->order->placed_at?->format('Y-m-d H:i') ?? '',
         ];
     }
 
