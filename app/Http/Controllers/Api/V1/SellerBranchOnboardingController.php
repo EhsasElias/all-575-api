@@ -23,6 +23,46 @@ final class SellerBranchOnboardingController extends Controller
             ->orderBy('id')->limit(100)->get()]);
     }
 
+    /**
+     * Demo-only zone creation. Zones affect public delivery availability, so ordinary
+     * sellers cannot create global service zones without an administrator.
+     */
+    public function createServiceZone(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'seller_id' => ['required', 'integer', 'min:1'],
+            'name_ar' => ['required', 'string', 'max:180'],
+            'name_en' => ['required', 'string', 'max:180'],
+            'center_lat' => ['required', 'numeric', 'between:-90,90'],
+            'center_lng' => ['required', 'numeric', 'between:-180,180'],
+            'radius_meters' => ['required', 'integer', 'between:100,50000'],
+        ]);
+        $sellerId = (int) $data['seller_id'];
+        abort_unless(SellerDemoMode::allows($request, $sellerId), 403,
+            'إنشاء مناطق جديدة متاح لحساب العرض التجريبي فقط.');
+        $authorized = DB::table('seller_staff_access')
+            ->where('seller_id', $sellerId)
+            ->where('user_id', $request->user()->id)
+            ->where('role', 'owner')
+            ->whereNull('branch_id')
+            ->where('is_active', true)
+            ->exists();
+        abort_unless($authorized, 403);
+        $zone = ServiceZone::query()->create([
+            'name_ar' => trim($data['name_ar']),
+            'name_en' => trim($data['name_en']),
+            'center_lat' => (float) $data['center_lat'],
+            'center_lng' => (float) $data['center_lng'],
+            'radius_meters' => (int) $data['radius_meters'],
+            'delivery_fee_halalas' => 0,
+            'free_delivery_threshold_halalas' => null,
+            'is_active' => true,
+        ]);
+        return response()->json(['data' => $zone->only([
+            'id', 'name_ar', 'name_en', 'center_lat', 'center_lng', 'radius_meters',
+        ])], 201);
+    }
+
     public function create(Request $request): JsonResponse
     {
         $request->merge(['code' => strtoupper(trim((string) $request->input('code', '')))]);
