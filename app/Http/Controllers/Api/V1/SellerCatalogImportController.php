@@ -26,12 +26,22 @@ final class SellerCatalogImportController extends Controller
     private const FORM_HEADERS = [
         'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
         'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'الوصف بالعربية',
-        'الوصف بالإنجليزية', 'السعر بالريال (1–5.75)', 'فئة الضريبة',
+        'الوصف بالإنجليزية', 'السعر بالريال (1–10)', 'فئة الضريبة',
+    ];
+    private const LEGACY_FORM_HEADERS = [
+        'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
+        'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'الوصف بالعربية',
+        'الوصف بالإنجليزية', 'السعر بالريال (1–10)', 'فئة الضريبة',
+    ];
+    private const LEGACY_ENGLISH_FORM_HEADERS = [
+        'SKU code (required)', 'Barcode (optional)', 'Store', 'Category',
+        'Arabic product name', 'English product name', 'Arabic description',
+        'English description', 'Price SAR (1–5.75)', 'VAT class',
     ];
     private const ENGLISH_FORM_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store', 'Category',
         'Arabic product name', 'English product name', 'Arabic description',
-        'English description', 'Price SAR (1–5.75)', 'VAT class',
+        'English description', 'Price SAR (1–10)', 'VAT class',
     ];
 
 
@@ -66,7 +76,7 @@ final class SellerCatalogImportController extends Controller
             $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
-            $formTemplate = $header === self::FORM_HEADERS || $header === self::ENGLISH_FORM_HEADERS;
+            $formTemplate = in_array($header, [self::FORM_HEADERS, self::ENGLISH_FORM_HEADERS, self::LEGACY_FORM_HEADERS, self::LEGACY_ENGLISH_FORM_HEADERS], true);
             if (! $formTemplate && $header !== self::HEADERS && $header !== self::ARABIC_HEADERS) {
                 throw ValidationException::withMessages(['file' => [
                     'Invalid column headers. Download the latest template and keep its column order.',
@@ -163,7 +173,7 @@ final class SellerCatalogImportController extends Controller
                 $sku = $row['sku'];
                 $barcode = $row['barcode'];
                 if (!ctype_digit($row['category_id']) || !ctype_digit($row['price_halalas'])
-                    || (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 575
+                    || (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 1000
                     || !in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true)
                     || $sku === '' || strlen($sku) > 100
                     || $barcode !== '' && strlen($barcode) > 100
