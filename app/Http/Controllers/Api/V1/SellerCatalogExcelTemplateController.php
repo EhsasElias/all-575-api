@@ -102,7 +102,8 @@ final class SellerCatalogExcelTemplateController extends Controller
 
         $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'.
             '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'.
-            '<sheetViews><sheetView workbookViewId="0" rightToLeft="1"/></sheetViews>'.
+            '<dimension ref="A1:R'.($count + 1).'"/>'.
+            '<sheetViews><sheetView workbookViewId="0" rightToLeft="1"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'.
             '<sheetFormatPr defaultRowHeight="23"/><cols>'.
             '<col min="1" max="2" width="24" customWidth="1"/>'.
             '<col min="3" max="4" width="22" customWidth="1"/>'.
@@ -112,7 +113,6 @@ final class SellerCatalogExcelTemplateController extends Controller
             '<col min="14" max="14" width="28" customWidth="1"/>'.
             '<col min="16" max="18" hidden="1"/>'.
             '</cols><sheetData>'.$rows.'</sheetData>'.
-            '<autoFilter ref="A1:N201"/>'.
             '<dataValidations count="4">'.$validations.'</dataValidations>'.
             '</worksheet>';
 
