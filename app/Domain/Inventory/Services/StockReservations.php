@@ -86,7 +86,12 @@ final class StockReservations
         $candidates = BranchStock::query()
             ->select('branch_stock.*')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
-            ->where('branches.service_zone_id', $zoneId)
+            ->whereExists(function ($query) use ($zoneId): void {
+                $query->selectRaw('1')
+                    ->from('branch_service_zones')
+                    ->whereColumn('branch_service_zones.branch_id', 'branches.id')
+                    ->where('branch_service_zones.service_zone_id', $zoneId);
+            })
             ->where('branches.is_active', true)
             ->where('branch_stock.variant_id', $variantId)
             ->orderByRaw('(branch_stock.on_hand - branch_stock.reserved) desc')
