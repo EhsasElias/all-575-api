@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\SellerProductCodeLookupController;
 use App\Http\Controllers\Api\V1\SellerProductVariantController;
 use App\Http\Controllers\Api\V1\SellerProductImageController;
 use App\Http\Controllers\Api\V1\SellerCatalogImportController;
+use App\Http\Controllers\Api\V1\SellerCatalogExcelTemplateController;
 use App\Http\Controllers\Api\V1\SellerStaffController;
 use App\Http\Controllers\Api\V1\SellerReturnController;
 use App\Http\Controllers\Api\V1\SellerFinanceController;
@@ -86,6 +87,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
                 'Content-Disposition' => 'attachment; filename="seller-products-template.csv"',
             ]);
         })->middleware('throttle:30,1');
+        Route::get('products/import/template.xlsx', SellerCatalogExcelTemplateController::class)->middleware('throttle:10,1');
         Route::post('products/import', SellerCatalogImportController::class)->middleware('throttle:5,1');
         Route::post('products', [SellerProductDraftController::class, 'store'])->middleware('throttle:30,1');
         Route::patch('products/{product}', [SellerProductDraftController::class, 'update'])->whereNumber('product');
