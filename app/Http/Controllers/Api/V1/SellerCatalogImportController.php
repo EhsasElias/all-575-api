@@ -424,6 +424,8 @@ final class SellerCatalogImportController extends Controller
                     'slug' => (string) Str::uuid(),
                     'name_ar' => $row['name_ar'],
                     'name_en' => $row['name_en'],
+                    'description_ar' => $row['description_ar'] !== '' ? $row['description_ar'] : null,
+                    'description_en' => $row['description_en'] !== '' ? $row['description_en'] : null,
                     'price_halalas' => (int) $row['price_halalas'],
                     'vat_class' => $row['vat_class'],
                     'status' => ProductStatus::Draft,
