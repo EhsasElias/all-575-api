@@ -64,6 +64,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('service-zones', [SellerBranchOnboardingController::class, 'serviceZones']);
         Route::post('branches', [SellerBranchOnboardingController::class, 'create'])->middleware('throttle:10,1');
         Route::patch('branches/{branch}', [SellerBranchProfileController::class, 'update'])->whereNumber('branch')->middleware('throttle:20,1');
+        Route::delete('branches/{branch}', [SellerBranchProfileController::class, 'destroy'])->whereNumber('branch')->middleware('throttle:10,1');
         Route::get('staff', [SellerStaffController::class, 'index']);
         Route::get('returns', [SellerReturnController::class, 'index']);
         Route::get('returns/{case}', [SellerReturnController::class, 'show'])->whereUlid('case');
