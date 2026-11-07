@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\SellerWorkspaceController;
+use App\Http\Controllers\Api\V1\SellerInsightsController;
 use App\Http\Controllers\Api\V1\SellerAccessController;
 use App\Http\Controllers\Api\V1\SellerApplicationController;
 use App\Http\Controllers\Api\V1\SellerApplicationDocumentController;
@@ -93,6 +94,8 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::post('stock', SellerStockCreationController::class)->middleware('throttle:20,1');
         Route::patch('stock/{stock}', SellerStockAdjustmentController::class)->whereNumber('stock')->middleware('throttle:30,1');
         Route::get('dashboard', [SellerWorkspaceController::class, 'dashboard']);
+        Route::get('insights', [SellerInsightsController::class, 'show'])->middleware('throttle:30,1');
+        Route::get('insights/export/{format}', [SellerInsightsController::class, 'export'])->whereIn('format', ['csv', 'xlsx'])->middleware('throttle:10,1');
         Route::get('orders', [SellerWorkspaceController::class, 'orders']);
         Route::get('reports/sales', [SellerWorkspaceController::class, 'salesSummary'])->middleware('throttle:30,1');
         Route::get('finance/summary', [SellerFinanceController::class, 'summary'])->middleware('throttle:20,1');
