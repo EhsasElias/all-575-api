@@ -68,12 +68,16 @@ final class SellerBranchProfileController extends Controller
             $lat = (float) ($data['lat'] ?? $row->lat);
             $lng = (float) ($data['lng'] ?? $row->lng);
 
-            // Always validate the final combined coordinates/zone, including partial changes.
-            $zone = ServiceZone::query()->active()->findOrFail($zoneId);
-            if ($zone->distanceTo($lat, $lng) > $zone->radius_meters) {
-                throw ValidationException::withMessages([
-                    'lat' => ['موقع الفرع خارج منطقة التوصيل. حدد موقعاً داخل المنطقة.'],
-                ]);
+            // Location updates must remain within an active delivery zone.
+            // A legacy names-only edit should not be blocked if its old zone was archived.
+            if (array_key_exists('service_zone_id', $data) ||
+                array_key_exists('lat', $data) || array_key_exists('lng', $data)) {
+                $zone = ServiceZone::query()->active()->findOrFail($zoneId);
+                if ($zone->distanceTo($lat, $lng) > $zone->radius_meters) {
+                    throw ValidationException::withMessages([
+                        'lat' => ['موقع الفرع خارج منطقة التوصيل. حدد موقعاً داخل المنطقة.'],
+                    ]);
+                }
             }
 
             DB::table('branches')->where('id', $row->id)->update([
