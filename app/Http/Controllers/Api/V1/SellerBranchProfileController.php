@@ -54,6 +54,9 @@ final class SellerBranchProfileController extends Controller
                 Rule::exists('service_zones', 'id')->where('is_active', true)],
             'lat' => ['sometimes', 'required', 'numeric', 'between:-90,90'],
             'lng' => ['sometimes', 'required', 'numeric', 'between:-180,180'],
+            'service_zone_ids' => ['sometimes', 'required', 'array', 'min:1', 'max:30'],
+            'service_zone_ids.*' => ['required', 'integer', 'distinct',
+                Rule::exists('service_zones', 'id')->where('is_active', true)],
         ]);
         if (trim($data['name_ar']) === '' || trim($data['name_en']) === '') {
             throw ValidationException::withMessages([
@@ -67,6 +70,14 @@ final class SellerBranchProfileController extends Controller
             $zoneId = (int) ($data['service_zone_id'] ?? $row->service_zone_id);
             $lat = (float) ($data['lat'] ?? $row->lat);
             $lng = (float) ($data['lng'] ?? $row->lng);
+            $coverageZoneIds = array_map('intval',
+                $data['service_zone_ids'] ?? [$zoneId]
+            );
+            if (! in_array($zoneId, $coverageZoneIds, true)) {
+                throw ValidationException::withMessages([
+                    'service_zone_ids' => ['يجب تضمين المنطقة الأساسية ضمن مناطق تغطية الفرع.'],
+                ]);
+            }
 
             // Location updates must remain within an active delivery zone.
             // A legacy names-only edit should not be blocked if its old zone was archived.
@@ -85,10 +96,21 @@ final class SellerBranchProfileController extends Controller
                 'name_ar' => trim($data['name_ar']),
                 'name_en' => trim($data['name_en']),
                 'service_zone_id' => $zoneId,
+                'service_zone_ids' => $coverageZoneIds,
                 'lat' => $lat,
                 'lng' => $lng,
                 'updated_at' => now(),
             ]);
+
+            // Update the coverage associations atomically with branch changes.
+            DB::table('branch_service_zones')->where('branch_id', $row->id)
+                ->whereNotIn('service_zone_id', $coverageZoneIds)->delete();
+            foreach ($coverageZoneIds as $coverageId) {
+                DB::table('branch_service_zones')->updateOrInsert([
+                    'branch_id' => $row->id,
+                    'service_zone_id' => $coverageId,
+                ], ['updated_at' => now(), 'created_at' => now()]);
+            }
 
             return [
                 'id' => $row->id,
