@@ -42,6 +42,8 @@ final class SellerInsightsTest extends TestCase
         $this->getJson('/api/v1/seller/insights'.self::QUERY)
             ->assertOk()->assertJsonPath('data.metric', 'orders')
             ->assertJsonCount(0, 'data.rows');
+        $this->getJson('/api/v1/seller/insights/trend?metric=sales&from=2026-11-01&to=2026-11-07')
+            ->assertOk()->assertJsonCount(0, 'data');
         $this->getJson('/api/v1/seller/insights?metric=products&from=2026-11-01&to=2026-11-07')
             ->assertOk()->assertJsonCount(0, 'data.rows');
         $this->getJson('/api/v1/seller/insights?metric=stock&from=2026-11-01&to=2026-11-07')
