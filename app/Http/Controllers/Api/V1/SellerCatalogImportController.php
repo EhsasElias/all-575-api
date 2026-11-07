@@ -149,6 +149,10 @@ final class SellerCatalogImportController extends Controller
             if ($name === null || isset($images[$sheetRow])) {
                 throw ValidationException::withMessages(['file' => ["Row {$sheetRow}: unsupported or duplicate embedded image."]]);
             }
+            $metadata = $zip->statName($name);
+            if ($metadata === false || ($metadata['size'] ?? 0) > 5 * 1024 * 1024) {
+                throw ValidationException::withMessages(['file' => ["Row {$sheetRow}: image is missing or exceeds 5 MB."]]);
+            }
             $bytes = $zip->getFromName($name);
             if ($bytes === false || strlen($bytes) > 5 * 1024 * 1024) {
                 throw ValidationException::withMessages(['file' => ["Row {$sheetRow}: image is missing or exceeds 5 MB."]]);
