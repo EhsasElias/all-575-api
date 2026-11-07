@@ -24,6 +24,14 @@ final class SellerCatalogImportController extends Controller
     private const ARABIC_HEADERS = ['رقم التصنيف', 'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'السعر بالهللة', 'فئة الضريبة', 'رمز المنتج SKU', 'الباركود (اختياري)'];
     // The same names and order as the Add Product form.
     private const FORM_HEADERS = [
+        'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
+        'التصنيف (إجباري)', 'اسم المنتج بالعربية (إجباري)',
+        'اسم المنتج بالإنجليزية (إجباري)', 'الوصف بالعربية (اختياري)',
+        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–10) (إجباري)',
+        'فئة الضريبة (إجباري)',
+    ];
+    // Prior Arabic layout (same values, earlier captions) remains supported.
+    private const PREVIOUS_FORM_HEADERS = [
         'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
         'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'الوصف بالعربية',
         'الوصف بالإنجليزية', 'السعر بالريال (1–10)', 'فئة الضريبة',
@@ -39,6 +47,12 @@ final class SellerCatalogImportController extends Controller
         'English description', 'Price SAR (1–5.75)', 'VAT class',
     ];
     private const ENGLISH_FORM_HEADERS = [
+        'SKU code (required)', 'Barcode (optional)', 'Store (optional)', 'Category (required)',
+        'Arabic product name (required)', 'English product name (required)',
+        'Arabic description (optional)', 'English description (optional)',
+        'Price SAR (1–10) (required)', 'VAT class (required)',
+    ];
+    private const PREVIOUS_ENGLISH_FORM_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store', 'Category',
         'Arabic product name', 'English product name', 'Arabic description',
         'English description', 'Price SAR (1–10)', 'VAT class',
@@ -76,7 +90,11 @@ final class SellerCatalogImportController extends Controller
             $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
-            $formTemplate = in_array($header, [self::FORM_HEADERS, self::ENGLISH_FORM_HEADERS, self::LEGACY_FORM_HEADERS, self::LEGACY_ENGLISH_FORM_HEADERS], true);
+            $formTemplate = in_array($header, [
+                self::FORM_HEADERS, self::ENGLISH_FORM_HEADERS,
+                self::PREVIOUS_FORM_HEADERS, self::PREVIOUS_ENGLISH_FORM_HEADERS,
+                self::LEGACY_FORM_HEADERS, self::LEGACY_ENGLISH_FORM_HEADERS,
+            ], true);
             if (! $formTemplate && $header !== self::HEADERS && $header !== self::ARABIC_HEADERS) {
                 throw ValidationException::withMessages(['file' => [
                     'Invalid column headers. Download the latest template and keep its column order.',
@@ -122,7 +140,7 @@ final class SellerCatalogImportController extends Controller
                 }
                 $expectedColumns = $formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS);
                 if (count($cells) !== $expectedColumns) {
-                    $errors[] = "Line {$line}: expected {$expectedColumns} columns.";
+                    $errors[] = "الصف {$line}: يجب أن يحتوي على {$expectedColumns} أعمدة بنفس ترتيب القالب.";
                     continue;
                 }
                 $values = array_map('trim', $cells);
@@ -130,12 +148,12 @@ final class SellerCatalogImportController extends Controller
                     [$sku, $barcode, $storeValue, $category, $nameAr, $nameEn,
                         $descriptionAr, $descriptionEn, $priceSar, $vatLabel] = $values;
                     if ($storeValue !== '' && !in_array($storeValue, $validStoreNames, true)) {
-                        $errors[] = "Line {$line}: store does not match the selected seller.";
+                        $errors[] = "الصف {$line}: المتجر لا يطابق المتجر المحدد في صفحة الاستيراد.";
                         continue;
                     }
                     // Avoid float rounding for prices; the UI shows SAR and the API stores halalas.
                     if (!preg_match('/^[0-9]+(?:\\.[0-9]{1,2})?$/D', $priceSar)) {
-                        $errors[] = "Line {$line}: invalid SAR price.";
+                        $errors[] = "الصف {$line}: السعر بالريال إجباري ويجب كتابته كرقم مثل 5.75.";
                         continue;
                     }
                     $priceParts = explode('.', $priceSar, 2);
@@ -149,7 +167,7 @@ final class SellerCatalogImportController extends Controller
                     };
                     if (!ctype_digit($category)) {
                         if (!isset($categoryNames[$category])) {
-                            $errors[] = "Line {$line}: unknown or ambiguous category name.";
+                            $errors[] = "الصف {$line}: التصنيف إجباري؛ اكتب اسم تصنيف صحيحًا غير مكرر أو رقمه.";
                             continue;
                         }
                         $category = (string) $categoryNames[$category];
@@ -172,6 +190,20 @@ final class SellerCatalogImportController extends Controller
                 }
                 $sku = $row['sku'];
                 $barcode = $row['barcode'];
+                $rowErrors = [];
+                if ($sku === '') $rowErrors[] = 'رمز SKU (إجباري)';
+                if ($row['category_id'] === '' || !ctype_digit($row['category_id'])) $rowErrors[] = 'التصنيف (إجباري)';
+                if ($row['name_ar'] === '') $rowErrors[] = 'اسم المنتج بالعربية (إجباري)';
+                if ($row['name_en'] === '') $rowErrors[] = 'اسم المنتج بالإنجليزية (إجباري)';
+                if ($row['price_halalas'] === '' || !ctype_digit($row['price_halalas']) ||
+                    (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 1000)
+                    $rowErrors[] = 'السعر بالريال (إجباري، من 1 إلى 10)';
+                if (!in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true))
+                    $rowErrors[] = 'فئة الضريبة (إجباري: قياسية أو صفرية أو معفاة)';
+                if ($rowErrors !== []) {
+                    $errors[] = "الصف {$line}: تحقق من ".implode('، ', $rowErrors).".";
+                    continue;
+                }
                 if (!ctype_digit($row['category_id']) || !ctype_digit($row['price_halalas'])
                     || (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 1000
                     || !in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true)
@@ -180,11 +212,11 @@ final class SellerCatalogImportController extends Controller
                     || $row['name_ar'] === '' || $row['name_en'] === ''
                     || mb_strlen($row['name_ar']) > 180 || mb_strlen($row['name_en']) > 180
                     || mb_strlen($row['description_ar']) > 10000 || mb_strlen($row['description_en']) > 10000) {
-                    $errors[] = "Line {$line}: invalid product fields.";
+                    $errors[] = "الصف {$line}: تحقق من طول اسم المنتج (حتى 180 حرفًا)، والوصف (حتى 10000 حرف)، ورمز SKU أو الباركود (حتى 100 حرف).";
                     continue;
                 }
                 if (isset($seenSkus[$sku]) || ($barcode !== '' && isset($seenBarcodes[$barcode]))) {
-                    $errors[] = "Line {$line}: duplicate SKU or barcode in upload.";
+                    $errors[] = "الصف {$line}: رمز SKU أو الباركود مكرر في الملف.";
                     continue;
                 }
                 $seenSkus[$sku] = true;
