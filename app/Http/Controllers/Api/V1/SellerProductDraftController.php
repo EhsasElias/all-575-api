@@ -8,6 +8,8 @@ use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Pricing\VatClass;
 use App\Http\Controllers\Controller;
+use App\Support\SellerDemoMode;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,7 +68,18 @@ final class SellerProductDraftController extends Controller
             abort_unless($item->status === ProductStatus::Draft, 409, 'Only drafts may be submitted.');
             abort_unless($item->variants()->exists(), 422, 'Add a product variant before submitting.');
 
-            $item->status = ProductStatus::PendingReview;
+            $demoDirect = SellerDemoMode::allows($request, (int) $item->seller_id);
+            if ($demoDirect) {
+                // Demo mode does not bypass the same minimum publication checks as admin review.
+                abort_unless($item->variants()->where('is_active', true)->exists(), 422,
+                    'An active product variant is required.');
+                abort_unless(DB::table('categories')->where('id', $item->category_id)
+                    ->where('is_active', true)->exists(), 422, 'Active category required.');
+                abort_unless($item->image_path && Storage::disk('public')->exists($item->image_path),
+                    422, 'Upload a product cover image before publishing.');
+            }
+
+            $item->status = $demoDirect ? ProductStatus::Published : ProductStatus::PendingReview;
             $item->save();
 
             return $item;
