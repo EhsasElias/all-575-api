@@ -3,6 +3,15 @@
 return [
     'currency' => 'SAR',
 
+    // Demo presentation only. Off by default, including in production.
+    // Enable explicitly for one approved test-store owner; never applies to other sellers.
+    'demo_seller_direct_approval' => [
+        'enabled' => env('SELLER_DEMO_DIRECT_APPROVAL', false),
+        'user_id' => (int) env('SELLER_DEMO_USER_ID', 0),
+        'seller_id' => (int) env('SELLER_DEMO_SELLER_ID', 0),
+    ],
+
+
     // Legacy ceiling/reference for the storefront; individual products have prices from 100 to 575 halalas.
     // Changing this setting does not change product prices or existing order snapshots.
     'price_halalas' => 575,
