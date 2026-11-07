@@ -99,7 +99,7 @@ final class SellerProductDraftController extends Controller
             $variantIds = DB::table('product_variants')
                 ->where('product_id', $item->id)->pluck('id');
             abort_if($variantIds->isNotEmpty() &&
-                DB::table('branch_stocks')->whereIn('variant_id', $variantIds)->exists(),
+                DB::table('branch_stock')->whereIn('variant_id', $variantIds)->exists(),
                 409, 'A draft with stock cannot be deleted.');
 
             // Delete variants before the parent. Foreign keys prevent removal of referenced items.
