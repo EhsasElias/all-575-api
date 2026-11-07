@@ -33,6 +33,22 @@ final class SellerCatalogImportController extends Controller
         'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–10) (إجباري)',
         'فئة الضريبة (إجباري)',
     ];
+    // Optional selling-unit labels correspond to the variant fields in the Add Product workflow.
+    private const EXTENDED_FORM_HEADERS = [
+        'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
+        'التصنيف (إجباري)', 'اسم المنتج بالعربية (إجباري)',
+        'اسم المنتج بالإنجليزية (إجباري)', 'الوصف بالعربية (اختياري)',
+        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–10) (إجباري)',
+        'فئة الضريبة (إجباري)', 'اسم وحدة البيع بالعربية (اختياري)',
+        'اسم وحدة البيع بالإنجليزية (اختياري)',
+    ];
+    private const EXTENDED_ENGLISH_FORM_HEADERS = [
+        'SKU code (required)', 'Barcode (optional)', 'Store (optional)', 'Category (required)',
+        'Arabic product name (required)', 'English product name (required)',
+        'Arabic description (optional)', 'English description (optional)',
+        'Price SAR (1–10) (required)', 'VAT class (required)',
+        'Arabic variant name (optional)', 'English variant name (optional)',
+    ];
     // Prior Arabic layout (same values, earlier captions) remains supported.
     private const PREVIOUS_FORM_HEADERS = [
         'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
@@ -192,7 +208,10 @@ final class SellerCatalogImportController extends Controller
             $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
-            $formTemplate = in_array($header, [
+            $extendedForm = in_array($header, [
+                self::EXTENDED_FORM_HEADERS, self::EXTENDED_ENGLISH_FORM_HEADERS,
+            ], true);
+            $formTemplate = $extendedForm || in_array($header, [
                 self::FORM_HEADERS, self::ENGLISH_FORM_HEADERS,
                 self::PREVIOUS_FORM_HEADERS, self::PREVIOUS_ENGLISH_FORM_HEADERS,
                 self::LEGACY_FORM_HEADERS, self::LEGACY_ENGLISH_FORM_HEADERS,
@@ -240,7 +259,8 @@ final class SellerCatalogImportController extends Controller
                     $errors[] = 'Maximum 200 rows per upload.';
                     break;
                 }
-                $expectedColumns = $formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS);
+                $expectedColumns = $extendedForm ? count(self::EXTENDED_FORM_HEADERS)
+                        : ($formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS));
                 if (count($cells) !== $expectedColumns) {
                     $actual = count($cells);
                     $errors[] = "الصف {$line} - الأعمدة: الملف يحتوي على {$actual} أعمدة، والمطلوب {$expectedColumns}. احتفظ بترتيب الأعمدة ولا تحذف أعمدة القالب.";
@@ -249,7 +269,9 @@ final class SellerCatalogImportController extends Controller
                 $values = array_map('trim', $cells);
                 if ($formTemplate) {
                     [$sku, $barcode, $storeValue, $category, $nameAr, $nameEn,
-                        $descriptionAr, $descriptionEn, $priceSar, $vatLabel] = $values;
+                        $descriptionAr, $descriptionEn, $priceSar, $vatLabel] = array_slice($values, 0, 10);
+                    $variantNameAr = $extendedForm ? $values[10] : '';
+                    $variantNameEn = $extendedForm ? $values[11] : '';
                     if ($storeValue !== '' && !in_array($storeValue, $validStoreNames, true)) {
                         $expected = trim((string) ($store?->name_ar ?? '')) ?: (string) $sellerId;
                         $errors[] = "الصف {$line} - عمود المتجر: القيمة «{$storeValue}» لا تطابق المتجر المحدد «{$expected}» (رقم {$sellerId}). اترك الخانة فارغة لاستخدام المتجر المحدد تلقائيًا، أو أدخل اسمه/رقمه الصحيح.";
@@ -286,15 +308,21 @@ final class SellerCatalogImportController extends Controller
                         'vat_class' => $vatClass,
                         'sku' => $sku,
                         'barcode' => $barcode,
+                        'variant_name_ar' => $variantNameAr,
+                        'variant_name_en' => $variantNameEn,
                     ];
                 } else {
                     $row = array_combine(self::HEADERS, $values);
                     $row['description_ar'] = '';
                     $row['description_en'] = '';
+                    $row['variant_name_ar'] = '';
+                    $row['variant_name_en'] = '';
                 }
                 $sku = $row['sku'];
                 $barcode = $row['barcode'];
                 $rowErrors = [];
+                if (mb_strlen($row['variant_name_ar']) > 180) $rowErrors[] = 'اسم وحدة البيع بالعربية: الحد الأقصى 180 حرفًا';
+                if (mb_strlen($row['variant_name_en']) > 180) $rowErrors[] = 'اسم وحدة البيع بالإنجليزية: الحد الأقصى 180 حرفًا';
                 if ($sku === '') $rowErrors[] = 'رمز SKU: مطلوب؛ أدخل رمزًا فريدًا للمنتج';
                 if ($row['category_id'] === '' || !ctype_digit($row['category_id']))
                     $rowErrors[] = 'التصنيف: أدخل رقم تصنيف نشط أو اسمه الصحيح';
@@ -406,6 +434,8 @@ final class SellerCatalogImportController extends Controller
                 $product->variants()->create([
                     'sku' => $row['sku'],
                     'barcode' => $row['barcode'] ?: null,
+                    'name_ar' => $row['variant_name_ar'] ?: null,
+                    'name_en' => $row['variant_name_en'] ?: null,
                     'is_active' => true,
                     'sort_order' => 0,
                 ]);
