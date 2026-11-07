@@ -39,6 +39,7 @@ final class SellerEmployeeNumberTest extends TestCase
     {
         [$seller, $branch] = $this->ownerAndBranch();
         $worker = User::factory()->create(['name' => 'Sample Team Member']);
+        $otherBranch = Branch::factory()->for($seller)->create();
 
         $create = $this->postJson('/api/v1/seller/staff', [
             'seller_id' => $seller->id,
@@ -57,9 +58,10 @@ final class SellerEmployeeNumberTest extends TestCase
 
         $this->patchJson('/api/v1/seller/staff/'.$membership, [
             'role' => 'branch_manager',
-            'branch_id' => $branch->id,
+            'branch_id' => $otherBranch->id,
             'is_active' => true,
-        ])->assertOk()->assertJsonPath('data.employee_number', 'EMP-000002');
+        ])->assertOk()->assertJsonPath('data.employee_number', 'EMP-000002')
+            ->assertJsonPath('data.branch_id', $otherBranch->id);
 
         $this->patchJson('/api/v1/seller/staff/'.$membership.'/deactivate')
             ->assertOk()->assertJsonPath('data.employee_number', 'EMP-000002');
@@ -76,6 +78,13 @@ final class SellerEmployeeNumberTest extends TestCase
             'is_active' => true,
             'role' => 'picker',
         ]);
+
+        $this->postJson('/api/v1/seller/staff', [
+            'seller_id' => $seller->id,
+            'user_id' => $worker->id,
+            'role' => 'picker',
+            'branch_id' => $branch->id,
+        ])->assertStatus(409);
 
         $second = User::factory()->create();
         $this->postJson('/api/v1/seller/staff', [
