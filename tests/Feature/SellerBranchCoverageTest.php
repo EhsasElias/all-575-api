@@ -63,6 +63,8 @@ final class SellerBranchCoverageTest extends TestCase
             ->assertJsonPath('data.0.service_zone_ids.0', $primary->id)
             ->assertJsonPath('data.0.service_zone_ids.1', $additional->id);
 
+        // Seller proposals are inactive until reviewed; activate for availability assertions.
+        DB::table('branches')->where('id', $branchId)->update(['is_active' => true]);
         $variant = ProductVariant::factory()->create();
         BranchStock::factory()->create([
             'branch_id' => $branchId, 'variant_id' => $variant->id,
