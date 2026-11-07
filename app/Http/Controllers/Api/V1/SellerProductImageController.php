@@ -7,11 +7,13 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
 use App\Http\Controllers\Controller;
+use App\Support\SellerProductImageSource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\File;
+use Illuminate\Validation\Rule;
 
 /**
  * Stores the product cover image after checking seller access and draft status.
@@ -22,7 +24,8 @@ final class SellerProductImageController extends Controller
     public function __invoke(Request $request, int $product): JsonResponse
     {
         $data = $request->validate([
-            'image' => ['required', File::image()->max('5mb')],
+            'image' => ['required_without:image_url', 'nullable', File::image()->max('5mb')],
+            'image_url' => ['required_without:image', 'nullable', 'url', 'max:2048', 'starts_with:https://'],
         ]);
 
         $item = Product::query()->findOrFail($product);
@@ -40,10 +43,9 @@ final class SellerProductImageController extends Controller
         abort_unless(in_array($item->status, [ProductStatus::Draft, ProductStatus::Rejected], true),
             409, 'Only draft or rejected products can change images.');
 
-        $path = $data['image']->store("products/{$item->seller_id}", 'public');
-        if ($path === false) {
-            abort(500, 'Unable to store product image.');
-        }
+        $path = !empty($data['image'])
+            ? SellerProductImageSource::storeBytes(file_get_contents($data['image']->getRealPath()), (int) $item->seller_id)
+            : SellerProductImageSource::storeUrl((string) $data['image_url'], (int) $item->seller_id);
 
         try {
             $oldPath = DB::transaction(function () use ($item, $path): ?string {
