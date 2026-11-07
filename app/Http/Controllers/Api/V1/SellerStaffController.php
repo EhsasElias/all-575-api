@@ -68,6 +68,7 @@ final class SellerStaffController extends Controller
                     ->whereColumn('seller_staff_access.seller_id', 'sellers.id')
                     ->where('seller_staff_access.user_id', $request->user()->id)
                     ->where('seller_staff_access.role', 'owner')
+                    ->whereNull('seller_staff_access.branch_id')
                     ->where('seller_staff_access.is_active', true);
             })->exists();
 
