@@ -76,6 +76,8 @@ final class SellerInsightsController extends Controller
     private function rows(Request $request, array $filters, int $limit = 200): array
     {
         $metric = $filters['metric'];
+        $locale = (string) $request->input('lang', $request->header('Accept-Language', 'ar'));
+        $branchColumn = str_starts_with(strtolower($locale), 'ar') ? 'name_ar' : 'name_en';
         $base = $this->metricOrders($this->allowedOrders($request, $filters), $metric);
 
         if ($metric === 'products') {
@@ -127,7 +129,7 @@ final class SellerInsightsController extends Controller
                                 ->orWhereColumn('seller_staff_access.branch_id', 'branches.id');
                         });
                 })
-                ->select('branches.name_ar as branch', 'product_variants.sku', 'products.name_ar',
+                ->select('branches.'.$branchColumn.' as branch', 'product_variants.sku', 'products.name_ar',
                     'branch_stock.on_hand', 'branch_stock.reserved')
                 ->orderBy('branch_stock.id')->limit($limit)->get();
             return [
@@ -142,7 +144,7 @@ final class SellerInsightsController extends Controller
 
         $records = $base
             ->select('suborders.id', 'orders.number as order_number', 'orders.placed_at',
-                'branches.name_ar as branch', 'suborders.status', 'suborders.subtotal_halalas',
+                'branches.'.$branchColumn.' as branch', 'suborders.status', 'suborders.subtotal_halalas',
                 'suborders.discount_halalas')
             ->orderByDesc('orders.placed_at')->orderByDesc('suborders.id')
             ->limit($limit)->get();
