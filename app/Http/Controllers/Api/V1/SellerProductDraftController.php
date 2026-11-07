@@ -88,6 +88,36 @@ final class SellerProductDraftController extends Controller
         return response()->json(['data' => $this->representation($updated)]);
     }
 
+    public function destroy(Request $request, int $product): JsonResponse
+    {
+        $imagePath = DB::transaction(function () use ($request, $product): ?string {
+            $item = Product::query()->lockForUpdate()->findOrFail($product);
+            $this->ensureSellerAccess($request, (int) $item->seller_id);
+            abort_unless($item->status === ProductStatus::Draft, 409,
+                'Only draft products can be deleted.');
+
+            $variantIds = DB::table('product_variants')
+                ->where('product_id', $item->id)->pluck('id');
+            abort_if($variantIds->isNotEmpty() &&
+                DB::table('branch_stocks')->whereIn('variant_id', $variantIds)->exists(),
+                409, 'A draft with stock cannot be deleted.');
+
+            // Delete variants before the parent. Foreign keys prevent removal of referenced items.
+            DB::table('product_variants')->where('product_id', $item->id)->delete();
+            $imagePath = $item->image_path;
+            $item->delete();
+
+            return $imagePath;
+        }, 3);
+
+        // Remove the uploaded file only after the database transaction succeeds.
+        if ($imagePath) {
+            Storage::disk('public')->delete($imagePath);
+        }
+
+        return response()->json(['message' => 'Draft product deleted.']);
+    }
+
     private function validated(Request $request, bool $creating): array
     {
         return $request->validate([
