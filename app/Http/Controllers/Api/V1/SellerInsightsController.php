@@ -193,11 +193,56 @@ final class SellerInsightsController extends Controller
         ]]);
     }
 
+    /** Translate only the downloaded representation; API JSON retains stable machine values. */
+    private function localizedExport(array $columns, array $rows, string $locale): array
+    {
+        $arabic = $locale === 'ar';
+        $names = [
+            'Order' => 'رقم الطلب', 'Date' => 'تاريخ الطلب', 'Branch' => 'الفرع',
+            'Status' => 'الحالة', 'Subtotal SAR' => 'السعر قبل الخصم (ر.س)',
+            'Discount SAR' => 'الخصم (ر.س)', 'Merchandise SAR' => 'قيمة البضاعة (ر.س)',
+            'Product ID' => 'رقم المنتج', 'Arabic name' => 'اسم المنتج بالعربية',
+            'English name' => 'اسم المنتج بالإنجليزية', 'Units' => 'الوحدات المباعة',
+            'Branch ID' => 'رقم الفرع', 'Orders' => 'عدد الطلبات',
+            'Delivered merchandise SAR' => 'المبيعات المسلّمة (ر.س)',
+            'SKU' => 'رمز SKU', 'Product' => 'المنتج',
+            'On hand' => 'المخزون الفعلي', 'Reserved' => 'الكمية المحجوزة',
+            'Available' => 'المتاح للبيع',
+        ];
+        $statuses = [
+            'awaiting_seller' => 'بانتظار البائع', 'preparing' => 'قيد التجهيز',
+            'ready' => 'جاهز', 'on_the_way' => 'في الطريق',
+            'delivered' => 'تم التسليم', 'cancelled' => 'ملغي',
+        ];
+        $englishStatuses = [
+            'awaiting_seller' => 'Awaiting seller', 'preparing' => 'Preparing',
+            'ready' => 'Ready', 'on_the_way' => 'On the way',
+            'delivered' => 'Delivered', 'cancelled' => 'Cancelled',
+        ];
+        $statusIndex = array_search('Status', $columns, true);
+        $outputColumns = $arabic
+            ? array_map(static fn (string $column): string => $names[$column] ?? $column, $columns)
+            : $columns;
+        $outputRows = array_map(static function (array $row) use ($statusIndex, $arabic, $statuses, $englishStatuses): array {
+            if ($statusIndex !== false && isset($row[$statusIndex])) {
+                $code = (string) $row[$statusIndex];
+                $row[$statusIndex] = $arabic
+                    ? ($statuses[$code] ?? $code)
+                    : ($englishStatuses[$code] ?? $code);
+            }
+            return $row;
+        }, $rows);
+        return [$outputColumns, $outputRows];
+    }
+
     public function export(Request $request, string $format, XlsxWriter $xlsx): Response
     {
         abort_unless(in_array($format, ['csv', 'xlsx'], true), 404);
         $filters = $this->filters($request);
         [$columns, $rows] = $this->rows($request, $filters, 5000);
+        $locale = $request->input('lang', $request->header('Accept-Language', 'ar'));
+        $locale = str_starts_with(strtolower((string) $locale), 'ar') ? 'ar' : 'en';
+        [$columns, $rows] = $this->localizedExport($columns, $rows, $locale);
         $filename = 'seller-'.$filters['metric'].'-'.$filters['from'].'-'.$filters['to'].'.'.$format;
         if ($format === 'xlsx') {
             return $xlsx->download($columns, $rows, $filename);
