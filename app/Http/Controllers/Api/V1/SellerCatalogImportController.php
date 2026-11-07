@@ -13,6 +13,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use DOMDocument;
+use DOMXPath;
+use ZipArchive;
 
 /**
  * Bounded UTF-8 CSV import. Validate the whole batch before writing any product.
@@ -59,12 +62,108 @@ final class SellerCatalogImportController extends Controller
     ];
 
 
+    /**
+     * Read the first Excel worksheet into a temporary CSV stream. Restrict the
+     * input to the ten visible product columns; ignore the hidden dropdown lists.
+     * Any Excel formula is rejected rather than executed or interpreted.
+     */
+    private function xlsxAsCsv(string $file): string
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($file) !== true) {
+            throw ValidationException::withMessages(['file' => ['Excel file is invalid or corrupt.']]);
+        }
+        try {
+            $sheet = $zip->getFromName('xl/worksheets/sheet1.xml');
+            if ($sheet === false || strlen($sheet) > 4 * 1024 * 1024) {
+                throw ValidationException::withMessages(['file' => ['Excel first sheet is missing or too large.']]);
+            }
+            $strings = [];
+            $sharedXml = $zip->getFromName('xl/sharedStrings.xml');
+            if ($sharedXml !== false) {
+                if (strlen($sharedXml) > 3 * 1024 * 1024) {
+                    throw ValidationException::withMessages(['file' => ['Excel string table is too large.']]);
+                }
+                $shared = new DOMDocument();
+                if (!@$shared->loadXML($sharedXml, LIBXML_NONET)) {
+                    throw ValidationException::withMessages(['file' => ['Invalid Excel string table.']]);
+                }
+                $xp = new DOMXPath($shared);
+                foreach ($xp->query('/*[local-name()="sst"]/*[local-name()="si"]') as $node) {
+                    $value = '';
+                    foreach ($xp->query('.//*[local-name()="t"]', $node) as $text) {
+                        $value .= $text->textContent;
+                    }
+                    $strings[] = $value;
+                }
+            }
+            $document = new DOMDocument();
+            if (!@$document->loadXML($sheet, LIBXML_NONET)) {
+                throw ValidationException::withMessages(['file' => ['Invalid Excel worksheet.']]);
+            }
+            $xp = new DOMXPath($document);
+            $temp = tempnam(sys_get_temp_dir(), 'seller-xlsx-csv-');
+            if ($temp === false) abort(500);
+            $handle = fopen($temp, 'wb');
+            if ($handle === false) {
+                @unlink($temp);
+                abort(500);
+            }
+            try {
+                $seen = 0;
+                foreach ($xp->query('/*[local-name()="worksheet"]/*[local-name()="sheetData"]/*[local-name()="row"]') as $row) {
+                    $number = (int) $row->attributes?->getNamedItem('r')?->nodeValue;
+                    if ($number < 1) continue;
+                    $cells = array_fill(0, 10, '');
+                    $hasProductCell = false;
+                    foreach ($xp->query('./*[local-name()="c"]', $row) as $cell) {
+                        $reference = (string) $cell->attributes?->getNamedItem('r')?->nodeValue;
+                        if (!preg_match('/^([A-Z]+)[0-9]+$/', $reference, $m)) continue;
+                        $column = $m[1];
+                        if (strlen($column) !== 1 || $column < 'A' || $column > 'J') continue;
+                        $index = ord($column) - 65;
+                        if ($xp->query('./*[local-name()="f"]', $cell)->length > 0) {
+                            throw ValidationException::withMessages(['file' => ['Formula cells are not allowed in product imports.']]);
+                        }
+                        $type = (string) $cell->attributes?->getNamedItem('t')?->nodeValue;
+                        if ($type === 'inlineStr') {
+                            $value = '';
+                            foreach ($xp->query('.//*[local-name()="t"]', $cell) as $text) {
+                                $value .= $text->textContent;
+                            }
+                        } else {
+                            $value = (string) ($xp->query('./*[local-name()="v"]', $cell)->item(0)?->textContent ?? '');
+                            if ($type === 's') {
+                                $value = $strings[(int) $value] ?? '';
+                            }
+                        }
+                        $cells[$index] = $value;
+                        $hasProductCell = true;
+                    }
+                    if (!$hasProductCell) continue;
+                    if ($number > 201 || ++$seen > 201) {
+                        throw ValidationException::withMessages(['file' => ['Maximum 200 product rows per upload.']]);
+                    }
+                    fputcsv($handle, $cells);
+                }
+            } catch (\Throwable $error) {
+                @unlink($temp);
+                throw $error;
+            } finally {
+                fclose($handle);
+            }
+            return $temp;
+        } finally {
+            $zip->close();
+        }
+    }
+
     public function __invoke(Request $request): JsonResponse
     {
         $input = $request->validate([
             'seller_id' => ['required', 'integer', 'min:1'],
             'dry_run' => ['sometimes', 'boolean'],
-            'file' => ['required', 'file', 'max:1024', 'mimes:csv,txt'],
+            'file' => ['required', 'file', 'max:2048', 'mimes:csv,txt,xlsx'],
         ]);
 
         $sellerId = (int) $input['seller_id'];
@@ -77,8 +176,11 @@ final class SellerCatalogImportController extends Controller
                     ->whereIn('seller_staff_access.role', ['owner', 'branch_manager']);
             })->exists(), 404);
 
-        $handle = fopen($input['file']->getRealPath(), 'rb');
+        $isExcel = strtolower($input['file']->getClientOriginalExtension()) === 'xlsx';
+        $converted = $isExcel ? $this->xlsxAsCsv($input['file']->getRealPath()) : null;
+        $handle = fopen($converted ?? $input['file']->getRealPath(), 'rb');
         if ($handle === false) {
+            if ($converted !== null) @unlink($converted);
             throw ValidationException::withMessages(['file' => ['Unable to read upload.']]);
         }
 
@@ -227,6 +329,7 @@ final class SellerCatalogImportController extends Controller
             }
         } finally {
             fclose($handle);
+            if ($converted !== null) @unlink($converted);
         }
 
         if ($rows === []) {
