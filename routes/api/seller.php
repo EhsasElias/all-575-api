@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\SellerReviewController;
 use App\Http\Controllers\Api\V1\SellerCatalogWorkspaceController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\SellerStockAdjustmentController;
+use App\Http\Controllers\Api\V1\SellerStockCreationController;
 use App\Http\Controllers\Api\V1\SellerProductDraftController;
 use App\Http\Controllers\Api\V1\SellerProductCodeLookupController;
 use App\Http\Controllers\Api\V1\SellerProductVariantController;
@@ -89,6 +90,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::post('products/{product}/variants', [SellerProductVariantController::class, 'store'])->whereNumber('product')->middleware('throttle:30,1');
         Route::post('products/{product}/image', SellerProductImageController::class)->whereNumber('product')->middleware('throttle:10,1');
         Route::get('stock', [SellerCatalogWorkspaceController::class, 'stock']);
+        Route::post('stock', SellerStockCreationController::class)->middleware('throttle:20,1');
         Route::patch('stock/{stock}', SellerStockAdjustmentController::class)->whereNumber('stock')->middleware('throttle:30,1');
         Route::get('dashboard', [SellerWorkspaceController::class, 'dashboard']);
         Route::get('orders', [SellerWorkspaceController::class, 'orders']);
