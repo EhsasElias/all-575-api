@@ -97,6 +97,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('finance/refund-allocations', SellerRefundAllocationController::class)->middleware('throttle:20,1');
         Route::get('orders/{suborder}/packing-list', [SellerWorkspaceController::class, 'packingList'])->whereUlid('suborder');
         Route::get('orders/export.csv', [SellerWorkspaceController::class, 'exportOrders'])->middleware('throttle:10,1');
+        Route::get('orders/export.xlsx', [SellerWorkspaceController::class, 'exportOrdersExcel'])->middleware('throttle:10,1');
         Route::get('orders/{suborder}', [SellerWorkspaceController::class, 'showOrder'])->whereUlid('suborder');
         Route::patch('orders/{suborder}/status', [SellerWorkspaceController::class, 'advance']);
     });
