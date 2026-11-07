@@ -86,11 +86,14 @@ final class StockReservations
         $candidates = BranchStock::query()
             ->select('branch_stock.*')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
-            ->whereExists(function ($query) use ($zoneId): void {
-                $query->selectRaw('1')
-                    ->from('branch_service_zones')
-                    ->whereColumn('branch_service_zones.branch_id', 'branches.id')
-                    ->where('branch_service_zones.service_zone_id', $zoneId);
+            ->where(function ($query) use ($zoneId): void {
+                // Primary zone remains the compatibility fallback for older branches and test fixtures.
+                $query->where('branches.service_zone_id', $zoneId)
+                    ->orWhereExists(function ($coverage) use ($zoneId): void {
+                        $coverage->selectRaw('1')->from('branch_service_zones')
+                            ->whereColumn('branch_service_zones.branch_id', 'branches.id')
+                            ->where('branch_service_zones.service_zone_id', $zoneId);
+                    });
             })
             ->where('branches.is_active', true)
             ->where('branch_stock.variant_id', $variantId)
