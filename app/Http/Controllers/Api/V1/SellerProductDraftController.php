@@ -98,7 +98,7 @@ final class SellerProductDraftController extends Controller
             'name_en' => [$creating ? 'required' : 'sometimes', 'string', 'max:180'],
             'description_ar' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'description_en' => ['sometimes', 'nullable', 'string', 'max:10000'],
-            'price_halalas' => [$creating ? 'required' : 'sometimes', 'integer', 'between:100,575'],
+            'price_halalas' => [$creating ? 'required' : 'sometimes', 'integer', 'between:100,1000'],
             'vat_class' => [$creating ? 'required' : 'sometimes', Rule::enum(VatClass::class)],
         ]);
     }
