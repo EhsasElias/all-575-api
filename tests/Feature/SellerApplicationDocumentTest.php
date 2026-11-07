@@ -53,6 +53,37 @@ final class SellerApplicationDocumentTest extends TestCase
         $this->assertStringNotContainsString('public', $document->file_path);
     }
 
+    public function test_verified_applicant_can_upload_a_real_png_image_and_replace_it(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $this->actingAsCustomer($user);
+        $this->saveApplication();
+
+        // A valid tiny PNG, so File::types checks the file content instead of
+        // relying only on a filename or forged browser-supplied Content-Type.
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/8XcAAAAASUVORK5CYII=',
+            true
+        );
+        $this->assertIsString($png);
+        $upload = static fn () => UploadedFile::fake()->createWithContent('registration.png', $png);
+
+        $this->post('/api/v1/seller/application/documents', [
+            'document_type' => 'commercial_registration',
+            'file' => $upload(),
+        ], ['Accept' => 'application/json'])->assertCreated();
+
+        $this->post('/api/v1/seller/application/documents', [
+            'document_type' => 'commercial_registration',
+            'file' => $upload(),
+        ], ['Accept' => 'application/json'])->assertCreated();
+
+        $this->getJson('/api/v1/seller/application/documents')
+            ->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.original_name', 'registration.png');
+    }
+
     public function test_unverified_account_cannot_upload_document(): void
     {
         Storage::fake('local');
