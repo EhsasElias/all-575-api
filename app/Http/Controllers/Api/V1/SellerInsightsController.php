@@ -157,6 +157,26 @@ final class SellerInsightsController extends Controller
         ];
     }
 
+    /** Daily sales trend, grouped by order placement date; only delivered merchandise. */
+    public function trend(Request $request): JsonResponse
+    {
+        $filters = $this->filters($request);
+        $rows = $this->allowedOrders($request, $filters)
+            ->where('suborders.status', 'delivered')
+            ->selectRaw('DATE(orders.placed_at) as day, COUNT(*) as order_count, '.
+                'COALESCE(SUM(suborders.subtotal_halalas - suborders.discount_halalas), 0) as merchandise_halalas')
+            ->groupByRaw('DATE(orders.placed_at)')
+            ->orderByDesc('day')
+            ->limit(180)
+            ->get();
+
+        return response()->json(['data' => $rows->reverse()->values()->map(static fn ($row): array => [
+            'day' => $row->day,
+            'orders' => (int) $row->order_count,
+            'merchandise_halalas' => (int) $row->merchandise_halalas,
+        ])->all(), 'note' => 'Delivered orders grouped by original placement date, not payout date.']);
+    }
+
     public function show(Request $request): JsonResponse
     {
         $filters = $this->filters($request);
