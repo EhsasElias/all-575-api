@@ -212,39 +212,71 @@ class SellerWorkspaceController extends Controller
         return $query;
     }
 
+    private function orderExportLocale(Request $request): string
+    {
+        $value = (string) $request->input('lang', $request->header('Accept-Language', 'ar'));
+        return str_starts_with(strtolower($value), 'ar') ? 'ar' : 'en';
+    }
+
+    private function orderExportHeaders(string $locale): array
+    {
+        return $locale === 'ar'
+            ? ['رقم الطلب', 'حالة الطلب', 'الفرع', 'تاريخ الطلب']
+            : ['Order', 'Status', 'Branch', 'Date'];
+    }
+
+    private function orderExportRow(Suborder $suborder, string $locale): array
+    {
+        $labels = $locale === 'ar'
+            ? [
+                'awaiting_seller' => 'بانتظار البائع', 'preparing' => 'قيد التجهيز',
+                'ready' => 'جاهز', 'on_the_way' => 'في الطريق', 'delivered' => 'تم التسليم',
+                'cancelled' => 'ملغي',
+            ]
+            : [
+                'awaiting_seller' => 'Awaiting seller', 'preparing' => 'Preparing',
+                'ready' => 'Ready', 'on_the_way' => 'On the way', 'delivered' => 'Delivered',
+                'cancelled' => 'Cancelled',
+            ];
+        $status = $suborder->status->value;
+        $branch = $suborder->branch;
+        $branchName = $branch !== null
+            ? ($locale === 'ar' ? $branch->name_ar : $branch->name_en)
+            : null;
+        return [
+            $suborder->order->number,
+            $labels[$status] ?? $status,
+            $branchName ?: '#'.$suborder->branch_id,
+            (string) $suborder->order->placed_at,
+        ];
+    }
+
     public function exportOrdersExcel(Request $request, XlsxWriter $xlsx): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        $rows = $this->exportOrdersQuery($request)
+        $locale = $this->orderExportLocale($request);
+        $rows = $this->exportOrdersQuery($request)->with('branch:id,name_ar,name_en')
             ->orderByDesc('id')->limit(5000)->lazy(200)
-            ->map(static fn (Suborder $suborder): array => [
-                $suborder->order->number,
-                $suborder->status->value,
-                $suborder->branch_id,
-                (string) $suborder->order->placed_at,
-            ]);
+            ->map(fn (Suborder $suborder): array => $this->orderExportRow($suborder, $locale));
 
-        return $xlsx->download(
-            ['رقم الطلب', 'حالة الطلب', 'رقم الفرع', 'تاريخ الطلب'],
-            $rows,
-            'seller-orders.xlsx'
-        );
+        return $xlsx->download($this->orderExportHeaders($locale), $rows, 'seller-orders.xlsx');
     }
 
     public function exportOrders(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $query = $this->exportOrdersQuery($request);
+        $locale = $this->orderExportLocale($request);
+        $query = $this->exportOrdersQuery($request)->with('branch:id,name_ar,name_en');
 
-        return response()->streamDownload(static function () use ($query): void {
+        return response()->streamDownload(function () use ($query, $locale): void {
             $handle = fopen('php://output', 'wb');
             fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['رقم الطلب', 'حالة الطلب', 'رقم الفرع', 'تاريخ الطلب']);
+            fputcsv($handle, $this->orderExportHeaders($locale));
             foreach ($query->orderByDesc('id')->limit(5000)->lazy(200) as $suborder) {
-                fputcsv($handle, [
-                    $suborder->order->number,
-                    $suborder->status->value,
-                    $suborder->branch_id,
-                    $suborder->order->placed_at,
-                ]);
+                // Avoid spreadsheet formula execution when CSV is opened in Excel.
+                $cells = array_map(static function ($value): string {
+                    $text = (string) $value;
+                    return preg_match('/^[=+@\\-\\t\\r]/u', $text) ? "'".$text : $text;
+                }, $this->orderExportRow($suborder, $locale));
+                fputcsv($handle, $cells);
             }
             fclose($handle);
         }, 'seller-orders.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
