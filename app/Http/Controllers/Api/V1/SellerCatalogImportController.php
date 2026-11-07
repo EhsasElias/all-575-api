@@ -264,7 +264,7 @@ final class SellerCatalogImportController extends Controller
         $input = $request->validate([
             'seller_id' => ['required', 'integer', 'min:1'],
             'dry_run' => ['sometimes', 'boolean'],
-            'file' => ['required', 'file', 'max:2048', 'mimes:csv,txt,xlsx'],
+            'file' => ['required', 'file', 'max:20480', 'mimes:csv,txt,xlsx'],
         ]);
 
         $sellerId = (int) $input['seller_id'];
@@ -362,6 +362,11 @@ final class SellerCatalogImportController extends Controller
                     $variantNameAr = $extendedForm ? $values[10] : '';
                     $variantNameEn = $extendedForm ? $values[11] : '';
                     $imageUrl = $imageForm ? $values[12] : '';
+                    $embeddedHint = $imageForm ? $values[13] : '';
+                    if ($embeddedHint !== '' && !$isExcel) {
+                        $errors[] = "الصف {$line} - صورة داخل Excel: لا يمكن تضمين الصور في CSV؛ استخدم رابط HTTPS في عمود رابط الصورة أو ملف Excel.";
+                        continue;
+                    }
                     if ($imageUrl !== '' && (!filter_var($imageUrl, FILTER_VALIDATE_URL) ||
                         !str_starts_with($imageUrl, 'https://') || strlen($imageUrl) > 2048)) {
                         $errors[] = "الصف {$line} - رابط الصورة: أدخل رابط HTTPS صالحًا أو اتركه فارغًا.";
@@ -420,6 +425,8 @@ final class SellerCatalogImportController extends Controller
                 $sku = $row['sku'];
                 $barcode = $row['barcode'];
                 $rowErrors = [];
+                if ($imageForm && $isExcel && $embeddedHint !== '' && $row['image_bytes'] === null)
+                    $rowErrors[] = 'صورة Excel: العمود مخصص للصورة داخل الخلية؛ استخدم Insert > Pictures > Place over Cells وحدد موضعها في العمود N بنفس الصف';
                 if ($row['image_url'] !== '' && $row['image_bytes'] !== null)
                     $rowErrors[] = 'الصورة: استخدم رابط الصورة أو الصورة المضمنة، وليس كليهما';
                 if (mb_strlen($row['variant_name_ar']) > 180) $rowErrors[] = 'اسم وحدة البيع بالعربية: الحد الأقصى 180 حرفًا';
