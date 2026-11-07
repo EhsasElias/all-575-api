@@ -43,8 +43,8 @@ class SpendingReportController extends Controller
         $audit->record('report.exported', $request->user()->id, $request->user(), ['report' => 'spending', 'rows' => count($rows)]);
 
         return response($csv->write([
-            'Order', 'Status', 'Order date', 'Payment date', 'Refund date',
-            'Subtotal (SAR)', 'Discount (SAR)', 'Delivery fee (SAR)', 'VAT included (SAR)', 'Total (SAR)', 'Refunded (SAR)', 'Net spent (SAR)',
+            'رقم الطلب', 'حالة الطلب', 'تاريخ الطلب', 'تاريخ الدفع', 'تاريخ الاسترداد',
+            'المجموع قبل الخصم (ريال)', 'الخصم (ريال)', 'رسوم التوصيل (ريال)', 'الضريبة المضمنة (ريال)', 'الإجمالي (ريال)', 'المبلغ المسترد (ريال)', 'صافي المصروفات (ريال)',
         ], $rows), 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="all575-spending-'.$request->from()->toDateString().'-to-'.$request->to()->toDateString().'.csv"',
@@ -64,8 +64,8 @@ class SpendingReportController extends Controller
         $audit->record('report.exported', $request->user()->id, $request->user(), ['report' => 'spending', 'format' => 'xlsx', 'rows' => count($rows)]);
 
         return $xlsx->download([
-            'Order', 'Status', 'Order date', 'Payment date', 'Refund date',
-            'Subtotal (SAR)', 'Discount (SAR)', 'Delivery fee (SAR)', 'VAT included (SAR)', 'Total (SAR)', 'Refunded (SAR)', 'Net spent (SAR)',
+            'رقم الطلب', 'حالة الطلب', 'تاريخ الطلب', 'تاريخ الدفع', 'تاريخ الاسترداد',
+            'المجموع قبل الخصم (ريال)', 'الخصم (ريال)', 'رسوم التوصيل (ريال)', 'الضريبة المضمنة (ريال)', 'الإجمالي (ريال)', 'المبلغ المسترد (ريال)', 'صافي المصروفات (ريال)',
         ], $rows, 'all575-spending-'.$request->from()->toDateString().'-to-'.$request->to()->toDateString().'.xlsx');
     }
 
