@@ -62,6 +62,7 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::patch('stores/{seller}', [SellerStoreProfileController::class, 'update'])->whereNumber('seller')->middleware('throttle:20,1');
         Route::get('branches', [SellerCatalogWorkspaceController::class, 'branches']);
         Route::get('service-zones', [SellerBranchOnboardingController::class, 'serviceZones']);
+        Route::post('service-zones', [SellerBranchOnboardingController::class, 'createServiceZone'])->middleware('throttle:5,1');
         Route::post('branches', [SellerBranchOnboardingController::class, 'create'])->middleware('throttle:10,1');
         Route::patch('branches/{branch}', [SellerBranchProfileController::class, 'update'])->whereNumber('branch')->middleware('throttle:20,1');
         Route::delete('branches/{branch}', [SellerBranchProfileController::class, 'destroy'])->whereNumber('branch')->middleware('throttle:10,1');
