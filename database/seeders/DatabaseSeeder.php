@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             if (trim((string) config('demo.seller_email', '')) !== '') {
                 $this->call(DemoSellerAccountSeeder::class);
             }
+            $this->call(SellerEmployeeNumberSeeder::class);
         }
     }
 }
