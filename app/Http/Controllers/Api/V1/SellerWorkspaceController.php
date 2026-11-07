@@ -6,6 +6,7 @@ use App\Domain\Orders\Enums\SuborderStatus;
 use App\Domain\Orders\Models\Suborder;
 use App\Domain\Orders\Services\SuborderTransitions;
 use App\Http\Controllers\Controller;
+use App\Domain\Reporting\Services\XlsxWriter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -179,7 +180,8 @@ class SellerWorkspaceController extends Controller
         ]]);
     }
 
-    public function exportOrders(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    /** Use one filtered, membership-scoped query for CSV and Excel. */
+    private function exportOrdersQuery(Request $request): Builder
     {
         $filters = $request->validate([
             'status' => ['sometimes', Rule::in(array_map(
@@ -206,6 +208,31 @@ class SellerWorkspaceController extends Controller
         if (isset($filters['to'])) {
             $query->whereHas('order', fn ($orders) => $orders->whereDate('placed_at', '<=', $filters['to']));
         }
+
+        return $query;
+    }
+
+    public function exportOrdersExcel(Request $request, XlsxWriter $xlsx): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $rows = $this->exportOrdersQuery($request)
+            ->orderByDesc('id')->limit(5000)->lazy(200)
+            ->map(static fn (Suborder $suborder): array => [
+                $suborder->order->number,
+                $suborder->status->value,
+                $suborder->branch_id,
+                (string) $suborder->order->placed_at,
+            ]);
+
+        return $xlsx->download(
+            ['Order number', 'Status', 'Branch ID', 'Placed at'],
+            $rows,
+            'seller-orders.xlsx'
+        );
+    }
+
+    public function exportOrders(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $query = $this->exportOrdersQuery($request);
 
         return response()->streamDownload(static function () use ($query): void {
             $handle = fopen('php://output', 'wb');
