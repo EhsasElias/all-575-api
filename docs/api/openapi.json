@@ -20,7 +20,7 @@
                             "text/csv; charset=UTF-8": {
                                 "schema": {
                                     "type": "string",
-                                    "const": "\ufeffcategory_id,name_ar,name_en,price_halalas,vat_class,sku,barcode\r\n"
+                                    "const": "\ufeff\u0631\u0645\u0632 SKU (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0645\u062a\u062c\u0631 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u062a\u0635\u0646\u064a\u0641 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062a\u062c \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062a\u062c \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0644\u0648\u0635\u0641 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0648\u0635\u0641 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0633\u0639\u0631 \u0628\u0627\u0644\u0631\u064a\u0627\u0644 (1\u201310) (\u0625\u062c\u0628\u0627\u0631\u064a),\u0641\u0626\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a)\r\n"
                                 }
                             }
                         },
@@ -4813,6 +4813,155 @@
                         "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
+            },
+            "post": {
+                "operationId": "sellerBranchOnboarding.createServiceZone",
+                "summary": "Demo-only zone creation. Zones affect public delivery availability, so ordinary\nsellers cannot create global service zones without an administrator",
+                "tags": [
+                    "SellerBranchOnboarding"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "seller_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "name_ar": {
+                                        "type": "string",
+                                        "maxLength": 180
+                                    },
+                                    "name_en": {
+                                        "type": "string",
+                                        "maxLength": 180
+                                    },
+                                    "center_lat": {
+                                        "type": "number",
+                                        "minimum": -90,
+                                        "maximum": 90
+                                    },
+                                    "center_lng": {
+                                        "type": "number",
+                                        "minimum": -180,
+                                        "maximum": 180
+                                    },
+                                    "radius_meters": {
+                                        "type": "integer",
+                                        "minimum": 100,
+                                        "maximum": 50000
+                                    }
+                                },
+                                "required": [
+                                    "seller_id",
+                                    "name_ar",
+                                    "name_en",
+                                    "center_lat",
+                                    "center_lng",
+                                    "radius_meters"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name_ar": {
+                                                    "type": "string"
+                                                },
+                                                "name_en": {
+                                                    "type": "string"
+                                                },
+                                                "center_lat": {
+                                                    "type": "number"
+                                                },
+                                                "center_lng": {
+                                                    "type": "number"
+                                                },
+                                                "radius_meters": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name_ar",
+                                                "name_en",
+                                                "center_lat",
+                                                "center_lng",
+                                                "radius_meters"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error\n\nAn error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview.",
+                                                    "examples": [
+                                                        "\u0625\u0646\u0634\u0627\u0621 \u0645\u0646\u0627\u0637\u0642 \u062c\u062f\u064a\u062f\u0629 \u0645\u062a\u0627\u062d \u0644\u062d\u0633\u0627\u0628 \u0627\u0644\u0639\u0631\u0636 \u0627\u0644\u062a\u062c\u0631\u064a\u0628\u064a \u0641\u0642\u0637."
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "description": "Error overview.",
+                                                    "examples": [
+                                                        ""
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "message"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
             }
         },
         "/v1/seller/branches": {
@@ -4858,6 +5007,15 @@
                                         "type": "number",
                                         "minimum": -180,
                                         "maximum": 180
+                                    },
+                                    "service_zone_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "minItems": 1,
+                                        "maxItems": 30,
+                                        "uniqueItems": true
                                     }
                                 },
                                 "required": [
@@ -4896,6 +5054,13 @@
                                                 "is_active": {
                                                     "type": "boolean"
                                                 },
+                                                "service_zone_id": {
+                                                    "type": "integer"
+                                                },
+                                                "service_zone_ids": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
                                                 "review_required": {
                                                     "type": "boolean"
                                                 }
@@ -4905,6 +5070,8 @@
                                                 "seller_id",
                                                 "code",
                                                 "is_active",
+                                                "service_zone_id",
+                                                "service_zone_ids",
                                                 "review_required"
                                             ]
                                         }
@@ -4983,6 +5150,12 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9_-]+$",
+                                        "minLength": 2,
+                                        "maxLength": 32
+                                    },
                                     "name_ar": {
                                         "type": "string",
                                         "maxLength": 180
@@ -4990,6 +5163,28 @@
                                     "name_en": {
                                         "type": "string",
                                         "maxLength": 180
+                                    },
+                                    "service_zone_id": {
+                                        "type": "integer"
+                                    },
+                                    "lat": {
+                                        "type": "number",
+                                        "minimum": -90,
+                                        "maximum": 90
+                                    },
+                                    "lng": {
+                                        "type": "number",
+                                        "minimum": -180,
+                                        "maximum": 180
+                                    },
+                                    "service_zone_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "minItems": 1,
+                                        "maxItems": 30,
+                                        "uniqueItems": true
                                     }
                                 },
                                 "required": [
@@ -5017,18 +5212,43 @@
                                                 "seller_id": {
                                                     "type": "string"
                                                 },
+                                                "code": {
+                                                    "type": "string"
+                                                },
                                                 "name_ar": {
                                                     "type": "string"
                                                 },
                                                 "name_en": {
                                                     "type": "string"
+                                                },
+                                                "service_zone_id": {
+                                                    "type": "integer"
+                                                },
+                                                "service_zone_ids": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "lat": {
+                                                    "type": "number"
+                                                },
+                                                "lng": {
+                                                    "type": "number"
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean"
                                                 }
                                             },
                                             "required": [
                                                 "id",
                                                 "seller_id",
+                                                "code",
                                                 "name_ar",
-                                                "name_en"
+                                                "name_en",
+                                                "service_zone_id",
+                                                "service_zone_ids",
+                                                "lat",
+                                                "lng",
+                                                "is_active"
                                             ]
                                         }
                                     },
@@ -5041,6 +5261,75 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "sellerBranchProfile.destroy",
+                "tags": [
+                    "SellerBranchProfile"
+                ],
+                "parameters": [
+                    {
+                        "name": "branch",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "deleted": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "deleted"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "\u0644\u0627 \u064a\u0645\u0643\u0646 \u062d\u0630\u0641 \u0641\u0631\u0639 \u0645\u0631\u062a\u0628\u0637 \u0628\u0633\u062c\u0644\u0627\u062a \u0623\u062e\u0631\u0649."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -5369,6 +5658,118 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "v1.sellerStockCreation",
+                "tags": [
+                    "SellerStockCreation"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "branch_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "sku": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    },
+                                    "on_hand": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 100000000
+                                    }
+                                },
+                                "required": [
+                                    "branch_id",
+                                    "sku",
+                                    "on_hand"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "branch_id": {
+                                                    "type": "string"
+                                                },
+                                                "variant_id": {
+                                                    "type": "string"
+                                                },
+                                                "on_hand": {
+                                                    "type": "integer"
+                                                },
+                                                "reserved": {
+                                                    "type": "integer",
+                                                    "const": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "branch_id",
+                                                "variant_id",
+                                                "on_hand",
+                                                "reserved"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "Stock already exists for this SKU in the branch; use adjust stock instead."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -5797,6 +6198,244 @@
                 }
             }
         },
+        "/v1/seller/insights": {
+            "get": {
+                "operationId": "sellerInsights.show",
+                "tags": [
+                    "SellerInsights"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "metric": {},
+                                                "from": {},
+                                                "to": {},
+                                                "columns": {
+                                                    "type": "string"
+                                                },
+                                                "rows": {
+                                                    "type": "string"
+                                                },
+                                                "returned_rows": {
+                                                    "type": "integer"
+                                                },
+                                                "max_rows": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "note": {
+                                                    "type": "string",
+                                                    "const": "Preview is capped at 200 rows; export includes up to 5000. Merchandise is not profit or payout."
+                                                }
+                                            },
+                                            "required": [
+                                                "metric",
+                                                "from",
+                                                "to",
+                                                "columns",
+                                                "rows",
+                                                "returned_rows",
+                                                "max_rows",
+                                                "note"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/seller/insights/trend": {
+            "get": {
+                "operationId": "sellerInsights.trend",
+                "summary": "Daily sales trend, grouped by order placement date; only delivered merchandise",
+                "tags": [
+                    "SellerInsights"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "day": {
+                                                        "type": "string"
+                                                    },
+                                                    "orders": {
+                                                        "type": "integer"
+                                                    },
+                                                    "merchandise_halalas": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "day",
+                                                    "orders",
+                                                    "merchandise_halalas"
+                                                ]
+                                            }
+                                        },
+                                        "note": {
+                                            "type": "string",
+                                            "const": "Delivered orders grouped by original placement date, not payout date."
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "note"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/seller/insights/export/{format}": {
+            "get": {
+                "operationId": "sellerInsights.export",
+                "tags": [
+                    "SellerInsights"
+                ],
+                "parameters": [
+                    {
+                        "name": "format",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "text/csv; charset=UTF-8": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            },
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Transfer-Encoding": {
+                                "schema": {
+                                    "type": "string",
+                                    "enum": [
+                                        "chunked"
+                                    ]
+                                }
+                            },
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "attachment"
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/seller/products/code-lookup": {
+            "get": {
+                "operationId": "v1.sellerProductCodeLookup",
+                "tags": [
+                    "SellerProductCodeLookup"
+                ],
+                "parameters": [
+                    {
+                        "name": "seller_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "code",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 100
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": [
+                                                "object",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/seller/products/{product}": {
             "patch": {
                 "operationId": "sellerProductDraft.update",
@@ -5863,6 +6502,46 @@
                                     },
                                     "required": [
                                         "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "sellerProductDraft.destroy",
+                "tags": [
+                    "SellerProductDraft"
+                ],
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Draft product deleted."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }
@@ -6031,6 +6710,28 @@
                                             "description": "Error overview.",
                                             "examples": [
                                                 "Only draft or rejected products can change images."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "Unable to store product image."
                                             ]
                                         }
                                     },
@@ -7237,6 +7938,206 @@
                         "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
+            },
+            "post": {
+                "operationId": "sellerStaff.store",
+                "tags": [
+                    "SellerStaff"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "seller_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "user_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "branch_manager",
+                                            "picker"
+                                        ]
+                                    },
+                                    "branch_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    }
+                                },
+                                "required": [
+                                    "seller_id",
+                                    "user_id",
+                                    "role",
+                                    "branch_id"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "user_id": {
+                                                    "type": "integer"
+                                                },
+                                                "seller_id": {
+                                                    "type": "integer"
+                                                },
+                                                "branch_id": {
+                                                    "type": "integer"
+                                                },
+                                                "role": {
+                                                    "type": "string"
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "user_id",
+                                                "seller_id",
+                                                "branch_id",
+                                                "role",
+                                                "is_active"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/seller/staff/{membership}": {
+            "patch": {
+                "operationId": "sellerStaff.update",
+                "tags": [
+                    "SellerStaff"
+                ],
+                "parameters": [
+                    {
+                        "name": "membership",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "branch_manager",
+                                            "picker"
+                                        ]
+                                    },
+                                    "branch_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "role",
+                                    "branch_id",
+                                    "is_active"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "user_id": {
+                                                    "type": "integer"
+                                                },
+                                                "seller_id": {
+                                                    "type": "integer"
+                                                },
+                                                "role": {
+                                                    "type": "string"
+                                                },
+                                                "branch_id": {
+                                                    "type": "integer"
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "user_id",
+                                                "seller_id",
+                                                "role",
+                                                "branch_id",
+                                                "is_active"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
             }
         },
         "/v1/seller/staff/{membership}/deactivate": {
@@ -7939,48 +8840,6 @@
                 "tags": [
                     "SellerWorkspace"
                 ],
-                "parameters": [
-                    {
-                        "name": "status",
-                        "in": "query",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "awaiting_payment",
-                                "awaiting_seller",
-                                "preparing",
-                                "ready",
-                                "on_the_way",
-                                "delivered",
-                                "cancelled"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "branch_id",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    },
-                    {
-                        "name": "from",
-                        "in": "query",
-                        "schema": {
-                            "type": "string",
-                            "format": "date"
-                        }
-                    },
-                    {
-                        "name": "to",
-                        "in": "query",
-                        "schema": {
-                            "type": "string",
-                            "format": "date"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "",
@@ -8004,8 +8863,38 @@
                             }
                         }
                     },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/seller/orders/export.xlsx": {
+            "get": {
+                "operationId": "sellerWorkspace.exportOrdersExcel",
+                "tags": [
+                    "SellerWorkspace"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "attachment"
+                            }
+                        }
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -8629,6 +9518,104 @@
                                 "schema": {
                                     "type": "string"
                                 }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/me/reports/spending.xlsx": {
+            "get": {
+                "operationId": "spendingReport.excel",
+                "tags": [
+                    "SpendingReport"
+                ],
+                "parameters": [
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "name": "seller",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "confirmed",
+                                "completed",
+                                "cancelled",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "attachment"
                             }
                         }
                     },
