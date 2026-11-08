@@ -24,6 +24,7 @@ final class SellerCatalogExcelTemplateController extends Controller
         'فئة الضريبة (إجباري)',
         'اسم وحدة البيع بالعربية (اختياري)', 'اسم وحدة البيع بالإنجليزية (اختياري)',
         'رابط صورة المنتج HTTPS (اختياري)', 'صورة داخل Excel (اختياري)',
+        'السبب النظامي للضريبة (إجباري للصفرية والمعفاة)',
     ];
 
     private static function xml(string $value): string
@@ -67,9 +68,9 @@ final class SellerCatalogExcelTemplateController extends Controller
         $storeOptions = $sellers->map(fn ($seller): string =>
             trim((string) $seller->name_ar) !== '' ? $seller->name_ar : (string) $seller->id
         )->all();
-        // Bulk import currently supports standard VAT only. Exceptional VAT needs
-        // a documented legal basis entered via the individual product form.
-        $vatOptions = ['قياسية'];
+        // Zero-rated/exempt selections must have a legal basis in column O;
+        // the importer enforces this before creating reviewable drafts.
+        $vatOptions = ['قياسية (15%)', 'صفرية (0%)', 'معفى من الضريبة'];
         $lists = ['P' => $categories, 'Q' => $storeOptions, 'R' => $vatOptions];
         $rows = '<row r="1" ht="34" customHeight="1">';
         foreach (self::HEADERS as $index => $header) {
@@ -113,6 +114,7 @@ final class SellerCatalogExcelTemplateController extends Controller
             '<col min="9" max="12" width="28" customWidth="1"/>'.
             '<col min="13" max="13" width="45" customWidth="1"/>'.
             '<col min="14" max="14" width="28" customWidth="1"/>'.
+            '<col min="15" max="15" width="58" customWidth="1"/>'.
             '<col min="16" max="18" hidden="1"/>'.
             '</cols><sheetData>'.$rows.'</sheetData>'.
             '<dataValidations count="4">'.$validations.'</dataValidations>'.
