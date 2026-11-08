@@ -67,7 +67,9 @@ final class SellerCatalogExcelTemplateController extends Controller
         $storeOptions = $sellers->map(fn ($seller): string =>
             trim((string) $seller->name_ar) !== '' ? $seller->name_ar : (string) $seller->id
         )->all();
-        $vatOptions = ['قياسية', 'صفرية', 'معفاة'];
+        // Bulk import currently supports standard VAT only. Exceptional VAT needs
+        // a documented legal basis entered via the individual product form.
+        $vatOptions = ['قياسية'];
         $lists = ['P' => $categories, 'Q' => $storeOptions, 'R' => $vatOptions];
         $rows = '<row r="1" ht="34" customHeight="1">';
         foreach (self::HEADERS as $index => $header) {
@@ -154,6 +156,7 @@ final class SellerCatalogExcelTemplateController extends Controller
             $zip->addFromString('xl/_rels/workbook.xml.rels', '<?xml version="1.0"?>'.
                 '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'.
                 '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'.
+                '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'.
                 '</Relationships>');
             $zip->addFromString('xl/styles.xml', $styles);
             $zip->addFromString('xl/worksheets/sheet1.xml', $sheet);
