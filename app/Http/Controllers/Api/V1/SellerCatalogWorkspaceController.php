@@ -55,6 +55,7 @@ class SellerCatalogWorkspaceController extends Controller
             'seller_id' => ['sometimes', 'integer', 'min:1'],
             'category_id' => ['sometimes', 'integer', 'min:1'],
             'status' => ['sometimes', 'string', 'max:32'],
+            'q' => ['sometimes', 'string', 'max:100'],
             'before_id' => ['sometimes', 'integer', 'min:1'],
         ]);
         $limit = $filters['limit'] ?? 20;
@@ -70,6 +71,22 @@ class SellerCatalogWorkspaceController extends Controller
                     ->whereIn('seller_staff_access.role', ['owner', 'branch_manager', 'picker']);
             })
             ->when(isset($filters['seller_id']), fn ($query) => $query->where('products.seller_id', $filters['seller_id']))
+            ->when(isset($filters['q']) && trim($filters['q']) !== '', function ($query) use ($filters): void {
+                $term = trim($filters['q']);
+                $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';
+                $query->where(function ($match) use ($term, $like): void {
+                    $match->whereRaw("products.name_ar LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("products.name_en LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereExists(function ($variant) use ($like): void {
+                            $variant->selectRaw('1')->from('product_variants')
+                                ->whereColumn('product_variants.product_id', 'products.id')
+                                ->whereRaw("product_variants.sku LIKE ? ESCAPE '!'", [$like]);
+                        });
+                    if (ctype_digit($term) && (int) $term > 0) {
+                        $match->orWhere('products.seller_id', (int) $term);
+                    }
+                });
+            })
             ->when(isset($filters['category_id']), fn ($query) => $query->where('products.category_id', $filters['category_id']))
             ->when(isset($filters['status']), fn ($query) => $query->where('products.status', $filters['status']))
             ->when(isset($filters['before_id']), fn ($query) => $query->where('products.id', '<', $filters['before_id']))
