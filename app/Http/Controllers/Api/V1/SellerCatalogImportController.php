@@ -445,6 +445,10 @@ final class SellerCatalogImportController extends Controller
                     $rowErrors[] = 'السعر: يجب أن يكون من 1 إلى 10 ريال';
                 if (!in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true))
                     $rowErrors[] = 'فئة الضريبة: القيمة «'.$row['vat_class'].'» غير صحيحة؛ اختر قياسية أو صفرية أو معفاة';
+                // Non-standard VAT requires a documented legal basis, which the bulk template
+                // does not collect. Use the individual product form and admin review instead.
+                if (in_array($row['vat_class'], ['zero', 'exempt'], true))
+                    $rowErrors[] = 'فئة الضريبة: الصفرية أو المعفاة تتطلب سببًا نظاميًا ومراجعة الإدارة؛ أضف المنتج من النموذج الفردي';
                 if ($rowErrors !== []) {
                     foreach ($rowErrors as $problem) {
                         $errors[] = "الصف {$line} - {$problem}.";
