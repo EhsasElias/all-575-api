@@ -5640,6 +5640,12 @@
                                                 "vat_class": {
                                                     "type": "string"
                                                 },
+                                                "vat_justification": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
                                                 "status": {
                                                     "type": "string"
                                                 }
@@ -5652,6 +5658,7 @@
                                                 "name_en",
                                                 "price_halalas",
                                                 "vat_class",
+                                                "vat_justification",
                                                 "status"
                                             ]
                                         }
@@ -6568,6 +6575,12 @@
                                                 "vat_class": {
                                                     "type": "string"
                                                 },
+                                                "vat_justification": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
                                                 "status": {
                                                     "type": "string"
                                                 }
@@ -6580,6 +6593,7 @@
                                                 "name_en",
                                                 "price_halalas",
                                                 "vat_class",
+                                                "vat_justification",
                                                 "status"
                                             ]
                                         }
@@ -6685,6 +6699,12 @@
                                                 "vat_class": {
                                                     "type": "string"
                                                 },
+                                                "vat_justification": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
                                                 "status": {
                                                     "type": "string"
                                                 }
@@ -6697,6 +6717,7 @@
                                                 "name_en",
                                                 "price_halalas",
                                                 "vat_class",
+                                                "vat_justification",
                                                 "status"
                                             ]
                                         }
