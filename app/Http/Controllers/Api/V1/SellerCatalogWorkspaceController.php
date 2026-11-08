@@ -123,6 +123,7 @@ class SellerCatalogWorkspaceController extends Controller
             'limit' => ['sometimes', 'integer', 'min:1', 'max:50'],
             'branch_id' => ['sometimes', 'integer', 'min:1'],
             'low_stock_below' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
+            'q' => ['sometimes', 'string', 'max:100'],
             'before_id' => ['sometimes', 'integer', 'min:1'],
         ]);
         $limit = $validated['limit'] ?? 20;
@@ -144,6 +145,15 @@ class SellerCatalogWorkspaceController extends Controller
                         $scope->whereNull('seller_staff_access.branch_id')
                             ->orWhereColumn('seller_staff_access.branch_id', 'branches.id');
                     });
+            })
+            ->when(isset($validated['q']) && trim($validated['q']) !== '', function ($query) use ($validated): void {
+                $term = trim($validated['q']);
+                $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';
+                $query->where(function ($match) use ($like): void {
+                    $match->whereRaw("product_variants.sku LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("products.name_ar LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("products.name_en LIKE ? ESCAPE '!'", [$like]);
+                });
             })
             ->when(isset($validated['branch_id']), fn ($query) => $query->where('branches.id', $validated['branch_id']))
             ->when(isset($validated['low_stock_below']), fn ($query) => $query->whereRaw(
