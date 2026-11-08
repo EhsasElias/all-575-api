@@ -50,6 +50,14 @@ final class SellerProductDraftController extends Controller
             abort_unless(in_array($item->status, [ProductStatus::Draft, ProductStatus::Rejected], true),
                 409, 'Only draft or rejected products can be edited.');
 
+            $vatClass = $data['vat_class'] ?? $item->vat_class->value;
+            $justification = trim((string) ($data['vat_justification'] ?? $item->vat_justification ?? ''));
+            if ($vatClass !== VatClass::Standard->value && strlen($justification) < 15) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'vat_justification' => 'A legal VAT justification of at least 15 characters is required.',
+                ]);
+            }
+            $data['vat_justification'] = $vatClass === VatClass::Standard->value ? null : $justification;
             $item->fill($data);
             $item->status = ProductStatus::Draft;
             $item->save();
@@ -68,7 +76,8 @@ final class SellerProductDraftController extends Controller
             abort_unless($item->status === ProductStatus::Draft, 409, 'Only drafts may be submitted.');
             abort_unless($item->variants()->exists(), 422, 'Add a product variant before submitting.');
 
-            $demoDirect = SellerDemoMode::allows($request, (int) $item->seller_id);
+            $demoDirect = SellerDemoMode::allows($request, (int) $item->seller_id)
+                && $item->vat_class === VatClass::Standard;
             if ($demoDirect) {
                 // Demo mode does not bypass the same minimum publication checks as admin review.
                 abort_unless($item->variants()->where('is_active', true)->exists(), 422,
@@ -120,7 +129,7 @@ final class SellerProductDraftController extends Controller
 
     private function validated(Request $request, bool $creating): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'seller_id' => [$creating ? 'required' : 'prohibited', 'integer', 'min:1'],
             'category_id' => [$creating ? 'required' : 'sometimes', 'integer',
                 Rule::exists('categories', 'id')->where('is_active', true)],
@@ -130,7 +139,16 @@ final class SellerProductDraftController extends Controller
             'description_en' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'price_halalas' => [$creating ? 'required' : 'sometimes', 'integer', 'between:100,1000'],
             'vat_class' => [$creating ? 'required' : 'sometimes', Rule::enum(VatClass::class)],
+            'vat_justification' => [
+                Rule::requiredIf(fn (): bool => in_array($request->input('vat_class'), ['zero', 'exempt'], true)),
+                'nullable', 'string', 'min:15', 'max:500',
+            ],
         ]);
+        if ($creating) {
+            $data['vat_justification'] = ($data['vat_class'] ?? 'standard') === 'standard'
+                ? null : trim((string) ($data['vat_justification'] ?? ''));
+        }
+        return $data;
     }
 
     private function ensureSellerAccess(Request $request, int $sellerId): void
@@ -157,6 +175,7 @@ final class SellerProductDraftController extends Controller
             'name_en' => $product->name_en,
             'price_halalas' => $product->price_halalas,
             'vat_class' => $product->vat_class->value,
+            'vat_justification' => $product->vat_justification,
             'status' => $product->status->value,
         ];
     }
