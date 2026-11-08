@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\SellerRefundAllocationController;
 use App\Http\Controllers\Api\V1\SellerBranchProfileController;
 use App\Http\Controllers\Api\V1\SellerBranchOnboardingController;
 use App\Http\Controllers\Api\V1\SellerStoreProfileController;
+use App\Http\Controllers\Api\V1\SellerCategoryManagementController;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
     Route::get('seller/application', [SellerApplicationController::class, 'show']);
@@ -49,6 +50,12 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:20,
             [SellerReviewController::class, 'decideApplication'])->whereNumber('application')->middleware('throttle:10,1');
         Route::get('branches', [SellerReviewController::class, 'branches']);
         Route::post('branches/{branch}/decision', [SellerReviewController::class, 'decideBranch'])->whereNumber('branch')->middleware('throttle:10,1');
+        Route::get('categories', [SellerCategoryManagementController::class, 'categories']);
+        Route::post('categories', [SellerCategoryManagementController::class, 'create'])->middleware('throttle:10,1');
+        Route::patch('categories/{category}', [SellerCategoryManagementController::class, 'update'])->whereNumber('category');
+        Route::delete('categories/{category}', [SellerCategoryManagementController::class, 'destroy'])->whereNumber('category')->middleware('throttle:10,1');
+        Route::get('category-requests', [SellerCategoryManagementController::class, 'requests']);
+        Route::post('category-requests/{categoryRequest}/decision', [SellerCategoryManagementController::class, 'decide'])->whereNumber('categoryRequest')->middleware('throttle:10,1');
         Route::get('products', [SellerReviewController::class, 'products']);
         Route::post('products/{product}/decision',
             [SellerReviewController::class, 'decideProduct'])->whereNumber('product')->middleware('throttle:10,1');
@@ -77,6 +84,8 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::get('returns/{case}', [SellerReturnController::class, 'show'])->whereUlid('case');
         Route::post('returns/{case}/response', [SellerReturnController::class, 'respond'])->whereUlid('case')->middleware('throttle:10,1');
         Route::patch('staff/{membership}/deactivate', [SellerStaffController::class, 'deactivate'])->whereNumber('membership')->middleware('throttle:10,1');
+        Route::get('category-requests', [SellerCategoryManagementController::class, 'sellerRequests']);
+        Route::post('category-requests', [SellerCategoryManagementController::class, 'requestCategory'])->middleware('throttle:5,1');
         Route::get('products', [SellerCatalogWorkspaceController::class, 'products']);
         Route::get('products/code-lookup', SellerProductCodeLookupController::class)->middleware('throttle:30,1');
         Route::get('products/import/template.csv', function (): \Symfony\Component\HttpFoundation\Response {
