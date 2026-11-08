@@ -222,6 +222,7 @@ final class SellerCatalogImportController extends Controller
             }
             try {
                 $seen = 0;
+                $columnCount = 14;
                 foreach ($xp->query('/*[local-name()="worksheet"]/*[local-name()="sheetData"]/*[local-name()="row"]') as $row) {
                     $number = (int) $row->attributes?->getNamedItem('r')?->nodeValue;
                     if ($number < 1) continue;
@@ -252,10 +253,13 @@ final class SellerCatalogImportController extends Controller
                         $hasProductCell = true;
                     }
                     if (!$hasProductCell) continue;
+                    if ($number === 1) {
+                        $columnCount = $cells[14] !== '' ? 15 : 14;
+                    }
                     if ($number > 201 || ++$seen > 201) {
                         throw ValidationException::withMessages(['file' => ['Maximum 200 product rows per upload.']]);
                     }
-                    fputcsv($handle, $cells);
+                    fputcsv($handle, array_slice($cells, 0, $columnCount));
                 }
             } catch (\Throwable $error) {
                 @unlink($temp);
