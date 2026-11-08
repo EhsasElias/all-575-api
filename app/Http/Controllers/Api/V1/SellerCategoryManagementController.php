@@ -165,6 +165,11 @@ final class SellerCategoryManagementController extends Controller
                 'Delete or move subcategories first.');
             abort_if(DB::table('products')->where('category_id', $category)->exists(), 422,
                 'This category is used by products. Move products first.');
+            abort_if(DB::table('seller_category_requests')
+                ->where(function ($query) use ($category): void {
+                    $query->where('parent_id', $category)->orWhere('category_id', $category);
+                })->exists(), 422,
+                'This category is referenced by seller category requests. Deactivate it instead.');
             $item->delete();
             return response()->json(['message' => 'Category deleted.']);
         }, 3);
