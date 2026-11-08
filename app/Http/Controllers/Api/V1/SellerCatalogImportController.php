@@ -555,10 +555,17 @@ final class SellerCatalogImportController extends Controller
         $storedImages = [];
         try {
             foreach ($rows as $index => $row) {
-                if ($row['image_bytes'] !== null) {
-                    $storedImages[$index] = SellerProductImageSource::storeBytes($row['image_bytes'], $sellerId);
-                } elseif ($row['image_url'] !== '') {
-                    $storedImages[$index] = SellerProductImageSource::storeUrl($row['image_url'], $sellerId);
+                try {
+                    if ($row['image_bytes'] !== null) {
+                        $storedImages[$index] = SellerProductImageSource::storeBytes($row['image_bytes'], $sellerId);
+                    } elseif ($row['image_url'] !== '') {
+                        $storedImages[$index] = SellerProductImageSource::storeUrl($row['image_url'], $sellerId);
+                    }
+                } catch (ValidationException $exception) {
+                    $messages = collect($exception->errors())->flatten()->all();
+                    throw ValidationException::withMessages(['file' => [
+                        'Excel row '.($index + 2).' (SKU '.$row['sku'].'): '.implode(' ', $messages),
+                    ]]);
                 }
             }
 
