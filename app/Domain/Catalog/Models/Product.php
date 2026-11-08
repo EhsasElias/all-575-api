@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(ProductFactory::class)]
 #[Fillable([
     'seller_id', 'category_id', 'slug', 'name_ar', 'name_en', 'description_ar', 'description_en', 'image_path',
-    'price_halalas', 'vat_class', 'status', 'is_featured', 'rating_average', 'rating_count',
+    'price_halalas', 'vat_class', 'vat_justification', 'status', 'is_featured', 'rating_average', 'rating_count',
 ])]
 class Product extends Model
 {
