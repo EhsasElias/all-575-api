@@ -75,6 +75,11 @@ final class SellerProductDraftController extends Controller
             $this->ensureSellerAccess($request, (int) $item->seller_id);
             abort_unless($item->status === ProductStatus::Draft, 409, 'Only drafts may be submitted.');
             abort_unless($item->variants()->exists(), 422, 'Add a product variant before submitting.');
+            if ($item->vat_class !== VatClass::Standard && mb_strlen(trim((string) $item->vat_justification)) < 15) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'vat_justification' => 'A documented legal VAT justification is required before submission.',
+                ]);
+            }
 
             $demoDirect = SellerDemoMode::allows($request, (int) $item->seller_id)
                 && $item->vat_class === VatClass::Standard;
