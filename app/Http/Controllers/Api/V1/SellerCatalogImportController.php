@@ -9,6 +9,7 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\Pricing\VatClass;
 use App\Http\Controllers\Controller;
 use App\Support\SellerProductImageSource;
+use App\Support\SellerDemoMode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ use ZipArchive;
 
 /**
  * Bounded UTF-8 CSV import. Validate the whole batch before writing any product.
- * The endpoint only creates drafts; back-office approval is separate.
+ * Imports drafts or submits them under the same seller publication safeguards.
  */
 final class SellerCatalogImportController extends Controller
 {
@@ -278,10 +279,13 @@ final class SellerCatalogImportController extends Controller
         $input = $request->validate([
             'seller_id' => ['required', 'integer', 'min:1'],
             'dry_run' => ['sometimes', 'boolean'],
+            'submit_after_import' => ['sometimes', 'boolean'],
             'file' => ['required', 'file', 'max:20480', 'mimes:csv,txt,xlsx'],
         ]);
 
         $sellerId = (int) $input['seller_id'];
+        $submitAfterImport = $request->boolean('submit_after_import') && ! $request->boolean('dry_run');
+        $demoAllowed = $submitAfterImport && SellerDemoMode::allows($request, $sellerId);
         abort_unless(DB::table('sellers')->where('id', $sellerId)->where('status', 'approved')
             ->whereExists(function ($query) use ($request): void {
                 $query->selectRaw('1')->from('seller_staff_access')
@@ -556,7 +560,22 @@ final class SellerCatalogImportController extends Controller
                 }
             }
 
-        $created = DB::transaction(function () use ($rows, $sellerId, $storedImages): int {
+        // In demo mode, a standard-VAT product may go straight to the catalogue
+        // only when its cover image is available. Reject the full batch instead
+        // of silently creating drafts or partially publishing products.
+        if ($demoAllowed) {
+            foreach ($rows as $index => $row) {
+                if ($row['vat_class'] !== VatClass::Standard->value) continue;
+                $imagePath = $storedImages[$index] ?? null;
+                if (!$imagePath || !Storage::disk('public')->exists($imagePath)) {
+                    throw ValidationException::withMessages(['file' => [
+                        'Row '.($index + 2).': Upload a valid cover image before publishing the standard-VAT product.',
+                    ]]);
+                }
+            }
+        }
+
+        $result = DB::transaction(function () use ($rows, $sellerId, $storedImages, $submitAfterImport, $demoAllowed): array {
             $skus = array_column($rows, 'sku');
             $barcodes = array_values(array_filter(array_column($rows, 'barcode'), static fn ($v) => $v !== ''));
             if (DB::table('product_variants')->whereIn('sku', $skus)
@@ -564,7 +583,14 @@ final class SellerCatalogImportController extends Controller
                 throw ValidationException::withMessages(['file' => ['One or more SKUs/barcodes already exist.']]);
             }
 
+            $published = 0;
+            $submitted = 0;
             foreach ($rows as $index => $row) {
+                $directPublish = $demoAllowed && $row['vat_class'] === VatClass::Standard->value;
+                $status = !$submitAfterImport ? ProductStatus::Draft
+                    : ($directPublish ? ProductStatus::Published : ProductStatus::PendingReview);
+                if ($directPublish) ++$published;
+                elseif ($submitAfterImport) ++$submitted;
                 $product = Product::query()->create([
                     'seller_id' => $sellerId,
                     'category_id' => (int) $row['category_id'],
@@ -577,7 +603,7 @@ final class SellerCatalogImportController extends Controller
                     'price_halalas' => (int) $row['price_halalas'],
                     'vat_class' => $row['vat_class'],
                     'vat_justification' => $row['vat_class'] === 'standard' ? null : $row['vat_justification'],
-                    'status' => ProductStatus::Draft,
+                    'status' => $status,
                     'is_featured' => false,
                     'rating_average' => 0,
                     'rating_count' => 0,
@@ -591,7 +617,11 @@ final class SellerCatalogImportController extends Controller
                     'sort_order' => 0,
                 ]);
             }
-            return count($rows);
+            return [
+                'created_drafts' => $submitAfterImport ? 0 : count($rows),
+                'published' => $published,
+                'submitted_for_review' => $submitted,
+            ];
         }, 3);
         } catch (\Throwable $exception) {
             if ($storedImages !== []) {
@@ -600,6 +630,6 @@ final class SellerCatalogImportController extends Controller
             throw $exception;
         }
 
-        return response()->json(['data' => ['created_drafts' => $created]], 201);
+        return response()->json(['data' => $result], 201);
     }
 }
