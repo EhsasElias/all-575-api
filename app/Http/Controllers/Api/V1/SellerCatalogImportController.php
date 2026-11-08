@@ -60,6 +60,12 @@ final class SellerCatalogImportController extends Controller
         'اسم وحدة البيع بالإنجليزية (اختياري)',
         'رابط صورة المنتج HTTPS (اختياري)', 'صورة داخل Excel (اختياري)',
     ];
+    private const VAT_IMAGE_FORM_HEADERS = [
+        ...self::IMAGE_FORM_HEADERS, 'السبب النظامي للضريبة (إجباري للصفرية والمعفاة)',
+    ];
+    private const VAT_IMAGE_ENGLISH_HEADERS = [
+        ...self::IMAGE_ENGLISH_HEADERS, 'Legal VAT justification (required for zero-rated/exempt)',
+    ];
     private const IMAGE_ENGLISH_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store (optional)', 'Category (required)',
         'Arabic product name (required)', 'English product name (required)',
@@ -219,13 +225,13 @@ final class SellerCatalogImportController extends Controller
                 foreach ($xp->query('/*[local-name()="worksheet"]/*[local-name()="sheetData"]/*[local-name()="row"]') as $row) {
                     $number = (int) $row->attributes?->getNamedItem('r')?->nodeValue;
                     if ($number < 1) continue;
-                    $cells = array_fill(0, 14, '');
+                    $cells = array_fill(0, 15, '');
                     $hasProductCell = false;
                     foreach ($xp->query('./*[local-name()="c"]', $row) as $cell) {
                         $reference = (string) $cell->attributes?->getNamedItem('r')?->nodeValue;
                         if (!preg_match('/^([A-Z]+)[0-9]+$/', $reference, $m)) continue;
                         $column = $m[1];
-                        if (strlen($column) !== 1 || $column < 'A' || $column > 'N') continue;
+                        if (strlen($column) !== 1 || $column < 'A' || $column > 'O') continue;
                         $index = ord($column) - 65;
                         if ($xp->query('./*[local-name()="f"]', $cell)->length > 0) {
                             throw ValidationException::withMessages(['file' => ['Formula cells are not allowed in product imports.']]);
@@ -297,7 +303,10 @@ final class SellerCatalogImportController extends Controller
             $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
-            $imageForm = in_array($header, [
+            $vatImageForm = in_array($header, [
+                self::VAT_IMAGE_FORM_HEADERS, self::VAT_IMAGE_ENGLISH_HEADERS,
+            ], true);
+            $imageForm = $vatImageForm || in_array($header, [
                 self::IMAGE_FORM_HEADERS, self::IMAGE_ENGLISH_HEADERS,
             ], true);
             $extendedForm = $imageForm || in_array($header, [
@@ -351,9 +360,10 @@ final class SellerCatalogImportController extends Controller
                     $errors[] = 'Maximum 200 rows per upload.';
                     break;
                 }
-                $expectedColumns = $imageForm ? count(self::IMAGE_FORM_HEADERS)
+                $expectedColumns = $vatImageForm ? count(self::VAT_IMAGE_FORM_HEADERS)
+                        : ($imageForm ? count(self::IMAGE_FORM_HEADERS)
                         : ($extendedForm ? count(self::EXTENDED_FORM_HEADERS)
-                        : ($formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS)));
+                        : ($formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS))));
                 if (count($cells) !== $expectedColumns) {
                     $actual = count($cells);
                     $errors[] = "الصف {$line} - الأعمدة: الملف يحتوي على {$actual} أعمدة، والمطلوب {$expectedColumns}. احتفظ بترتيب الأعمدة ولا تحذف أعمدة القالب.";
@@ -367,6 +377,7 @@ final class SellerCatalogImportController extends Controller
                     $variantNameEn = $extendedForm ? $values[11] : '';
                     $imageUrl = $imageForm ? $values[12] : '';
                     $embeddedHint = $imageForm ? $values[13] : '';
+                    $vatJustification = $vatImageForm ? $values[14] : '';
                     if ($embeddedHint !== '' && !$isExcel) {
                         $errors[] = "الصف {$line} - صورة داخل Excel: لا يمكن تضمين الصور في CSV؛ استخدم رابط HTTPS في عمود رابط الصورة أو ملف Excel.";
                         continue;
@@ -390,9 +401,9 @@ final class SellerCatalogImportController extends Controller
                     $priceHalalas = (int) $priceParts[0] * 100
                         + (int) str_pad($priceParts[1] ?? '0', 2, '0', STR_PAD_RIGHT);
                     $vatClass = match ($vatLabel) {
-                        'قياسية', 'Standard', 'standard' => 'standard',
-                        'صفرية', 'Zero-rated', 'zero' => 'zero',
-                        'معفاة', 'Exempt', 'exempt' => 'exempt',
+                        'قياسية', 'قياسية (15%)', 'Standard', 'Standard VAT (15%)', 'standard' => 'standard',
+                        'صفرية', 'صفرية (0%)', 'Zero-rated', 'Zero-rated VAT (0%)', 'zero' => 'zero',
+                        'معفاة', 'معفى من الضريبة', 'Exempt', 'VAT exempt', 'exempt' => 'exempt',
                         default => $vatLabel,
                     };
                     if (!ctype_digit($category)) {
@@ -410,6 +421,7 @@ final class SellerCatalogImportController extends Controller
                         'description_en' => $descriptionEn,
                         'price_halalas' => (string) $priceHalalas,
                         'vat_class' => $vatClass,
+                        'vat_justification' => $vatJustification,
                         'sku' => $sku,
                         'barcode' => $barcode,
                         'variant_name_ar' => $variantNameAr,
@@ -419,6 +431,7 @@ final class SellerCatalogImportController extends Controller
                     ];
                 } else {
                     $row = array_combine(self::HEADERS, $values);
+                    $row['vat_justification'] = '';
                     $row['description_ar'] = '';
                     $row['description_en'] = '';
                     $row['variant_name_ar'] = '';
@@ -445,10 +458,12 @@ final class SellerCatalogImportController extends Controller
                     $rowErrors[] = 'السعر: يجب أن يكون من 1 إلى 10 ريال';
                 if (!in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true))
                     $rowErrors[] = 'فئة الضريبة: القيمة «'.$row['vat_class'].'» غير صحيحة؛ اختر قياسية أو صفرية أو معفاة';
-                // Non-standard VAT requires a documented legal basis, which the bulk template
-                // does not collect. Use the individual product form and admin review instead.
-                if (in_array($row['vat_class'], ['zero', 'exempt'], true))
-                    $rowErrors[] = 'فئة الضريبة: الصفرية أو المعفاة تتطلب سببًا نظاميًا ومراجعة الإدارة؛ أضف المنتج من النموذج الفردي';
+                $justification = trim((string) $row['vat_justification']);
+                if (in_array($row['vat_class'], ['zero', 'exempt'], true) &&
+                    (mb_strlen($justification) < 15 || mb_strlen($justification) > 500))
+                    $rowErrors[] = 'السبب النظامي: للصفرية أو المعفاة اكتب سببًا نظاميًا واضحًا من 15 إلى 500 حرف في العمود O';
+                if ($row['vat_class'] === 'standard' && $justification !== '')
+                    $rowErrors[] = 'السبب النظامي: اتركه فارغًا للضريبة القياسية';
                 if ($rowErrors !== []) {
                     foreach ($rowErrors as $problem) {
                         $errors[] = "الصف {$line} - {$problem}.";
@@ -557,6 +572,7 @@ final class SellerCatalogImportController extends Controller
                     'image_path' => $storedImages[$index] ?? null,
                     'price_halalas' => (int) $row['price_halalas'],
                     'vat_class' => $row['vat_class'],
+                    'vat_justification' => $row['vat_class'] === 'standard' ? null : $row['vat_justification'],
                     'status' => ProductStatus::Draft,
                     'is_featured' => false,
                     'rating_average' => 0,
