@@ -16,7 +16,7 @@ trait PublicAssets
         // products/{seller_id}/...; they must resolve via /storage/products/...
         // rather than /products/..., which does not serve uploaded files.
         if (str_starts_with(ltrim($path, '/'), 'products/')) {
-            return Storage::disk('public')->url(ltrim($path, '/'));
+            return asset(Storage::disk('public')->url(ltrim($path, '/')));
         }
 
         // Keep seeded catalogue images and other existing public asset URLs.
