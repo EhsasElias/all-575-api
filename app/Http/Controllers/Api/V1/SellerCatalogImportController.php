@@ -285,7 +285,9 @@ final class SellerCatalogImportController extends Controller
 
         $sellerId = (int) $input['seller_id'];
         $submitAfterImport = $request->boolean('submit_after_import') && ! $request->boolean('dry_run');
-        $demoAllowed = $submitAfterImport && SellerDemoMode::allows($request, $sellerId);
+        $directPublishEnabled = $submitAfterImport &&
+            (config('store.seller_direct_publish_enabled') === true ||
+                SellerDemoMode::allows($request, $sellerId));
         abort_unless(DB::table('sellers')->where('id', $sellerId)->where('status', 'approved')
             ->whereExists(function ($query) use ($request): void {
                 $query->selectRaw('1')->from('seller_staff_access')
@@ -560,22 +562,21 @@ final class SellerCatalogImportController extends Controller
                 }
             }
 
-        // In demo mode, a standard-VAT product may go straight to the catalogue
-        // only when its cover image is available. Reject the full batch instead
-        // of silently creating drafts or partially publishing products.
-        if ($demoAllowed) {
+        // Publishing requires an actual local cover image; all rows have already
+        // passed category, VAT/legal-basis, SKU and variant validation.
+        // Reject the entire batch rather than publishing only some products.
+        if ($directPublishEnabled) {
             foreach ($rows as $index => $row) {
-                if ($row['vat_class'] !== VatClass::Standard->value) continue;
                 $imagePath = $storedImages[$index] ?? null;
                 if (!$imagePath || !Storage::disk('public')->exists($imagePath)) {
                     throw ValidationException::withMessages(['file' => [
-                        'Row '.($index + 2).': Upload a valid cover image before publishing the standard-VAT product.',
+                        'Row '.($index + 2).': A valid product cover image is required for direct publication.',
                     ]]);
                 }
             }
         }
 
-        $result = DB::transaction(function () use ($rows, $sellerId, $storedImages, $submitAfterImport, $demoAllowed): array {
+        $result = DB::transaction(function () use ($rows, $sellerId, $storedImages, $submitAfterImport, $directPublishEnabled): array {
             $skus = array_column($rows, 'sku');
             $barcodes = array_values(array_filter(array_column($rows, 'barcode'), static fn ($v) => $v !== ''));
             if (DB::table('product_variants')->whereIn('sku', $skus)
@@ -586,7 +587,7 @@ final class SellerCatalogImportController extends Controller
             $published = 0;
             $submitted = 0;
             foreach ($rows as $index => $row) {
-                $directPublish = $demoAllowed && $row['vat_class'] === VatClass::Standard->value;
+                $directPublish = $directPublishEnabled;
                 $status = !$submitAfterImport ? ProductStatus::Draft
                     : ($directPublish ? ProductStatus::Published : ProductStatus::PendingReview);
                 if ($directPublish) ++$published;
