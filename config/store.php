@@ -3,6 +3,10 @@
 return [
     'currency' => 'SAR',
 
+    // Temporary seller publishing mode. Set SELLER_DIRECT_PUBLISH_ENABLED=false
+    // when the admin approval workflow is ready to be enforced.
+    'seller_direct_publish_enabled' => env('SELLER_DIRECT_PUBLISH_ENABLED', true),
+
     // Demo presentation only. Off by default, including in production.
     // Enable explicitly for one approved test-store owner; never applies to other sellers.
     'demo_seller_direct_approval' => [
