@@ -81,10 +81,11 @@ final class SellerProductDraftController extends Controller
                 ]);
             }
 
-            $demoDirect = SellerDemoMode::allows($request, (int) $item->seller_id)
-                && $item->vat_class === VatClass::Standard;
-            if ($demoDirect) {
-                // Demo mode does not bypass the same minimum publication checks as admin review.
+            $directPublish = config('store.seller_direct_publish_enabled') === true
+                || (SellerDemoMode::allows($request, (int) $item->seller_id)
+                    && $item->vat_class === VatClass::Standard);
+            if ($directPublish) {
+                // Even with temporary direct publishing, verify catalogue readiness.
                 abort_unless($item->variants()->where('is_active', true)->exists(), 422,
                     'An active product variant is required.');
                 abort_unless(DB::table('categories')->where('id', $item->category_id)
@@ -93,7 +94,7 @@ final class SellerProductDraftController extends Controller
                     422, 'Upload a product cover image before publishing.');
             }
 
-            $item->status = $demoDirect ? ProductStatus::Published : ProductStatus::PendingReview;
+            $item->status = $directPublish ? ProductStatus::Published : ProductStatus::PendingReview;
             $item->save();
 
             return $item;
