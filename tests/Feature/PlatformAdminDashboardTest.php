@@ -82,6 +82,27 @@ class PlatformAdminDashboardTest extends TestCase
             ->assertJsonPath('data.stock_records', 0);
     }
 
+    public function test_super_admin_can_access_existing_review_tools(): void
+    {
+        Sanctum::actingAs($this->owner(), ['customer']);
+        $this->getJson('/api/v1/seller-review/applications')->assertOk();
+        $this->getJson('/api/v1/seller-review/categories')->assertOk();
+    }
+
+    public function test_seller_only_token_cannot_view_platform_admin_dashboard(): void
+    {
+        $seller = Seller::factory()->create();
+        $admin = User::factory()->create();
+        DB::table('platform_admin_access')->insert([
+            'user_id' => $admin->id, 'seller_id' => $seller->id,
+            'is_active' => true, 'can_view_orders' => true,
+            'can_view_inventory' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        Sanctum::actingAs($admin, ['seller']);
+        $this->getJson('/api/v1/platform/admin/dashboard')->assertForbidden();
+    }
+
     public function test_revoked_admin_is_forbidden(): void
     {
         $seller = Seller::factory()->create();
