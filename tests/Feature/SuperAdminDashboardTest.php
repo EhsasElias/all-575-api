@@ -25,6 +25,30 @@ class SuperAdminDashboardTest extends TestCase
         $this->getJson('/api/v1/platform/super-admin/dashboard')->assertForbidden();
     }
 
+    public function test_seller_only_token_cannot_view_super_admin_dashboard(): void
+    {
+        $user = User::factory()->create();
+        DB::table('platform_super_admin_grants')->insert([
+            'user_id' => $user->id, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($user, ['seller']);
+        $this->getJson('/api/v1/platform/super-admin/dashboard')->assertForbidden();
+    }
+
+    public function test_inactive_user_with_active_grant_is_forbidden(): void
+    {
+        $user = User::factory()->create(['is_active' => false]);
+        DB::table('platform_super_admin_grants')->insert([
+            'user_id' => $user->id, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($user, ['customer']);
+        $this->getJson('/api/v1/platform/super-admin/dashboard')->assertForbidden();
+    }
+
     public function test_inactive_grant_cannot_view_super_admin_dashboard(): void
     {
         $user = User::factory()->create();
