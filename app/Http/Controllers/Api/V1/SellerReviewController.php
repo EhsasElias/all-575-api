@@ -27,9 +27,14 @@ final class SellerReviewController extends Controller
 {
     private function authorizeReviewer(Request $request): void
     {
-        abort_unless($request->user()->is_active && DB::table('seller_review_grants')
-            ->where('user_id', $request->user()->id)
-            ->where('is_active', true)->exists(), 403);
+        abort_unless($request->user()->is_active && (
+            DB::table('seller_review_grants')
+                ->where('user_id', $request->user()->id)
+                ->where('is_active', true)->exists()
+            || DB::table('platform_super_admin_grants')
+                ->where('user_id', $request->user()->id)
+                ->where('is_active', true)->exists()
+        ), 403);
     }
 
     public function applications(Request $request): JsonResponse
