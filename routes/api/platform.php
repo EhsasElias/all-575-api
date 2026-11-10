@@ -16,4 +16,5 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
         Route::patch('platform/super-admin/admins/{access}', [PlatformAdminAccessController::class, 'update'])
             ->whereNumber('access')->middleware('throttle:10,1');
         Route::get('platform/admin/dashboard', [PlatformAdminDashboardController::class, 'show']);
+        Route::get('platform/admin/orders', [PlatformAdminDashboardController::class, 'orders']);
     });
