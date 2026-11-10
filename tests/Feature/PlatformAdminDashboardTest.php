@@ -32,6 +32,29 @@ class PlatformAdminDashboardTest extends TestCase
         $this->getJson('/api/v1/platform/admin/dashboard')->assertForbidden();
     }
 
+    public function test_customer_cannot_open_admin_order_queue(): void
+    {
+        Sanctum::actingAs(User::factory()->create(), ['customer']);
+        $this->getJson('/api/v1/platform/admin/orders')->assertForbidden();
+    }
+
+    public function test_admin_without_order_permission_cannot_open_order_queue(): void
+    {
+        $seller = Seller::factory()->create();
+        $admin = User::factory()->create(['email_verified_at' => now()]);
+        DB::table('platform_admin_access')->insert([
+            'user_id' => $admin->id, 'seller_id' => $seller->id,
+            'is_active' => true,
+            'can_view_orders' => false, 'can_view_inventory' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        Sanctum::actingAs($admin, ['customer']);
+        $this->getJson('/api/v1/platform/admin/orders')->assertForbidden();
+        $this->getJson('/api/v1/platform/admin/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.order_access_sellers', 0);
+    }
+
     public function test_only_owner_can_assign_admin_access(): void
     {
         Sanctum::actingAs(User::factory()->create(), ['customer']);
