@@ -11,6 +11,40 @@ use Illuminate\Support\Facades\DB;
 
 final class PlatformAdminDashboardController extends Controller
 {
+    public function orders(Request $request): JsonResponse
+    {
+        $input = $request->validate([
+            'limit' => ['sometimes', 'integer', 'between:1,50'],
+            'status' => ['sometimes', 'string', 'in:awaiting_seller,preparing,ready,on_the_way,delivered,cancelled'],
+            'before_id' => ['sometimes', 'ulid'],
+        ]);
+
+        $sellerIds = DB::table('platform_admin_access')
+            ->where('user_id', $request->user()->id)
+            ->where('is_active', true)
+            ->where('can_view_orders', true)
+            ->pluck('seller_id')->all();
+
+        abort_unless($request->user()->is_active && $sellerIds !== [], 403);
+
+        $rows = DB::table('suborders')
+            ->join('orders', 'orders.id', '=', 'suborders.order_id')
+            ->join('sellers', 'sellers.id', '=', 'suborders.seller_id')
+            ->whereIn('suborders.seller_id', $sellerIds)
+            ->whereIn('orders.status', ['confirmed', 'completed'])
+            ->when(isset($input['status']), fn ($q) => $q->where('suborders.status', $input['status']))
+            ->when(isset($input['before_id']), fn ($q) => $q->where('suborders.id', '<', $input['before_id']))
+            ->select('suborders.id', 'orders.number as order_number',
+                'suborders.seller_id', 'sellers.name_ar as seller_name_ar',
+                'sellers.name_en as seller_name_en',
+                'suborders.branch_id', 'suborders.status',
+                'orders.placed_at', 'suborders.ready_at', 'suborders.picked_up_at')
+            ->orderByDesc('suborders.id')
+            ->limit($input['limit'] ?? 20)->get();
+
+        return response()->json(['data' => $rows]);
+    }
+
     public function show(Request $request): JsonResponse
     {
         $access = DB::table('platform_admin_access')
