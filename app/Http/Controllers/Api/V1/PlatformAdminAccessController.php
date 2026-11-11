@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Domain\Notifications\RoleNotificationWriter;
 use Illuminate\Validation\Rule;
 
 final class PlatformAdminAccessController extends Controller
@@ -70,6 +71,10 @@ final class PlatformAdminAccessController extends Controller
             return DB::table('platform_admin_access')->where('id', $id)->first();
         }, 3);
 
+        app(RoleNotificationWriter::class)->send((int) $user->id, 'admin_assigned',
+            'تم تعيين صلاحية الإدارة', 'تم منحك صلاحية إدارة متجر. افتح لوحة الإدارة لعرض التفاصيل.',
+            '/account/admin');
+
         return response()->json(['data' => $record], 201);
     }
 
@@ -86,6 +91,13 @@ final class PlatformAdminAccessController extends Controller
         abort_unless($existing !== null, 404);
 
         DB::table('platform_admin_access')->where('id', $access)->update($input + ['updated_at' => now()]);
+        if (array_key_exists('is_active', $input) && (bool) $input['is_active'] !== (bool) $existing->is_active) {
+            app(RoleNotificationWriter::class)->send((int) $existing->user_id,
+                $input['is_active'] ? 'admin_reactivated' : 'admin_revoked',
+                $input['is_active'] ? 'تم تفعيل صلاحية الإدارة' : 'تم إيقاف صلاحية الإدارة',
+                $input['is_active'] ? 'يمكنك الآن الوصول إلى المتجر المسند إليك.' : 'تم إيقاف وصولك إلى المتجر المسند إليك.',
+                '/account');
+        }
         return response()->json(['data' => DB::table('platform_admin_access')->where('id', $access)->first()]);
     }
 }
