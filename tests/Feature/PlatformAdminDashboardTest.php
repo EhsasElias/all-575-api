@@ -41,7 +41,10 @@ class PlatformAdminDashboardTest extends TestCase
     public function test_admin_without_order_permission_cannot_open_order_queue(): void
     {
         $seller = Seller::factory()->create();
-        $admin = User::factory()->create(['email_verified_at' => now()]);
+        $admin = User::factory()->create([
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+        ]);
         DB::table('platform_admin_access')->insert([
             'user_id' => $admin->id, 'seller_id' => $seller->id,
             'is_active' => true,
@@ -66,7 +69,10 @@ class PlatformAdminDashboardTest extends TestCase
     {
         $seller = Seller::factory()->create();
         Seller::factory()->create();
-        $admin = User::factory()->create(['email_verified_at' => now()]);
+        $admin = User::factory()->create([
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+        ]);
         Sanctum::actingAs($this->owner(), ['customer']);
 
         $this->postJson('/api/v1/platform/super-admin/admins', [
@@ -106,7 +112,10 @@ class PlatformAdminDashboardTest extends TestCase
     public function test_revoked_admin_is_forbidden(): void
     {
         $seller = Seller::factory()->create();
-        $admin = User::factory()->create(['email_verified_at' => now()]);
+        $admin = User::factory()->create([
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+        ]);
         $owner = $this->owner();
         Sanctum::actingAs($owner, ['customer']);
         $this->postJson('/api/v1/platform/super-admin/admins', [
