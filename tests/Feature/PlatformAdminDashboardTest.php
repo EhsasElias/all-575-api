@@ -79,6 +79,9 @@ class PlatformAdminDashboardTest extends TestCase
             'email' => $admin->email, 'seller_id' => $seller->id,
             'can_view_orders' => true, 'can_view_inventory' => true,
         ])->assertCreated();
+        $this->assertDatabaseHas('customer_notifications', [
+            'user_id' => $admin->id, 'type' => 'admin_assigned',
+        ]);
 
         Sanctum::actingAs($admin, ['customer']);
         $this->getJson('/api/v1/platform/admin/dashboard')
@@ -125,6 +128,9 @@ class PlatformAdminDashboardTest extends TestCase
 
         $id = DB::table('platform_admin_access')->where('user_id', $admin->id)->value('id');
         $this->patchJson('/api/v1/platform/super-admin/admins/'.$id, ['is_active' => false])->assertOk();
+        $this->assertDatabaseHas('customer_notifications', [
+            'user_id' => $admin->id, 'type' => 'admin_revoked',
+        ]);
         Sanctum::actingAs($admin, ['customer']);
         $this->getJson('/api/v1/platform/admin/dashboard')->assertForbidden();
     }
