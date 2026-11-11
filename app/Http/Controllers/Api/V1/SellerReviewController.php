@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Domain\Notifications\RoleNotificationWriter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -156,6 +157,12 @@ final class SellerReviewController extends Controller
             return ['id' => $application, 'status' => $status, 'seller_id' => $sellerId];
         }, 3);
 
+        $applicantId = DB::table('seller_applications')->where('id', $application)->value('user_id');
+        if ($applicantId !== null) {
+            app(RoleNotificationWriter::class)->send((int) $applicantId, 'seller_application_'.$result['status'],
+                'تحديث طلب البائع', 'تم تحديث حالة طلب تسجيل البائع إلى: '.$result['status'], '/account');
+        }
+
         return response()->json(['data' => $result]);
     }
 
@@ -205,6 +212,14 @@ final class SellerReviewController extends Controller
 
             return ['id' => $item->id, 'status' => $status->value];
         }, 3);
+
+        $sellerUserIds = DB::table('seller_staff_access')->where('seller_id', $item->seller_id)
+            ->where('is_active', true)->where('role', 'owner')->pluck('user_id');
+        foreach ($sellerUserIds as $sellerUserId) {
+            app(RoleNotificationWriter::class)->send((int) $sellerUserId, 'seller_product_'.$result['status'],
+                'تحديث مراجعة المنتج', 'تم تحديث حالة المنتج رقم '.$result['id'].' إلى: '.$result['status'],
+                '/account');
+        }
 
         return response()->json(['data' => $result]);
     }
