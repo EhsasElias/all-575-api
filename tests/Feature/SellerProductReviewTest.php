@@ -34,6 +34,16 @@ final class SellerProductReviewTest extends TestCase
         Storage::fake('public');
         $this->reviewer();
         $seller = Seller::factory()->create();
+        $sellerOwner = User::factory()->create();
+        DB::table('seller_staff_access')->insert([
+            'seller_id' => $seller->id,
+            'user_id' => $sellerOwner->id,
+            'branch_id' => null,
+            'role' => 'owner',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $category = Category::factory()->create();
         $product = Product::factory()->for($seller)->for($category)->create([
             'status' => 'pending_review', 'price_halalas' => 575,
@@ -54,6 +64,10 @@ final class SellerProductReviewTest extends TestCase
         $this->assertDatabaseHas('seller_review_audits', [
             'subject_type' => 'product', 'subject_id' => $product->id,
             'previous_status' => 'pending_review', 'new_status' => 'published',
+        ]);
+        $this->assertDatabaseHas('customer_notifications', [
+            'user_id' => $sellerOwner->id,
+            'type' => 'seller_product_published',
         ]);
 
         $this->postJson('/api/v1/seller-review/products/'.$product->id.'/decision',
