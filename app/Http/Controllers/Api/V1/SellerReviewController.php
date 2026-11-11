@@ -213,7 +213,8 @@ final class SellerReviewController extends Controller
             return ['id' => $item->id, 'status' => $status->value];
         }, 3);
 
-        $sellerUserIds = DB::table('seller_staff_access')->where('seller_id', $item->seller_id)
+        $sellerId = DB::table('products')->where('id', $result['id'])->value('seller_id');
+        $sellerUserIds = DB::table('seller_staff_access')->where('seller_id', $sellerId)
             ->where('is_active', true)->where('role', 'owner')->pluck('user_id');
         foreach ($sellerUserIds as $sellerUserId) {
             app(RoleNotificationWriter::class)->send((int) $sellerUserId, 'seller_product_'.$result['status'],
