@@ -74,6 +74,13 @@ final class SuperAdminMetricController extends Controller
             'total' => $page->total(), 'page' => $page->currentPage(), 'last_page' => $page->lastPage()]);
     }
 
+    private function safeSpreadsheetCell(mixed $value): string
+    {
+        $text = (string) ($value ?? '');
+        // Treat exported values as data, never spreadsheet formulas.
+        return preg_match('/^\\s*[=+@\\-]/u', $text) === 1 ? "'" . $text : $text;
+    }
+
     public function export(Request $request, string $metric, string $format): StreamedResponse
     {
         $this->authorizeOwner($request);
@@ -88,7 +95,7 @@ final class SuperAdminMetricController extends Controller
                 fwrite($out, "\xEF\xBB\xBF");
                 fputcsv($out, $columns);
                 foreach ($query->orderBy('id')->cursor() as $row) {
-                    fputcsv($out, array_map(static fn ($col) => $row->$col ?? '', $columns));
+                    fputcsv($out, array_map(fn ($col) => $this->safeSpreadsheetCell($row->$col ?? ''), $columns));
                 }
                 fclose($out);
                 return;
