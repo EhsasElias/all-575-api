@@ -38,6 +38,7 @@ final class SuperAdminDashboardController extends Controller
             'suborder_statuses' => $suborderCounts,
             'pending_seller_applications' => DB::table('seller_applications')->where('status', 'submitted')->count(),
             'pending_product_reviews' => DB::table('products')->where('status', 'pending_review')->count(),
+            'pending_category_requests' => DB::table('seller_category_requests')->where('status', 'pending')->count(),
             'sales' => [
                 'paid_orders' => (int) ($sales->paid_orders ?? 0),
                 'paid_total_halalas' => (int) ($sales->paid_total_halalas ?? 0),
