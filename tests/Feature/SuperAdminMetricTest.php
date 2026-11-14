@@ -69,6 +69,32 @@ class SuperAdminMetricTest extends TestCase
         $this->getJson('/api/v1/platform/super-admin/sellers')->assertOk()->assertJsonPath('data', []);
     }
 
+    public function test_metric_filters_apply_to_server_side_rows_and_validate_date_range(): void
+    {
+        $user = User::factory()->create(['email' => 'admin@example.test']);
+        $this->grantSuperAdmin($user);
+        $this->getJson('/api/v1/platform/super-admin/metrics/customers?q=admin%40example.test')
+            ->assertOk()->assertJsonPath('total', 1);
+        $this->getJson('/api/v1/platform/super-admin/metrics/customers?q=missing%40example.test')
+            ->assertOk()->assertJsonPath('total', 0);
+        $this->getJson('/api/v1/platform/super-admin/metrics/customers?from=2099-01-01')
+            ->assertOk()->assertJsonPath('total', 0);
+        $this->getJson('/api/v1/platform/super-admin/metrics/customers?from=2026-12-31&to=2026-01-01')
+            ->assertUnprocessable();
+        $this->getJson('/api/v1/platform/super-admin/metrics/customers?seller_id=1')
+            ->assertUnprocessable();
+    }
+
+    public function test_export_accepts_the_same_validated_filters_as_report(): void
+    {
+        $user = User::factory()->create();
+        $this->grantSuperAdmin($user);
+        $this->get('/api/v1/platform/super-admin/metrics/customers/export/csv?from=2099-01-01')
+            ->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->get('/api/v1/platform/super-admin/metrics/customers/export/csv?from=2026-12-31&to=2026-01-01')
+            ->assertUnprocessable();
+    }
+
     public function test_super_admin_can_download_csv_and_excel_compatible_worksheet(): void
     {
         $user = User::factory()->create(['email' => 'admin@example.test']);
