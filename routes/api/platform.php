@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\SuperAdminDashboardController;
+use App\Http\Controllers\Api\V1\SuperAdminMetricController;
 use App\Http\Controllers\Api\V1\PlatformAdminAccessController;
 use App\Http\Controllers\Api\V1\PlatformAdminDashboardController;
 use Illuminate\Support\Facades\Route;
@@ -10,6 +11,8 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])
     ->group(function (): void {
+        Route::get('platform/super-admin/metrics/{metric}', [SuperAdminMetricController::class, 'index']);
+        Route::get('platform/super-admin/metrics/{metric}/export/{format}', [SuperAdminMetricController::class, 'export']);
         Route::get('platform/super-admin/admins', [PlatformAdminAccessController::class, 'index']);
         Route::post('platform/super-admin/admins', [PlatformAdminAccessController::class, 'store'])
             ->middleware('throttle:10,1');
