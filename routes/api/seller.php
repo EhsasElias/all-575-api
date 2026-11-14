@@ -42,6 +42,7 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
 // Customer authentication alone never grants access; controller checks every request.
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:20,1'])
     ->prefix('seller-review')->group(function (): void {
+        Route::get('overview', [SellerReviewController::class, 'overview']);
         Route::get('applications', [SellerReviewController::class, 'applications']);
         Route::get('applications/{application}', [SellerReviewController::class, 'application'])->whereNumber('application');
         Route::get('applications/{application}/documents/{document}',
