@@ -19,6 +19,14 @@ final class PlatformAdminAccessController extends Controller
             ->where('user_id', $request->user()->id)->where('is_active', true)->exists(), 403);
     }
 
+    public function sellers(Request $request): JsonResponse
+    {
+        $this->authorizeOwner($request);
+        return response()->json(['data' => DB::table('sellers')
+            ->select('id', 'name_ar', 'name_en', 'status')
+            ->orderBy('id')->limit(250)->get()]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->authorizeOwner($request);
