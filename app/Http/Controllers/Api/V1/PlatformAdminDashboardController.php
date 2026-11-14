@@ -17,6 +17,11 @@ final class PlatformAdminDashboardController extends Controller
             'limit' => ['sometimes', 'integer', 'between:1,50'],
             'status' => ['sometimes', 'string', 'in:awaiting_seller,preparing,ready,on_the_way,delivered,cancelled'],
             'before_id' => ['sometimes', 'ulid'],
+            'from' => ['sometimes', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'seller_id' => ['sometimes', 'integer', 'min:1'],
+            'branch_id' => ['sometimes', 'integer', 'min:1'],
+            'q' => ['sometimes', 'string', 'max:100'],
         ]);
 
         $sellerIds = DB::table('platform_admin_access')
@@ -31,6 +36,18 @@ final class PlatformAdminDashboardController extends Controller
             ->join('orders', 'orders.id', '=', 'suborders.order_id')
             ->join('sellers', 'sellers.id', '=', 'suborders.seller_id')
             ->whereIn('suborders.seller_id', $sellerIds)
+            ->when(isset($input['seller_id']), fn ($q) => $q->where('suborders.seller_id', $input['seller_id']))
+            ->when(isset($input['branch_id']), fn ($q) => $q->where('suborders.branch_id', $input['branch_id']))
+            ->when(isset($input['from']), fn ($q) => $q->whereDate('orders.placed_at', '>=', $input['from']))
+            ->when(isset($input['to']), fn ($q) => $q->whereDate('orders.placed_at', '<=', $input['to']))
+            ->when(isset($input['q']), function ($q) use ($input): void {
+                $value = '%' . addcslashes(trim($input['q']), '%_\\\\') . '%';
+                $q->where(function ($where) use ($value): void {
+                    $where->where('orders.number', 'like', $value)
+                        ->orWhere('sellers.name_ar', 'like', $value)
+                        ->orWhere('sellers.name_en', 'like', $value);
+                });
+            })
             ->whereIn('orders.status', ['confirmed', 'completed'])
             ->when(isset($input['status']), fn ($q) => $q->where('suborders.status', $input['status']))
             ->when(isset($input['before_id']), fn ($q) => $q->where('suborders.id', '<', $input['before_id']))
