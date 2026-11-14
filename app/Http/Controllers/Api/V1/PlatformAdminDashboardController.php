@@ -62,6 +62,39 @@ final class PlatformAdminDashboardController extends Controller
         return response()->json(['data' => $rows]);
     }
 
+    public function inventory(Request $request): JsonResponse
+    {
+        $input = $request->validate([
+            'limit' => ['sometimes', 'integer', 'between:1,100'],
+            'before_id' => ['sometimes', 'integer', 'min:1'],
+            'seller_id' => ['sometimes', 'integer', 'min:1'],
+            'branch_id' => ['sometimes', 'integer', 'min:1'],
+            'low_stock_only' => ['sometimes', 'boolean'],
+        ]);
+
+        $sellerIds = DB::table('platform_admin_access')
+            ->where('user_id', $request->user()->id)
+            ->where('is_active', true)
+            ->where('can_view_inventory', true)
+            ->pluck('seller_id')->all();
+        abort_unless($request->user()->is_active && $sellerIds !== [], 403);
+
+        $records = DB::table('branch_stock')
+            ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
+            ->whereIn('branches.seller_id', $sellerIds)
+            ->when(isset($input['seller_id']), fn ($q) => $q->where('branches.seller_id', $input['seller_id']))
+            ->when(isset($input['branch_id']), fn ($q) => $q->where('branch_stock.branch_id', $input['branch_id']))
+            ->when(!empty($input['low_stock_only']), fn ($q) =>
+                $q->whereRaw('(branch_stock.on_hand - branch_stock.reserved) <= ?', [5]))
+            ->when(isset($input['before_id']), fn ($q) => $q->where('branch_stock.id', '<', $input['before_id']))
+            ->select('branch_stock.id', 'branches.seller_id', 'branch_stock.branch_id',
+                'branch_stock.on_hand', 'branch_stock.reserved')
+            ->orderByDesc('branch_stock.id')
+            ->limit($input['limit'] ?? 30)->get();
+
+        return response()->json(['data' => $records]);
+    }
+
     public function show(Request $request): JsonResponse
     {
         $access = DB::table('platform_admin_access')
