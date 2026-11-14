@@ -58,6 +58,24 @@ class PlatformAdminDashboardTest extends TestCase
             ->assertJsonPath('data.order_access_sellers', 0);
     }
 
+    public function test_inventory_report_is_scoped_to_active_inventory_grants(): void
+    {
+        $seller = Seller::factory()->create();
+        $admin = User::factory()->create(['email_verified_at' => now()]);
+        DB::table('platform_admin_access')->insert([
+            'user_id' => $admin->id, 'seller_id' => $seller->id,
+            'is_active' => true, 'can_view_orders' => false, 'can_view_inventory' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        Sanctum::actingAs($admin, ['customer']);
+        $this->getJson('/api/v1/platform/admin/inventory?low_stock_only=1')
+            ->assertOk()->assertJsonPath('data', []);
+        $this->getJson('/api/v1/platform/admin/inventory?branch_id=0')
+            ->assertUnprocessable();
+        DB::table('platform_admin_access')->where('user_id', $admin->id)->update(['is_active' => false]);
+        $this->getJson('/api/v1/platform/admin/inventory')->assertForbidden();
+    }
+
     public function test_only_owner_can_assign_admin_access(): void
     {
         Sanctum::actingAs(User::factory()->create(), ['customer']);
