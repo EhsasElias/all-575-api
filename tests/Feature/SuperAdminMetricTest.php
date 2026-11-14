@@ -56,6 +56,19 @@ class SuperAdminMetricTest extends TestCase
         $this->get('/api/v1/platform/super-admin/metrics/customers/export/pdf')->assertNotFound();
     }
 
+    public function test_seller_selector_requires_super_admin_grant(): void
+    {
+        Sanctum::actingAs(User::factory()->create(), ['customer']);
+        $this->getJson('/api/v1/platform/super-admin/sellers')->assertForbidden();
+    }
+
+    public function test_super_admin_can_read_seller_selector(): void
+    {
+        $user = User::factory()->create();
+        $this->grantSuperAdmin($user);
+        $this->getJson('/api/v1/platform/super-admin/sellers')->assertOk()->assertJsonPath('data', []);
+    }
+
     public function test_super_admin_can_download_csv_and_excel_compatible_worksheet(): void
     {
         $user = User::factory()->create(['email' => 'admin@example.test']);
