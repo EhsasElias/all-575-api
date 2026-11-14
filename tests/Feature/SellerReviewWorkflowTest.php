@@ -65,6 +65,31 @@ final class SellerReviewWorkflowTest extends TestCase
         }
     }
 
+    public function test_review_overview_requires_authorized_reviewer(): void
+    {
+        Sanctum::actingAs(User::factory()->create(), ['customer']);
+        $this->getJson('/api/v1/seller-review/overview')->assertForbidden();
+    }
+
+    public function test_review_overview_reports_pending_counts_and_recent_decisions(): void
+    {
+        $application = $this->application();
+        $this->reviewer();
+        $this->getJson('/api/v1/seller-review/overview')->assertOk()
+            ->assertJsonPath('data.pending_applications', 1)
+            ->assertJsonPath('data.pending_branches', 0)
+            ->assertJsonPath('data.pending_products', 0)
+            ->assertJsonPath('data.pending_categories', 0)
+            ->assertJsonPath('data.recent_decisions', []);
+        $this->postJson('/api/v1/seller-review/applications/'.$application.'/decision', [
+            'decision' => 'correction', 'reason' => 'Missing required business documents.',
+        ])->assertOk();
+        $this->getJson('/api/v1/seller-review/overview')->assertOk()
+            ->assertJsonPath('data.pending_applications', 0)
+            ->assertJsonPath('data.recent_decisions.0.subject_type', 'application')
+            ->assertJsonPath('data.recent_decisions.0.new_status', 'correction');
+    }
+
     public function test_review_endpoints_denied_without_explicit_grant(): void
     {
         $application = $this->application();
