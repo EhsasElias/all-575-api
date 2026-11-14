@@ -13,6 +13,7 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])
     ->group(function (): void {
         Route::patch('platform/super-admin/accounts/{user}', [SuperAdminAccountController::class, 'update'])->whereNumber('user')->middleware('throttle:10,1');
+        Route::patch('platform/super-admin/sellers/{seller}', [SuperAdminAccountController::class, 'updateSeller'])->whereNumber('seller')->middleware('throttle:10,1');
         Route::get('platform/super-admin/metrics/{metric}', [SuperAdminMetricController::class, 'index']);
         Route::get('platform/super-admin/metrics/{metric}/export/{format}', [SuperAdminMetricController::class, 'export']);
         Route::get('platform/super-admin/sellers', [PlatformAdminAccessController::class, 'sellers']);
