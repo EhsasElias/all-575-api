@@ -91,6 +91,25 @@ class PlatformAdminDashboardTest extends TestCase
             ->assertJsonPath('data.stock_records', 0);
     }
 
+    public function test_admin_order_filters_accept_valid_dates_and_reject_invalid_ranges(): void
+    {
+        $seller = Seller::factory()->create();
+        $admin = User::factory()->create(['email_verified_at' => now()]);
+        DB::table('platform_admin_access')->insert([
+            'user_id' => $admin->id, 'seller_id' => $seller->id,
+            'is_active' => true, 'can_view_orders' => true, 'can_view_inventory' => false,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        Sanctum::actingAs($admin, ['customer']);
+        $this->getJson('/api/v1/platform/admin/orders?from=2026-01-01&to=2026-12-31')
+            ->assertOk()->assertJsonPath('data', []);
+        $this->getJson('/api/v1/platform/admin/orders?from=2026-12-31&to=2026-01-01')
+            ->assertUnprocessable();
+        $this->getJson('/api/v1/platform/admin/orders?seller_id=' . ($seller->id + 1000))
+            ->assertOk()->assertJsonPath('data', []);
+        $this->getJson('/api/v1/platform/admin/orders?branch_id=-1')->assertUnprocessable();
+    }
+
     public function test_super_admin_can_access_existing_review_tools(): void
     {
         Sanctum::actingAs($this->owner(), ['customer']);
