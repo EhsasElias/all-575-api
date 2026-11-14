@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\SuperAdminDashboardController;
 use App\Http\Controllers\Api\V1\SuperAdminMetricController;
+use App\Http\Controllers\Api\V1\SuperAdminAccountController;
 use App\Http\Controllers\Api\V1\PlatformAdminAccessController;
 use App\Http\Controllers\Api\V1\PlatformAdminDashboardController;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,7 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])
     ->group(function (): void {
+        Route::patch('platform/super-admin/accounts/{user}', [SuperAdminAccountController::class, 'update'])->whereNumber('user')->middleware('throttle:10,1');
         Route::get('platform/super-admin/metrics/{metric}', [SuperAdminMetricController::class, 'index']);
         Route::get('platform/super-admin/metrics/{metric}/export/{format}', [SuperAdminMetricController::class, 'export']);
         Route::get('platform/super-admin/sellers', [PlatformAdminAccessController::class, 'sellers']);
