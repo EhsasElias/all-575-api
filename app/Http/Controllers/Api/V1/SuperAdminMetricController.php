@@ -20,7 +20,7 @@ final class SuperAdminMetricController extends Controller
         'active_sellers' => ['sellers', ['id', 'name_ar', 'name_en', 'status', 'created_at'], 'status', 'approved'],
         'products' => ['products', ['id', 'seller_id', 'name_ar', 'name_en', 'status', 'created_at']],
         'published_products' => ['products', ['id', 'seller_id', 'name_ar', 'name_en', 'status', 'created_at'], 'status', 'published'],
-        'orders' => ['orders', ['id', 'order_number', 'status', 'total_halalas', 'paid_at', 'created_at']],
+        'orders' => ['orders', ['id', 'number', 'status', 'total_halalas', 'paid_at', 'created_at']],
         'paid_order_value' => ['orders', ['id', 'order_number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'paid_at', '__not_null__'],
         'paid_orders' => ['orders', ['id', 'order_number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'paid_at', '__not_null__'],
         'awaiting_payment' => ['orders', ['id', 'order_number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'status', 'pending_payment'],
@@ -29,6 +29,7 @@ final class SuperAdminMetricController extends Controller
         'ready_for_delivery' => ['suborders', ['id', 'order_id', 'seller_id', 'branch_id', 'status', 'created_at'], 'status', 'ready'],
         'pending_seller_applications' => ['seller_applications', ['id', 'seller_id', 'status', 'created_at'], 'status', 'submitted'],
         'pending_product_reviews' => ['products', ['id', 'seller_id', 'name_ar', 'name_en', 'status', 'created_at'], 'status', 'pending_review'],
+        'pending_category_requests' => ['seller_category_requests', ['id', 'seller_id', 'name_ar', 'name_en', 'status', 'created_at'], 'status', 'pending'],
     ];
 
     private function authorizeOwner(Request $request): void
