@@ -21,11 +21,11 @@ final class SuperAdminMetricController extends Controller
         'products' => ['products', ['id', 'seller_id', 'name_ar', 'name_en', 'status', 'created_at']],
         'published_products' => ['products', ['id', 'seller_id', 'name_ar', 'name_en', 'status', 'created_at'], 'status', 'published'],
         'orders' => ['orders', ['id', 'number', 'status', 'total_halalas', 'paid_at', 'created_at']],
-        'paid_order_value' => ['orders', ['id', 'order_number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'paid_at', '__not_null__'],
-        'paid_orders' => ['orders', ['id', 'order_number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'paid_at', '__not_null__'],
-        'awaiting_payment' => ['orders', ['id', 'order_number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'status', 'pending_payment'],
-        'confirmed_orders' => ['orders', ['id', 'order_number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'status', 'confirmed'],
-        'completed_orders' => ['orders', ['id', 'order_number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'status', 'completed'],
+        'paid_order_value' => ['orders', ['id', 'number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'paid_at', '__not_null__'],
+        'paid_orders' => ['orders', ['id', 'number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'paid_at', '__not_null__'],
+        'awaiting_payment' => ['orders', ['id', 'number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'status', 'pending_payment'],
+        'confirmed_orders' => ['orders', ['id', 'number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'status', 'confirmed'],
+        'completed_orders' => ['orders', ['id', 'number', 'status', 'total_halalas', 'paid_at', 'created_at'], 'status', 'completed'],
         'ready_for_delivery' => ['suborders', ['id', 'order_id', 'seller_id', 'branch_id', 'status', 'created_at'], 'status', 'ready'],
         'pending_seller_applications' => ['seller_applications', ['id', 'seller_id', 'status', 'created_at'], 'status', 'submitted'],
         'pending_product_reviews' => ['products', ['id', 'seller_id', 'name_ar', 'name_en', 'status', 'created_at'], 'status', 'pending_review'],
@@ -39,7 +39,18 @@ final class SuperAdminMetricController extends Controller
     }
 
     /** @return array{0: \Illuminate\Database\Query\Builder, 1: array<int, string>} */
-    private function metricQuery(string $metric): array
+    private function validatedFilters(Request $request): array
+    {
+        return $request->validate([
+            'from' => ['sometimes', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'seller_id' => ['sometimes', 'integer', 'min:1'],
+            'status' => ['sometimes', 'string', 'max:50', 'regex:/^[a-z_]+$/'],
+            'q' => ['sometimes', 'string', 'max:100'],
+        ]);
+    }
+
+    private function metricQuery(string $metric, array $filters = []): array
     {
         abort_unless(array_key_exists($metric, self::METRICS), 404);
         [$table, $suggested] = self::METRICS[$metric];
@@ -57,6 +68,45 @@ final class SuperAdminMetricController extends Controller
         if (in_array($metric, ['paid_order_value', 'paid_orders'], true)) {
             $query->whereIn('status', ['confirmed', 'completed']);
         }
+        // Apply the same validated restrictions to paginated details and exports.
+        if (isset($filters['from'])) {
+            $query->whereDate($table . '.created_at', '>=', $filters['from']);
+        }
+        if (isset($filters['to'])) {
+            $query->whereDate($table . '.created_at', '<=', $filters['to']);
+        }
+        if (isset($filters['seller_id'])) {
+            if (Schema::hasColumn($table, 'seller_id')) {
+                $query->where($table . '.seller_id', $filters['seller_id']);
+            } elseif ($table === 'sellers') {
+                $query->where('sellers.id', $filters['seller_id']);
+            } elseif ($table === 'orders') {
+                $query->whereExists(function ($sub) use ($filters): void {
+                    $sub->selectRaw('1')->from('suborders')
+                        ->whereColumn('suborders.order_id', 'orders.id')
+                        ->where('suborders.seller_id', $filters['seller_id']);
+                });
+            } else {
+                abort(422, 'Seller filter is not available for this statistic.');
+            }
+        }
+        if (isset($filters['status'])) {
+            abort_unless(Schema::hasColumn($table, 'status'), 422);
+            $query->where($table . '.status', $filters['status']);
+        }
+        if (isset($filters['q']) && trim($filters['q']) !== '') {
+            $term = '%' . addcslashes(trim($filters['q']), '%_\\\\') . '%';
+            $searchable = array_values(array_intersect(
+                ['name', 'name_ar', 'name_en', 'email', 'number', 'status'],
+                $columns
+            ));
+            abort_if($searchable === [], 422, 'Search is not available for this statistic.');
+            $query->where(function ($inner) use ($searchable, $table, $term): void {
+                foreach ($searchable as $column) {
+                    $inner->orWhere($table . '.' . $column, 'like', $term);
+                }
+            });
+        }
         return [$query, $columns];
     }
 
@@ -67,7 +117,7 @@ final class SuperAdminMetricController extends Controller
             'page' => ['sometimes', 'integer', 'min:1', 'max:100000'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
-        [$query, $columns] = $this->metricQuery($metric);
+        [$query, $columns] = $this->metricQuery($metric, $this->validatedFilters($request));
         $page = $query->orderByDesc('id')->paginate(
             (int) ($input['per_page'] ?? 15), $columns, 'page', (int) ($input['page'] ?? 1)
         );
@@ -86,7 +136,7 @@ final class SuperAdminMetricController extends Controller
     {
         $this->authorizeOwner($request);
         abort_unless(in_array($format, ['csv', 'xls'], true), 404);
-        [$query, $columns] = $this->metricQuery($metric);
+        [$query, $columns] = $this->metricQuery($metric, $this->validatedFilters($request));
         // Export full matching data via cursor without collecting the entire result in memory.
         $filename = 'all575-' . $metric . '-' . now()->format('Ymd-His') . '.' . $format;
 
