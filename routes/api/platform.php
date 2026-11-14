@@ -13,6 +13,7 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
     ->group(function (): void {
         Route::get('platform/super-admin/metrics/{metric}', [SuperAdminMetricController::class, 'index']);
         Route::get('platform/super-admin/metrics/{metric}/export/{format}', [SuperAdminMetricController::class, 'export']);
+        Route::get('platform/super-admin/sellers', [PlatformAdminAccessController::class, 'sellers']);
         Route::get('platform/super-admin/admins', [PlatformAdminAccessController::class, 'index']);
         Route::post('platform/super-admin/admins', [PlatformAdminAccessController::class, 'store'])
             ->middleware('throttle:10,1');
