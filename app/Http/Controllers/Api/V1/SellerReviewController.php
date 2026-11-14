@@ -38,6 +38,30 @@ final class SellerReviewController extends Controller
         ), 403);
     }
 
+    public function overview(Request $request): JsonResponse
+    {
+        $this->authorizeReviewer($request);
+
+        return response()->json(['data' => [
+            'pending_applications' => DB::table('seller_applications')->where('status', 'submitted')->count(),
+            'pending_branches' => DB::table('seller_branch_proposals as proposals')
+                ->join('branches', 'branches.id', '=', 'proposals.branch_id')
+                ->join('sellers', 'sellers.id', '=', 'branches.seller_id')
+                ->where('proposals.status', 'pending')
+                ->where('branches.is_active', false)
+                ->where('sellers.status', 'approved')->count(),
+            'pending_products' => DB::table('products')
+                ->join('sellers', 'sellers.id', '=', 'products.seller_id')
+                ->where('products.status', ProductStatus::PendingReview->value)
+                ->where('sellers.status', SellerStatus::Approved->value)->count(),
+            'pending_categories' => DB::table('seller_category_requests')->where('status', 'pending')->count(),
+            'recent_decisions' => DB::table('seller_review_audits')
+                ->select('id', 'subject_type', 'subject_id', 'previous_status',
+                    'new_status', 'reason', 'created_at')
+                ->orderByDesc('id')->limit(10)->get(),
+        ]]);
+    }
+
     public function applications(Request $request): JsonResponse
     {
         $this->authorizeReviewer($request);
