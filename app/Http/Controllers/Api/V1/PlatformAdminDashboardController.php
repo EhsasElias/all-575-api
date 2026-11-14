@@ -70,6 +70,7 @@ final class PlatformAdminDashboardController extends Controller
             'seller_id' => ['sometimes', 'integer', 'min:1'],
             'branch_id' => ['sometimes', 'integer', 'min:1'],
             'low_stock_only' => ['sometimes', 'boolean'],
+            'q' => ['sometimes', 'string', 'max:100'],
         ]);
 
         $sellerIds = DB::table('platform_admin_access')
@@ -81,14 +82,26 @@ final class PlatformAdminDashboardController extends Controller
 
         $records = DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
+            ->join('product_variants', 'product_variants.id', '=', 'branch_stock.variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->whereColumn('products.seller_id', 'branches.seller_id')
             ->whereIn('branches.seller_id', $sellerIds)
+            ->when(isset($input['q']) && trim($input['q']) !== '', function ($q) use ($input): void {
+                $like = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], trim($input['q'])) . '%';
+                $q->where(function ($search) use ($like): void {
+                    $search->whereRaw("product_variants.sku LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("products.name_ar LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("products.name_en LIKE ? ESCAPE '!'", [$like]);
+                });
+            })
             ->when(isset($input['seller_id']), fn ($q) => $q->where('branches.seller_id', $input['seller_id']))
             ->when(isset($input['branch_id']), fn ($q) => $q->where('branch_stock.branch_id', $input['branch_id']))
             ->when(!empty($input['low_stock_only']), fn ($q) =>
                 $q->whereRaw('(branch_stock.on_hand - branch_stock.reserved) <= ?', [5]))
             ->when(isset($input['before_id']), fn ($q) => $q->where('branch_stock.id', '<', $input['before_id']))
             ->select('branch_stock.id', 'branches.seller_id', 'branch_stock.branch_id',
-                'branch_stock.on_hand', 'branch_stock.reserved')
+                'branch_stock.on_hand', 'branch_stock.reserved', 'product_variants.sku',
+                'products.name_ar', 'products.name_en')
             ->orderByDesc('branch_stock.id')
             ->limit($input['limit'] ?? 30)->get();
 
