@@ -20,7 +20,7 @@ use App\Support\Money;
 
 /**
  * Prices the signed-in user's cart for an address. The server is the only source of prices:
- * the app never sends an amount. VAT is already inside every price and is only reported, never added.
+ * the app never sends an amount. Catalog prices and delivery fees are net; VAT is added at checkout.
  */
 final class QuoteBuilder
 {
@@ -55,11 +55,12 @@ final class QuoteBuilder
 
         $payable = $subtotal->minus($discount);
         $deliveryFee = $issues === [] ? $zone->deliveryFeeFor($payable) : Money::zero();
-        $total = $payable->plus($deliveryFee);
+        $vat = $this->vatBreakdown($lines, $deliveryFee);
+        $total = $payable->plus($deliveryFee)->plus(Money::halalas((int) array_sum(array_column($vat, 'vat'))));
 
         return new QuoteData(
             $lines, $subtotal, $discount, $deliveryFee, $total,
-            $this->vatBreakdown($lines, $deliveryFee), $appliedCode, $address->id, $zone->id, $issues,
+            $vat, $appliedCode, $address->id, $zone->id, $issues,
         );
     }
 
@@ -67,7 +68,7 @@ final class QuoteBuilder
     {
         $variant = $item->variant;
         $product = $variant->product;
-        $unit = $this->pricing->unitGross($product);
+        $unit = $this->pricing->unitNet($product);
 
         $sellable = $variant->is_active
             && $product->status === ProductStatus::Published
@@ -147,35 +148,35 @@ final class QuoteBuilder
      */
     private function vatBreakdown(array $lines, Money $deliveryFee): array
     {
-        $grossByClass = [];
+        $netByClass = [];
 
         foreach ($lines as $line) {
             if ($line->available) {
-                $grossByClass[$line->vatClass->value] = ($grossByClass[$line->vatClass->value] ?? Money::zero())->plus($line->lineTotal());
+                $netByClass[$line->vatClass->value] = ($netByClass[$line->vatClass->value] ?? Money::zero())->plus($line->lineTotal());
             }
         }
 
         $standard = VatClass::Standard->value;
-        $grossByClass[$standard] = ($grossByClass[$standard] ?? Money::zero())->plus($deliveryFee);
+        $netByClass[$standard] = ($netByClass[$standard] ?? Money::zero())->plus($deliveryFee);
 
         $breakdown = [];
 
         foreach ([VatClass::Standard, VatClass::Zero, VatClass::Exempt] as $class) {
-            $gross = $grossByClass[$class->value] ?? null;
+            $net = $netByClass[$class->value] ?? null;
 
-            if ($gross === null || $gross->isZero()) {
+            if ($net === null || $net->isZero()) {
                 continue;
             }
 
             $rate = $this->vat->rateFor($class);
-            $split = $this->vat->splitGross($gross, $rate);
+            $split = $this->vat->addToNet($net, $rate);
 
             $breakdown[] = [
                 'vat_class' => $class->value,
                 'rate_basis_points' => $rate,
                 'taxable_net' => $split->net->halalas,
                 'vat' => $split->vat->halalas,
-                'gross' => $gross->halalas,
+                'gross' => $split->gross->halalas,
             ];
         }
 
