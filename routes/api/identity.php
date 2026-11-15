@@ -25,11 +25,16 @@ Route::prefix('auth/otp')->group(function (): void {
     Route::post('verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:otp-verify');
 });
 
-Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(function (): void {
-    Route::get('me/dashboard', CustomerDashboardController::class);
+// Notifications are shared across customer, seller, admin and super-admin sessions.
+// Each inbox endpoint only accesses rows belonging to the authenticated user.
+Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
     Route::get('me/notifications', [CustomerNotificationController::class, 'index']);
     Route::patch('me/notifications/read-all', [CustomerNotificationController::class, 'readAll']);
     Route::patch('me/notifications/{notification}/read', [CustomerNotificationController::class, 'read'])->whereNumber('notification');
+});
+
+Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(function (): void {
+    Route::get('me/dashboard', CustomerDashboardController::class);
     Route::delete('auth/session', [AuthController::class, 'logout']);
 
     Route::get('me/requests', [CustomerRequestController::class, 'index']);
