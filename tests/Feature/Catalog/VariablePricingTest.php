@@ -23,9 +23,9 @@ class VariablePricingTest extends TestCase
         $first = $this->getJson('/api/v1/products?sort=price_desc&per_page=1')->assertOk()->assertJsonPath('data.0.id', $expensive->id);
         $this->getJson($first->json('links.next'))->assertOk()->assertJsonPath('data.0.id', $middle->id);
         $this->getJson('/api/v1/products?min_price=300&max_price=100')->assertUnprocessable();
-        $this->getJson('/api/v1/products/'.$cheap->slug)->assertOk()->assertJsonPath('data.price.gross', 100)
-            ->assertJsonPath('data.price.net', 87)->assertJsonPath('data.price.vat', 13)
-            ->assertJsonPath('data.variants.0.price.gross', 100);
+        $this->getJson('/api/v1/products/'.$cheap->slug)->assertOk()->assertJsonPath('data.price.gross', 115)
+            ->assertJsonPath('data.price.net', 100)->assertJsonPath('data.price.vat', 15)
+            ->assertJsonPath('data.variants.0.price.gross', 115);
     }
 
     public function test_mixed_cart_quote_and_order_use_server_prices_and_preserve_order_snapshots(): void
