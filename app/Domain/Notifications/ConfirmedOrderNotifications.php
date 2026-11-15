@@ -6,6 +6,8 @@ namespace App\Domain\Notifications;
 
 use App\Domain\Orders\Models\Order;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Notify only accounts permitted to see an order, once its confirmation transaction commits.
@@ -16,6 +18,19 @@ final class ConfirmedOrderNotifications
     public function __construct(private readonly RoleNotificationWriter $writer) {}
 
     public function send(Order $order): void
+    {
+        try {
+            $this->writeNotices($order);
+        } catch (Throwable $exception) {
+            // A notification failure must never turn a confirmed order into an HTTP error.
+            Log::warning('Confirmed-order notifications failed', [
+                'order_id' => $order->id,
+                'exception' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function writeNotices(Order $order): void
     {
         $order = $order->fresh();
         if ($order === null || ! in_array($order->status->value, ['confirmed', 'completed'], true)) {
