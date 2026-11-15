@@ -48,6 +48,19 @@ class CheckoutTest extends TestCase
         $this->assertDatabaseCount('cart_items', 1);
     }
 
+    public function test_payment_and_order_total_include_vat_added_to_a_five_sar_net_price(): void
+    {
+        $scenario = $this->scenario(product: ['price_halalas' => 500]);
+        $scenario->catalog->zone->update(['delivery_fee_halalas' => 0]);
+
+        $quoteId = $scenario->quote();
+        $scenario->checkout($quoteId)->assertCreated()
+            ->assertJsonPath('data.order.amounts.subtotal', 500)
+            ->assertJsonPath('data.order.amounts.vat_included', 75)
+            ->assertJsonPath('data.order.amounts.total', 575)
+            ->assertJsonPath('data.payment.amount', 575);
+    }
+
     public function test_the_order_keeps_its_own_copy_of_the_address_and_prices(): void
     {
         $s = $this->scenario();
