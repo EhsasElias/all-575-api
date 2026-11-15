@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
+use ZipArchive;
 
 class SuperAdminMetricTest extends TestCase
 {
@@ -95,13 +96,39 @@ class SuperAdminMetricTest extends TestCase
             ->assertUnprocessable();
     }
 
-    public function test_super_admin_can_download_csv_and_excel_compatible_worksheet(): void
+    public function test_super_admin_downloads_real_xlsx_instead_of_xml_disguised_as_xls(): void
     {
-        $user = User::factory()->create(['email' => 'admin@example.test']);
+        if (! class_exists(ZipArchive::class)) {
+            $this->markTestSkipped('ZIP extension is unavailable.');
+        }
+
+        $user = User::factory()->create(['name' => 'مستخدم تجريبي', 'email' => 'admin@example.test']);
         $this->grantSuperAdmin($user);
+
         $this->get('/api/v1/platform/super-admin/metrics/customers/export/csv')
             ->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
-        $this->get('/api/v1/platform/super-admin/metrics/customers/export/xls')
-            ->assertOk()->assertHeader('content-type', 'application/vnd.ms-excel; charset=UTF-8');
+
+        foreach (['xlsx', 'xls'] as $format) {
+            // The legacy /xls path must also return a genuine XLSX with a matching filename.
+            $response = $this->get('/api/v1/platform/super-admin/metrics/customers/export/'.$format)->assertOk();
+            $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+            $file = $response->baseResponse->getFile()->getPathname();
+            $this->assertStringContainsString('.xlsx', (string) $response->headers->get('content-disposition'));
+            $this->assertSame('PK', file_get_contents($file, false, null, 0, 2));
+
+            $zip = new ZipArchive();
+            $this->assertTrue($zip->open($file) === true);
+            try {
+                $sheet = $zip->getFromName('xl/worksheets/sheet1.xml');
+                $this->assertIsString($sheet);
+                $this->assertStringContainsString('مستخدم تجريبي', $sheet);
+                $this->assertStringContainsString('admin@example.test', $sheet);
+                $this->assertStringNotContainsString('<f>', $sheet);
+            } finally {
+                $zip->close();
+                @unlink($file);
+            }
+        }
     }
 }
