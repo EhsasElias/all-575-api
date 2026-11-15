@@ -147,6 +147,29 @@ class ProductBrowsingTest extends TestCase
         $this->assertSame('out_of_stock', $this->getJson('/api/v1/products?zone_id='.$otherZone->id)->json('data.0.availability'));
     }
 
+    public function test_in_stock_filter_includes_additional_branch_coverage_and_excludes_inactive_branches(): void
+    {
+        $built = $this->catalog->stockedProduct(onHand: 20, product: ['slug' => 'covered-product']);
+        $additionalZone = ServiceZone::factory()->create(['name_en' => 'Additional coverage']);
+        $branch = $built['stock']->branch;
+
+        $this->assertSame([], $this->slugs('?zone_id='.$additionalZone->id.'&in_stock=1'));
+
+        \Illuminate\Support\Facades\DB::table('branch_service_zones')->insert([
+            'branch_id' => $branch->id,
+            'service_zone_id' => $additionalZone->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->assertSame(['covered-product'], $this->slugs('?zone_id='.$additionalZone->id.'&in_stock=1'));
+        $this->getJson('/api/v1/products?zone_id='.$additionalZone->id.'&in_stock=1')
+            ->assertJsonPath('data.0.availability', 'in_stock');
+
+        $branch->update(['is_active' => false]);
+        $this->assertSame([], $this->slugs('?zone_id='.$additionalZone->id.'&in_stock=1'));
+    }
+
     public function test_the_product_page_lists_variants_with_net_vat_and_gross_prices(): void
     {
         $built = $this->catalog->stockedProduct(onHand: 20, product: ['slug' => 'socks'], variant: ['name_en' => 'M', 'name_ar' => 'م']);
