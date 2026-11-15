@@ -11,7 +11,7 @@ class StoreInfoTest extends TestCase
         $this->getJson('/api/v1/store')
             ->assertOk()
             ->assertJsonPath('data.currency', 'SAR')
-            ->assertJsonPath('data.price', ['gross' => 575, 'net' => 500, 'vat' => 75])
+            ->assertJsonPath('data.price', ['gross' => 661, 'net' => 575, 'vat' => 86])
             ->assertJsonPath('data.vat_rate_basis_points', 1500)
             ->assertJsonPath('data.terms_version', config('store.terms_version'))
             ->assertJsonPath('data.privacy_version', config('store.privacy_version'));
