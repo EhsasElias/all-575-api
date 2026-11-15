@@ -17,7 +17,7 @@ final class CustomerNotificationWriter
         try {
             DB::table('customer_notifications')->insertOrIgnore([
                 'user_id' => $userId,
-                'source_order_id' => $orderId,
+                'event_key' => 'order_placed:'.$orderId,
                 'type' => 'order_placed',
                 'title' => 'تم استلام طلبك',
                 'message' => 'تم تسجيل طلبك بنجاح. يمكنك متابعة حالته من صفحة طلباتي.',
