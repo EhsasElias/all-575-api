@@ -18,7 +18,7 @@ class StoreController extends Controller
     public function show(VatCalculator $vat): JsonResponse
     {
         $rate = $vat->rateFor(VatClass::Standard);
-        $split = $vat->splitGross(Money::halalas((int) config('store.price_halalas')), $rate);
+        $split = $vat->addToNet(Money::halalas((int) config('store.price_halalas')), $rate);
 
         return response()->json(['data' => [
             'currency' => config('store.currency'),
