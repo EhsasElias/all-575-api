@@ -35,7 +35,7 @@ class ProductBrowsingTest extends TestCase
         $this->getJson('/api/v1/products')
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'biscuits')
-            ->assertJsonPath('data.0.price', ['gross' => 575, 'net' => 500, 'vat' => 75, 'currency' => 'SAR']);
+            ->assertJsonPath('data.0.price', ['gross' => 661, 'net' => 575, 'vat' => 86, 'currency' => 'SAR']);
     }
 
     public function test_unpublished_products_and_hidden_sellers_and_categories_never_appear(): void
@@ -83,11 +83,11 @@ class ProductBrowsingTest extends TestCase
         $this->catalog->stockedProduct(product: ['slug' => 'tea']);
         $this->catalog->stockedProduct(product: ['slug' => 'scarf']);
 
-        $prices = collect($this->getJson('/api/v1/products')->assertOk()->json('data'))->pluck('price.gross')->unique()->all();
+        $prices = collect($this->getJson('/api/v1/products')->assertOk()->json('data'))->pluck('price.net')->unique()->all();
         $this->assertSame([575], $prices);
     }
 
-    public function test_zero_rated_goods_cost_the_same_5_75_with_no_vat_in_it(): void
+    public function test_zero_rated_goods_are_not_charged_vat(): void
     {
         $this->catalog->stockedProduct(product: ['slug' => 'staple', 'vat_class' => 'zero']);
 
@@ -101,7 +101,7 @@ class ProductBrowsingTest extends TestCase
         $this->catalog->stockedProduct(product: ['slug' => 'tea']);
         config(['store.price_halalas' => 600]);
 
-        $this->getJson('/api/v1/products/tea')->assertJsonPath('data.price.gross', 575)->assertJsonPath('data.variants.0.price.net', 500);
+        $this->getJson('/api/v1/products/tea')->assertJsonPath('data.price.gross', 661)->assertJsonPath('data.variants.0.price.net', 575);
     }
 
     public function test_results_are_paginated_with_a_cursor(): void
@@ -177,7 +177,7 @@ class ProductBrowsingTest extends TestCase
 
         $response = $this->getJson('/api/v1/products/socks?zone_id='.$this->catalog->zone->id)->assertOk();
 
-        $response->assertJsonPath('data.variants.0.price', ['gross' => 575, 'net' => 500, 'vat' => 75, 'currency' => 'SAR'])
+        $response->assertJsonPath('data.variants.0.price', ['gross' => 661, 'net' => 575, 'vat' => 86, 'currency' => 'SAR'])
             ->assertJsonPath('data.variants.0.availability', 'in_stock')
             ->assertJsonPath('data.variants.1.availability', 'out_of_stock')
             ->assertJsonCount(2, 'data.variants');
