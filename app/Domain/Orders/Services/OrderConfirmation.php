@@ -6,6 +6,7 @@ namespace App\Domain\Orders\Services;
 
 use App\Domain\Cart\Models\Cart;
 use App\Domain\Inventory\Services\StockReservations;
+use App\Domain\Notifications\ConfirmedOrderNotifications;
 use App\Domain\Orders\Enums\OrderStatus;
 use App\Domain\Orders\Enums\SuborderStatus;
 use App\Domain\Orders\Events\OrderPaid;
@@ -16,7 +17,10 @@ use Illuminate\Support\Facades\DB;
 
 final class OrderConfirmation
 {
-    public function __construct(private readonly StockReservations $stock) {}
+    public function __construct(
+        private readonly StockReservations $stock,
+        private readonly ConfirmedOrderNotifications $notifications,
+    ) {}
 
     /** The one place an order becomes paid. Call it inside a transaction with the order and payment locked. */
     public function confirm(Order $order, Payment $payment): void
@@ -32,7 +36,10 @@ final class OrderConfirmation
         $order->record('payment_confirmed', 'system');
         $order->record('order_confirmed', 'system');
 
-        DB::afterCommit(fn () => event(new OrderPaid($order)));
+        DB::afterCommit(function () use ($order): void {
+            $this->notifications->send($order);
+            event(new OrderPaid($order));
+        });
     }
 
     /** A cash order can be prepared, but no money has been collected yet. */
@@ -43,6 +50,7 @@ final class OrderConfirmation
         $this->stock->commit($order);
         $this->removePurchasedLinesFromCart($order);
         $order->record('order_confirmed', 'system');
+        DB::afterCommit(fn () => $this->notifications->send($order));
     }
 
     private function removePurchasedLinesFromCart(Order $order): void
