@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Reporting\Services\CsvWriter;
+use App\Domain\Reporting\Services\XlsxWriter;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class SuperAdminMetricController extends Controller
 {
@@ -125,49 +128,45 @@ final class SuperAdminMetricController extends Controller
             'total' => $page->total(), 'page' => $page->currentPage(), 'last_page' => $page->lastPage()]);
     }
 
-    private function safeSpreadsheetCell(mixed $value): string
-    {
-        $text = (string) ($value ?? '');
-        // Treat exported values as data, never spreadsheet formulas.
-        return preg_match('/^\\s*[=+@\\-]/u', $text) === 1 ? "'" . $text : $text;
-    }
-
-    public function export(Request $request, string $metric, string $format): StreamedResponse
+    public function export(Request $request, string $metric, string $format, XlsxWriter $xlsx, CsvWriter $csv): StreamedResponse|BinaryFileResponse
     {
         $this->authorizeOwner($request);
-        abort_unless(in_array($format, ['csv', 'xls'], true), 404);
+        // Legacy /xls requests are still accepted, but return a genuine .xlsx file.
+        abort_unless(in_array($format, ['csv', 'xlsx', 'xls'], true), 404);
         [$query, $columns] = $this->metricQuery($metric, $this->validatedFilters($request));
-        // Export full matching data via cursor without collecting the entire result in memory.
-        $filename = 'all575-' . $metric . '-' . now()->format('Ymd-His') . '.' . $format;
+        $name = 'all575-' . $metric . '-' . now()->format('Ymd-His');
 
-        return response()->streamDownload(function () use ($query, $columns, $format): void {
-            if ($format === 'csv') {
-                $out = fopen('php://output', 'w');
-                fwrite($out, "\xEF\xBB\xBF");
-                fputcsv($out, $columns);
+        if ($format !== 'csv') {
+            $rows = (static function () use ($query, $columns): \Generator {
                 foreach ($query->orderBy('id')->cursor() as $row) {
-                    fputcsv($out, array_map(fn ($col) => $this->safeSpreadsheetCell($row->$col ?? ''), $columns));
+                    yield array_map(static fn (string $column) => $row->$column ?? '', $columns);
                 }
+            })();
+
+            return $xlsx->download($columns, $rows, $name . '.xlsx');
+        }
+
+        return response()->streamDownload(function () use ($query, $columns, $csv): void {
+            $out = fopen('php://output', 'wb');
+            if ($out === false) {
+                throw new \RuntimeException('Unable to open CSV export stream.');
+            }
+            try {
+                fwrite($out, "\xEF\xBB\xBF");
+                fputcsv($out, array_map($csv->safe(...), $columns), ',', '"', '');
+                foreach ($query->orderBy('id')->cursor() as $row) {
+                    fputcsv($out, array_map(
+                        static fn (string $column) => $csv->safe($row->$column ?? ''),
+                        $columns
+                    ), ',', '"', '');
+                }
+            } finally {
                 fclose($out);
-                return;
             }
-            echo '<?xml version="1.0" encoding="UTF-8"?>';
-            echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Report"><Table>';
-            $writeRow = static function (array $values): void {
-                echo '<Row>';
-                foreach ($values as $value) {
-                    $safe = htmlspecialchars((string) ($value ?? ''), ENT_XML1 | ENT_QUOTES, 'UTF-8');
-                    echo '<Cell><Data ss:Type="String">' . $safe . '</Data></Cell>';
-                }
-                echo '</Row>';
-            };
-            $writeRow($columns);
-            foreach ($query->orderBy('id')->cursor() as $row) {
-                $writeRow(array_map(static fn ($col) => $row->$col ?? '', $columns));
-            }
-            echo '</Table></Worksheet></Workbook>';
-        }, $filename, ['Content-Type' => $format === 'csv'
-            ? 'text/csv; charset=UTF-8' : 'application/vnd.ms-excel; charset=UTF-8',
-            'Cache-Control' => 'private, no-store']);
+        }, $name . '.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
+
 }
