@@ -44,28 +44,30 @@ class QuoteTest extends TestCase
         return $this->postJson('/api/v1/quotes', ['address_id' => $this->address->id] + $body);
     }
 
-    public function test_vat_is_reported_inside_the_gross_price_and_never_added_twice(): void
+    public function test_vat_is_added_to_net_goods_and_delivery_once(): void
     {
         $this->addToCart(3);
 
-        // 3 x 5.75 = 17.25 goods + 10.00 delivery (below the 50.00 free-delivery threshold) = 27.25.
+        // 3 x 5.75 = 17.25 net goods + 10.00 net delivery + 4.09 VAT = 31.34.
         $this->quote()->assertCreated()
             ->assertJsonPath('data.subtotal', 1725)
             ->assertJsonPath('data.delivery_fee', 1000)
-            ->assertJsonPath('data.total', 2725)
-            ->assertJsonPath('data.vat_included', 355)
+            ->assertJsonPath('data.total', 3134)
+            ->assertJsonPath('data.vat_amount', 409)
+            ->assertJsonPath('data.vat_included', 409)
             ->assertJsonPath('data.vat.0.vat_class', 'standard')
-            ->assertJsonPath('data.vat.0.gross', 2725)
-            ->assertJsonPath('data.vat.0.taxable_net', 2370)
+            ->assertJsonPath('data.vat.0.gross', 3134)
+            ->assertJsonPath('data.vat.0.taxable_net', 2725)
             ->assertJsonPath('data.can_checkout', true);
     }
 
-    public function test_one_item_at_5_75_inside_a_free_delivery_zone_splits_into_5_00_and_0_75(): void
+    public function test_five_sar_net_product_becomes_five_seventy_five_with_vat(): void
     {
         $this->catalog->zone->update(['delivery_fee_halalas' => 0]);
-        $this->addToCart(1);
+        $this->addToCart(1, ['price_halalas' => 500]);
 
         $this->quote()->assertCreated()
+            ->assertJsonPath('data.subtotal', 500)
             ->assertJsonPath('data.total', 575)
             ->assertJsonPath('data.vat.0.taxable_net', 500)
             ->assertJsonPath('data.vat.0.vat', 75);
@@ -75,7 +77,7 @@ class QuoteTest extends TestCase
     {
         $this->addToCart(9); // 51.75
 
-        $this->quote()->assertCreated()->assertJsonPath('data.delivery_fee', 0)->assertJsonPath('data.total', 5175);
+        $this->quote()->assertCreated()->assertJsonPath('data.delivery_fee', 0)->assertJsonPath('data.total', 5951);
     }
 
     public function test_zero_rated_goods_get_their_own_vat_line_with_no_vat(): void
@@ -84,10 +86,10 @@ class QuoteTest extends TestCase
         $this->addToCart(1);
         $this->addToCart(1, ['vat_class' => 'zero']);
 
-        $response = $this->quote()->assertCreated()->assertJsonPath('data.total', 1150);
+        $response = $this->quote()->assertCreated()->assertJsonPath('data.total', 1236);
 
         $this->assertSame(['standard', 'zero'], collect($response->json('data.vat'))->pluck('vat_class')->all());
-        $this->assertSame([75, 0], collect($response->json('data.vat'))->pluck('vat')->all());
+        $this->assertSame([86, 0], collect($response->json('data.vat'))->pluck('vat')->all());
     }
 
     public function test_a_percent_promo_is_taken_from_goods_only_and_spread_without_losing_a_halala(): void
@@ -102,7 +104,7 @@ class QuoteTest extends TestCase
             ->assertJsonPath('data.promo_code', 'SAVE10');
 
         $this->assertSame(230, array_sum(array_column($response->json('data.lines'), 'discount')));
-        $this->assertSame(2300 - 230 + $response->json('data.delivery_fee'), $response->json('data.total'));
+        $this->assertSame(2300 - 230 + $response->json('data.delivery_fee') + $response->json('data.vat_amount'), $response->json('data.total'));
     }
 
     public function test_a_fixed_promo_never_exceeds_the_goods_total(): void
@@ -188,7 +190,7 @@ class QuoteTest extends TestCase
 
         $id = $this->quote()->assertCreated()->json('data.id');
 
-        $this->assertDatabaseHas('quotes', ['id' => $id, 'user_id' => $this->user->id, 'total_halalas' => 1575]);
+        $this->assertDatabaseHas('quotes', ['id' => $id, 'user_id' => $this->user->id, 'total_halalas' => 1811]);
         $this->assertTrue(QuoteRecord::query()->findOrFail($id)->expires_at->isFuture());
     }
 
