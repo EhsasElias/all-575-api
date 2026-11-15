@@ -34,13 +34,13 @@ class SpendingReportTest extends TestCase
         $s->withCart(1);
         $s->pay();
 
-        // 2 x 5.75 + 10.00 delivery, and 1 x 5.75 + 10.00 delivery.
+        // Net goods plus delivery, with 15% VAT added to each invoice.
         $this->getJson('/api/v1/me/reports/spending')->assertOk()
             ->assertJsonPath('data.summary.orders', 2)
-            ->assertJsonPath('data.summary.paid', 2150 + 1575 + 0 - 0)
+            ->assertJsonPath('data.summary.paid', 2473 + 1811)
             ->assertJsonPath('data.summary.delivery_fees', 2000)
             ->assertJsonPath('data.summary.refunded', 0)
-            ->assertJsonPath('data.summary.net_spent', 3725)
+            ->assertJsonPath('data.summary.net_spent', 4284)
             ->assertJsonPath('data.currency', 'SAR')
             ->assertJsonPath('data.timezone', 'Asia/Riyadh');
     }
@@ -102,7 +102,7 @@ class SpendingReportTest extends TestCase
         $csv = $response->getContent();
         $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
         $this->assertStringContainsString($order->number, $csv);
-        $this->assertStringContainsString(',21.50,', $csv);
+        $this->assertStringContainsString(',24.73,', $csv);
         $this->assertStringContainsString('"تاريخ الطلب","تاريخ الدفع","تاريخ الاسترداد"', $csv);
         $this->assertDatabaseHas('audit_logs', ['action' => 'report.exported', 'user_id' => $s->user->id]);
     }
