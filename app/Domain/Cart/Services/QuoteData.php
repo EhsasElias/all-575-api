@@ -6,7 +6,7 @@ namespace App\Domain\Cart\Services;
 
 use App\Support\Money;
 
-/** A priced snapshot of the cart for one address. All amounts are VAT-inclusive halalas. */
+/** A priced snapshot of the cart for one address. Stored subtotal, discount and delivery fee are net halalas; total includes added VAT. */
 final readonly class QuoteData
 {
     /**
@@ -32,13 +32,14 @@ final readonly class QuoteData
         return $this->issues === [] && $this->lines !== [];
     }
 
-    /** Changes whenever anything the customer agreed to pays for changes: items, prices, discount, fee, total. */
+    /** Changes whenever anything the customer agreed to pay for changes: items, prices, discount, fee, VAT, total. */
     public function fingerprint(): string
     {
         return hash('sha256', json_encode([
             array_map(fn (QuoteLine $line): array => [$line->variantId, $line->quantity, $line->unitGross->halalas, $line->discount->halalas], $this->lines),
             $this->discount->halalas,
             $this->deliveryFee->halalas,
+            $this->totalVat()->halalas,
             $this->total->halalas,
             $this->promoCode,
         ], JSON_THROW_ON_ERROR));
@@ -59,7 +60,9 @@ final readonly class QuoteData
             'discount' => $this->discount->halalas,
             'delivery_fee' => $this->deliveryFee->halalas,
             'total' => $this->total->halalas,
+            // Keep legacy JSON key for compatibility; the display must say VAT added.
             'vat_included' => $this->totalVat()->halalas,
+            'vat_amount' => $this->totalVat()->halalas,
             'vat' => $this->vat,
             'promo_code' => $this->promoCode,
             'address_id' => $this->addressId,
