@@ -14,19 +14,20 @@ use Throwable;
  */
 final class RoleNotificationWriter
 {
-    public function send(int $userId, string $type, string $title, string $message, ?string $targetPath = null): void
+    public function send(int $userId, string $type, string $title, string $message, ?string $targetPath = null, ?string $eventKey = null): void
     {
         if ($userId <= 0) {
             return;
         }
 
         try {
-            DB::table('customer_notifications')->insert([
+            DB::table('customer_notifications')->insertOrIgnore([
                 'user_id' => $userId,
                 'type' => $type,
                 'title' => $title,
                 'message' => $message,
                 'target_path' => $targetPath,
+                'event_key' => $eventKey,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
