@@ -10,7 +10,7 @@ use App\Domain\Pricing\VatClass;
 use App\Domain\Pricing\VatSplit;
 use App\Support\Money;
 
-/** Server-owned product prices, VAT included. Existing products default to 575 halalas. */
+/** Server-owned product prices are stored BEFORE VAT. */
 final class ProductPricing
 {
     public function __construct(private readonly VatCalculator $vat) {}
@@ -21,14 +21,20 @@ final class ProductPricing
         return (int) ($product?->price_halalas ?? config('store.price_halalas'));
     }
 
+    /** Stored catalog amount, before tax. Kept for compatibility with existing callers. */
     public function unitGross(?Product $product = null): Money
     {
         return Money::halalas($this->unitPriceHalalas($product));
     }
 
-    /** What the platform price is made of for a VAT class: 5.75 is 5.00 + 0.75 VAT, or 5.75 + 0.00 when zero-rated or exempt. */
+    public function unitNet(?Product $product = null): Money
+    {
+        return $this->unitGross($product);
+    }
+
+    /** Add the class-specific VAT to the stored net price; 5.00 + 0.75 = 5.75 at 15%. */
     public function split(VatClass $class, ?Product $product = null): VatSplit
     {
-        return $this->vat->splitGross($this->unitGross($product), $this->vat->rateFor($class));
+        return $this->vat->addToNet($this->unitNet($product), $this->vat->rateFor($class));
     }
 }
