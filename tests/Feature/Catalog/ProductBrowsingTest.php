@@ -151,7 +151,7 @@ class ProductBrowsingTest extends TestCase
     {
         $built = $this->catalog->stockedProduct(onHand: 20, product: ['slug' => 'covered-product']);
         $additionalZone = ServiceZone::factory()->create(['name_en' => 'Additional coverage']);
-        $branch = $built['stock']->branch;
+        $branch = $built['branch'];
 
         $this->assertSame([], $this->slugs('?zone_id='.$additionalZone->id.'&in_stock=1'));
 
