@@ -40,8 +40,8 @@ class Product extends Model
     protected function priceHalalas(): Attribute
     {
         return Attribute::make(set: static function (mixed $value): int {
-            if ((! is_int($value) && (! is_string($value) || ! ctype_digit($value))) || (int) $value < 100 || (int) $value > 575) {
-                throw new \InvalidArgumentException('Product price must be 100 to 575 integer halalas, before VAT.');
+            if ((! is_int($value) && (! is_string($value) || ! ctype_digit($value))) || (int) $value < 100 || (int) $value > 10000) {
+                throw new \InvalidArgumentException('Product price must be 100 to 10000 integer halalas, before VAT.');
             }
 
             return (int) $value;
