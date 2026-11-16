@@ -33,7 +33,7 @@ final class SellerCatalogImportController extends Controller
         'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
         'التصنيف (إجباري)', 'اسم المنتج بالعربية (إجباري)',
         'اسم المنتج بالإنجليزية (إجباري)', 'الوصف بالعربية (اختياري)',
-        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–5.75) (إجباري)',
+        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–100) (إجباري)',
         'فئة الضريبة (إجباري)',
     ];
     // Optional selling-unit labels correspond to the variant fields in the Add Product workflow.
@@ -41,7 +41,7 @@ final class SellerCatalogImportController extends Controller
         'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
         'التصنيف (إجباري)', 'اسم المنتج بالعربية (إجباري)',
         'اسم المنتج بالإنجليزية (إجباري)', 'الوصف بالعربية (اختياري)',
-        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–5.75) (إجباري)',
+        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–100) (إجباري)',
         'فئة الضريبة (إجباري)', 'اسم وحدة البيع بالعربية (اختياري)',
         'اسم وحدة البيع بالإنجليزية (اختياري)',
     ];
@@ -49,14 +49,14 @@ final class SellerCatalogImportController extends Controller
         'SKU code (required)', 'Barcode (optional)', 'Store (optional)', 'Category (required)',
         'Arabic product name (required)', 'English product name (required)',
         'Arabic description (optional)', 'English description (optional)',
-        'Price SAR (1–5.75) (required)', 'VAT class (required)',
+        'Price SAR (1–100) (required)', 'VAT class (required)',
         'Arabic variant name (optional)', 'English variant name (optional)',
     ];
     private const IMAGE_FORM_HEADERS = [
         'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
         'التصنيف (إجباري)', 'اسم المنتج بالعربية (إجباري)',
         'اسم المنتج بالإنجليزية (إجباري)', 'الوصف بالعربية (اختياري)',
-        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–5.75) (إجباري)',
+        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–100) (إجباري)',
         'فئة الضريبة (إجباري)', 'اسم وحدة البيع بالعربية (اختياري)',
         'اسم وحدة البيع بالإنجليزية (اختياري)',
         'رابط صورة المنتج HTTPS (اختياري)', 'صورة داخل Excel (اختياري)',
@@ -71,7 +71,7 @@ final class SellerCatalogImportController extends Controller
         'SKU code (required)', 'Barcode (optional)', 'Store (optional)', 'Category (required)',
         'Arabic product name (required)', 'English product name (required)',
         'Arabic description (optional)', 'English description (optional)',
-        'Price SAR (1–5.75) (required)', 'VAT class (required)',
+        'Price SAR (1–100) (required)', 'VAT class (required)',
         'Arabic variant name (optional)', 'English variant name (optional)',
         'HTTPS image URL (optional)', 'Embedded Excel image (optional)',
     ];
@@ -79,28 +79,28 @@ final class SellerCatalogImportController extends Controller
     private const PREVIOUS_FORM_HEADERS = [
         'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
         'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'الوصف بالعربية',
-        'الوصف بالإنجليزية', 'السعر بالريال (1–5.75)', 'فئة الضريبة',
+        'الوصف بالإنجليزية', 'السعر بالريال (1–100)', 'فئة الضريبة',
     ];
     private const LEGACY_FORM_HEADERS = [
         'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
         'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'الوصف بالعربية',
-        'الوصف بالإنجليزية', 'السعر بالريال (1–5.75)', 'فئة الضريبة',
+        'الوصف بالإنجليزية', 'السعر بالريال (1–100)', 'فئة الضريبة',
     ];
     private const LEGACY_ENGLISH_FORM_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store', 'Category',
         'Arabic product name', 'English product name', 'Arabic description',
-        'English description', 'Price SAR (1–5.75)', 'VAT class',
+        'English description', 'Price SAR (1–100)', 'VAT class',
     ];
     private const ENGLISH_FORM_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store (optional)', 'Category (required)',
         'Arabic product name (required)', 'English product name (required)',
         'Arabic description (optional)', 'English description (optional)',
-        'Price SAR (1–5.75) (required)', 'VAT class (required)',
+        'Price SAR (1–100) (required)', 'VAT class (required)',
     ];
     private const PREVIOUS_ENGLISH_FORM_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store', 'Category',
         'Arabic product name', 'English product name', 'Arabic description',
-        'English description', 'Price SAR (1–5.75)', 'VAT class',
+        'English description', 'Price SAR (1–100)', 'VAT class',
     ];
 
 
@@ -314,7 +314,7 @@ final class SellerCatalogImportController extends Controller
             // Accept older downloaded templates while enforcing the current price range.
             // Compare the normalized caption only; price values are checked separately.
             if (isset($header[8])) {
-                $header[8] = str_replace('1–10', '1–5.75', $header[8]);
+                $header[8] = str_replace(['1–10', '1–5.75'], '1–100', $header[8]);
             }
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
@@ -409,7 +409,7 @@ final class SellerCatalogImportController extends Controller
                     }
                     // Avoid float rounding for prices; the UI shows SAR and the API stores halalas.
                     if (!preg_match('/^[0-9]+(?:\\.[0-9]{1,2})?$/D', $priceSar)) {
-                        $errors[] = "الصف {$line} - عمود السعر بالريال: القيمة «{$priceSar}» غير صحيحة. أدخل رقمًا من 1 إلى 5.75 مثل 5.75، بفاصلة عشرية نقطة وبحد أقصى منزلتين.";
+                        $errors[] = "الصف {$line} - عمود السعر بالريال: القيمة «{$priceSar}» غير صحيحة. أدخل رقمًا من 1 إلى 100 مثل 5.75، بفاصلة عشرية نقطة وبحد أقصى منزلتين.";
                         continue;
                     }
                     $priceParts = explode('.', $priceSar, 2);
@@ -469,8 +469,8 @@ final class SellerCatalogImportController extends Controller
                 if ($row['name_ar'] === '') $rowErrors[] = 'الاسم بالعربية: مطلوب';
                 if ($row['name_en'] === '') $rowErrors[] = 'الاسم بالإنجليزية: مطلوب';
                 if ($row['price_halalas'] === '' || !ctype_digit($row['price_halalas']) ||
-                    (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 575)
-                    $rowErrors[] = 'السعر: يجب أن يكون من 1 إلى 5.75 ريال';
+                    (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 10000)
+                    $rowErrors[] = 'السعر: يجب أن يكون من 1 إلى 100 ريال';
                 if (!in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true))
                     $rowErrors[] = 'فئة الضريبة: القيمة «'.$row['vat_class'].'» غير صحيحة؛ اختر قياسية أو صفرية أو معفاة';
                 $justification = trim((string) $row['vat_justification']);
@@ -486,13 +486,13 @@ final class SellerCatalogImportController extends Controller
                     continue;
                 }
                 if (!ctype_digit($row['category_id']) || !ctype_digit($row['price_halalas'])
-                    || (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 575
+                    || (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 10000
                     || !in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true)
                     || $sku === '' || strlen($sku) > 100
                     || $barcode !== '' && strlen($barcode) > 100
                     || $row['name_ar'] === '' || $row['name_en'] === ''
                     || mb_strlen($row['name_ar']) > 180 || mb_strlen($row['name_en']) > 180
-                    || mb_strlen($row['description_ar']) > 5750 || mb_strlen($row['description_en']) > 5750) {
+                    || mb_strlen($row['description_ar']) > 100000 || mb_strlen($row['description_en']) > 100000) {
                     $errors[] = "الصف {$line}: تحقق من طول اسم المنتج (حتى 180 حرفًا)، والوصف (حتى 10000 حرف)، ورمز SKU أو الباركود (حتى 100 حرف).";
                     continue;
                 }
