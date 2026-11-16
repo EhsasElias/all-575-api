@@ -99,6 +99,16 @@ final class CourierOperationsController extends Controller
         return response()->json(['data' => ['approval_status' => $data['approved'] ? 'approved' : 'rejected']]);
     }
 
+    public function profile(Request $request): JsonResponse
+    {
+        $courier = $this->courier($request);
+        return response()->json(['data' => [
+            'id' => $courier->id, 'service_zone_id' => $courier->service_zone_id,
+            'approval_status' => $courier->approval_status,
+            'vehicle_type' => $courier->vehicle_type, 'is_online' => (bool) $courier->is_online,
+        ]]);
+    }
+
     public function availability(Request $request): JsonResponse
     {
         $courier = $this->courier($request);
