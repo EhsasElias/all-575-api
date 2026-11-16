@@ -121,6 +121,7 @@ final class CourierOperationsController extends Controller
 
     public function assign(Request $request, string $suborder): JsonResponse
     {
+        abort_if($this->permittedSellers($request) === [], 403);
         $input = $request->validate([
             'courier_profile_id' => ['required', 'integer', 'exists:courier_profiles,id'],
             'reason' => ['nullable', 'string', 'max:300'],
@@ -138,7 +139,7 @@ final class CourierOperationsController extends Controller
             if ($existing) {
                 abort_unless(in_array($existing->status, ['declined', 'expired', 'offered'], true), 409,
                     'Accepted or picked-up assignments cannot be replaced.');
-                abort_if($existing->status === 'offered' && $existing->expires_at > now()
+                abort_if($existing->status === 'offered' && \Illuminate\Support\Carbon::parse($existing->expires_at)->isFuture()
                     && (int) $existing->courier_profile_id === (int) $courier->id, 409,
                     'This courier already has a pending offer.');
                 abort_if($existing->status === 'offered' && empty(trim((string) ($input['reason'] ?? ''))), 422,
@@ -192,7 +193,7 @@ final class CourierOperationsController extends Controller
             $job = DB::table('courier_assignments')->where('id', $assignment)->lockForUpdate()->first();
             abort_unless($job && (int) $job->courier_profile_id === (int) $courier->id, 404);
             abort_unless($job->status === 'offered', 409, 'Offer already answered.');
-            if ($job->expires_at <= now()) {
+            if (\Illuminate\Support\Carbon::parse($job->expires_at)->isPast()) {
                 DB::table('courier_assignments')->where('id', $job->id)
                     ->update(['status' => 'expired', 'updated_at' => now()]);
                 $this->record($job->id, $request->user()->id, $courier->id, 'expired');
@@ -219,7 +220,7 @@ final class CourierOperationsController extends Controller
         $code = DB::transaction(function () use ($request, $suborder): string {
             $assignment = DB::table('courier_assignments')->where('suborder_id', $suborder)->lockForUpdate()->first();
             abort_unless($assignment && $assignment->status === 'accepted', 409, 'No accepted courier.');
-            if ($assignment->pickup_code_encrypted && $assignment->pickup_code_expires_at > now()) {
+            if ($assignment->pickup_code_encrypted && \Illuminate\Support\Carbon::parse($assignment->pickup_code_expires_at)->isFuture()) {
                 return Crypt::decryptString($assignment->pickup_code_encrypted);
             }
             $code = (string) random_int(100000, 999999);
@@ -248,7 +249,7 @@ final class CourierOperationsController extends Controller
             abort_unless($courier->approval_status === 'approved' && $job->status === 'accepted', 409);
             $order = DB::table('suborders')->where('id', $job->suborder_id)->lockForUpdate()->first();
             abort_unless($order && $order->status === 'ready', 409, 'Seller preparation is not ready.');
-            abort_unless($job->pickup_code_hash && $job->pickup_code_expires_at > now()
+            abort_unless($job->pickup_code_hash && \Illuminate\Support\Carbon::parse($job->pickup_code_expires_at)->isFuture()
                 && $job->pickup_attempts < 5, 409, 'Pickup code expired or locked.');
             if (!Hash::check($input['pickup_code'], $job->pickup_code_hash)) {
                 DB::table('courier_assignments')->where('id', $job->id)
@@ -298,6 +299,7 @@ final class CourierOperationsController extends Controller
 
     public function incidentCreate(Request $request): JsonResponse
     {
+        abort_if($this->permittedSellers($request) === [], 403);
         $data = $request->validate([
             'suborder_id' => ['required', 'ulid'],
             'type' => ['required', Rule::in(['complaint', 'refund', 'delivery_issue'])],
@@ -320,6 +322,7 @@ final class CourierOperationsController extends Controller
 
     public function incidentUpdate(Request $request, int $incident): JsonResponse
     {
+        abort_if($this->permittedSellers($request) === [], 403);
         $data = $request->validate([
             'status' => ['required', Rule::in(['open', 'investigating', 'resolved'])],
             'resolution' => ['nullable', 'string', 'max:2000'],
