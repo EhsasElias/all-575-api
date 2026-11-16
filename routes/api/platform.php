@@ -43,6 +43,7 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
         Route::patch('platform/admin/incidents/{incident}', [CourierOperationsController::class, 'incidentUpdate'])
             ->whereNumber('incident');
         Route::get('platform/admin/daily-status', [CourierOperationsController::class, 'daily']);
+        Route::get('courier/profile', [CourierOperationsController::class, 'profile']);
         Route::get('courier/jobs', [CourierOperationsController::class, 'jobs']);
         Route::patch('courier/availability', [CourierOperationsController::class, 'availability']);
         Route::post('courier/jobs/{assignment}/respond', [CourierOperationsController::class, 'respond'])
