@@ -20,7 +20,7 @@ final class SellerCatalogExcelTemplateController extends Controller
         'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
         'التصنيف (إجباري)', 'اسم المنتج بالعربية (إجباري)',
         'اسم المنتج بالإنجليزية (إجباري)', 'الوصف بالعربية (اختياري)',
-        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–10) (إجباري)',
+        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–5.75) (إجباري)',
         'فئة الضريبة (إجباري)',
         'اسم وحدة البيع بالعربية (اختياري)', 'اسم وحدة البيع بالإنجليزية (اختياري)',
         'رابط صورة المنتج HTTPS (اختياري)', 'صورة داخل Excel (اختياري)',
@@ -100,8 +100,8 @@ final class SellerCatalogExcelTemplateController extends Controller
         }
         // Price is entered in SAR and must match the importer price rules.
         $validations .= '<dataValidation type="decimal" operator="between" allowBlank="0" '.
-            'showErrorMessage="1" error="السعر من 1 إلى 10 ريال" sqref="I2:I201">'.
-            '<formula1>1</formula1><formula2>10</formula2></dataValidation>';
+            'showErrorMessage="1" error="السعر من 1 إلى 5.75 ريال" sqref="I2:I201">'.
+            '<formula1>1</formula1><formula2>5.75</formula2></dataValidation>';
 
         $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'.
             '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'.
