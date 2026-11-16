@@ -53,7 +53,9 @@ final class CourierOperationsController extends Controller
 
     public function couriers(Request $request): JsonResponse
     {
-        abort_if($this->permittedSellers($request) === [], 403);
+        $isOwner = DB::table('platform_super_admin_grants')
+            ->where('user_id', $request->user()->id)->where('is_active', true)->exists();
+        abort_if(!$isOwner && $this->permittedSellers($request) === [], 403);
         return response()->json(['data' => DB::table('courier_profiles as c')
             ->join('users as u', 'u.id', '=', 'c.user_id')
             ->select('c.id', 'c.user_id', 'u.name', 'c.service_zone_id',
@@ -161,10 +163,12 @@ final class CourierOperationsController extends Controller
         $jobs = DB::table('courier_assignments as a')
             ->join('suborders as s', 's.id', '=', 'a.suborder_id')
             ->join('orders as o', 'o.id', '=', 's.order_id')
+            ->join('branches as b', 'b.id', '=', 's.branch_id')
             ->where('a.courier_profile_id', $courier->id)
             ->select('a.id', 'a.suborder_id', 'a.status', 'a.expires_at',
                 'a.accepted_at', 'a.picked_up_at', 'a.parcel_count',
-                'o.number as order_number', 's.branch_id', 's.status as suborder_status')
+                'o.number as order_number', 's.branch_id', 'b.lat as pickup_lat',
+                'b.lng as pickup_lng', 's.status as suborder_status')
             ->orderByDesc('a.id')->limit(100)->get();
         return response()->json(['data' => $jobs]);
     }
@@ -260,6 +264,17 @@ final class CourierOperationsController extends Controller
         }, 3);
         abort_if($status === 'invalid_code', 422, 'Incorrect pickup code.');
         return response()->json(['data' => ['status' => $status]]);
+    }
+
+    public function history(Request $request, string $suborder): JsonResponse
+    {
+        $this->scopedOrder($request, $suborder);
+        $events = DB::table('courier_assignment_events as e')
+            ->join('courier_assignments as a', 'a.id', '=', 'e.assignment_id')
+            ->where('a.suborder_id', $suborder)
+            ->select('e.action', 'e.reason', 'e.actor_user_id', 'e.courier_profile_id', 'e.created_at')
+            ->orderBy('e.id')->limit(100)->get();
+        return response()->json(['data' => $events]);
     }
 
     public function incidentIndex(Request $request): JsonResponse
