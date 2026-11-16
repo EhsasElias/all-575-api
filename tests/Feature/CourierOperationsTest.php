@@ -55,7 +55,7 @@ final class CourierOperationsTest extends TestCase
         $this->getJson('/api/v1/courier/jobs')->assertForbidden();
         $this->postJson('/api/v1/platform/admin/orders/01ARZ3NDEKTSV4RRFFQ69G5FAV/assign-courier', [
             'courier_profile_id' => 123,
-        ])->assertUnprocessable();
+        ])->assertForbidden();
     }
 
     public function test_admin_can_propose_courier_but_cannot_approve(): void
