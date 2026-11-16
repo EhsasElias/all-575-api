@@ -492,7 +492,7 @@ final class SellerCatalogImportController extends Controller
                     || $barcode !== '' && strlen($barcode) > 100
                     || $row['name_ar'] === '' || $row['name_en'] === ''
                     || mb_strlen($row['name_ar']) > 180 || mb_strlen($row['name_en']) > 180
-                    || mb_strlen($row['description_ar']) > 100000 || mb_strlen($row['description_en']) > 100000) {
+                    || mb_strlen($row['description_ar']) > 10000 || mb_strlen($row['description_en']) > 10000) {
                     $errors[] = "الصف {$line}: تحقق من طول اسم المنتج (حتى 180 حرفًا)، والوصف (حتى 10000 حرف)، ورمز SKU أو الباركود (حتى 100 حرف).";
                     continue;
                 }
