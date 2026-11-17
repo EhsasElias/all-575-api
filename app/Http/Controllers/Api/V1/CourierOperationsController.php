@@ -185,6 +185,14 @@ final class CourierOperationsController extends Controller
                 'o.number as order_number', 's.branch_id', 'b.lat as pickup_lat',
                 'b.lng as pickup_lng', 's.status as suborder_status')
             ->orderByDesc('a.id')->limit(100)->get();
+        // Expired offers are displayed as expired even before a worker sweeps the database.
+        $jobs->transform(function (object $job): object {
+            if ($job->status === 'offered' && $job->expires_at !== null
+                && \Illuminate\Support\Carbon::parse($job->expires_at)->isPast()) {
+                $job->status = 'expired';
+            }
+            return $job;
+        });
         return response()->json(['data' => $jobs]);
     }
 
@@ -204,7 +212,11 @@ final class CourierOperationsController extends Controller
                 return 'expired';
             }
             if ($data['decision'] === 'accept') {
-                abort_unless((bool) $courier->is_online, 409, 'Go online to accept an offer.');
+                abort_unless((bool) $courier->is_online &&
+                    DB::table('service_zones')->where('id', $courier->service_zone_id)
+                        ->where('is_active', true)->exists(), 409, 'Go online in an active zone to accept.');
+                abort_unless(DB::table('suborders')->where('id', $job->suborder_id)
+                    ->where('status', 'ready')->exists(), 409, 'This order is no longer ready for pickup.');
             }
             $status = $data['decision'] === 'accept' ? 'accepted' : 'declined';
             DB::table('courier_assignments')->where('id', $job->id)->update([
