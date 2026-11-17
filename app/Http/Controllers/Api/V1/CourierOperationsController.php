@@ -286,6 +286,8 @@ final class CourierOperationsController extends Controller
             DB::table('suborders')->where('id', $job->suborder_id)->update([
                 'status' => 'on_the_way', 'picked_up_at' => now(), 'updated_at' => now(),
             ]);
+            // Separate customer hand-over code is issued only after verified seller pickup.
+            app(DeliveryCodes::class)->issue(Suborder::query()->findOrFail($job->suborder_id));
             $this->record($job->id, $request->user()->id, $courier->id, 'picked_up');
             DB::table('order_events')->insert([
                 'order_id' => $order->order_id, 'suborder_id' => $order->id,
