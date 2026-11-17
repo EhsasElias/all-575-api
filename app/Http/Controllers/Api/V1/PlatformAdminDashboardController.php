@@ -55,9 +55,22 @@ final class PlatformAdminDashboardController extends Controller
                 'suborders.seller_id', 'sellers.name_ar as seller_name_ar',
                 'sellers.name_en as seller_name_en',
                 'suborders.branch_id', 'suborders.status',
-                'orders.placed_at', 'suborders.ready_at', 'suborders.picked_up_at')
+                'orders.placed_at', 'suborders.ready_at', 'suborders.picked_up_at',
+                'orders.paid_at')
             ->orderByDesc('suborders.id')
             ->limit($input['limit'] ?? 20)->get();
+        $paidOrderIds = DB::table('payments')
+            ->whereIn('order_id', DB::table('suborders')->whereIn('id', $rows->pluck('id'))->select('order_id'))
+            ->where('status', 'paid')->pluck('order_id');
+        $readyWithPaidPayments = DB::table('suborders')
+            ->whereIn('id', $rows->pluck('id'))->whereIn('order_id', $paidOrderIds)
+            ->pluck('id')->all();
+        $eligible = array_fill_keys($readyWithPaidPayments, true);
+        $rows->transform(function ($row) use ($eligible) {
+            $row->dispatch_eligible = $row->status === 'ready' && $row->ready_at !== null
+                && $row->paid_at !== null && isset($eligible[$row->id]);
+            return $row;
+        });
 
         return response()->json(['data' => $rows]);
     }
