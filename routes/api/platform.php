@@ -48,6 +48,10 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
         Route::patch('courier/availability', [CourierOperationsController::class, 'availability']);
         Route::post('courier/jobs/{assignment}/respond', [CourierOperationsController::class, 'respond'])
             ->whereNumber('assignment')->middleware('throttle:10,1');
+        Route::post('courier/jobs/{assignment}/deliver', [CourierOperationsController::class, 'completeDelivery'])
+            ->whereNumber('assignment')->middleware('throttle:10,1');
+        Route::post('courier/jobs/{assignment}/delivery-failed', [CourierOperationsController::class, 'failedDelivery'])
+            ->whereNumber('assignment')->middleware('throttle:10,1');
         Route::post('courier/jobs/{assignment}/pickup', [CourierOperationsController::class, 'pickup'])
             ->whereNumber('assignment')->middleware('throttle:10,1');
     });
