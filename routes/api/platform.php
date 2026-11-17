@@ -36,7 +36,7 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
             ->whereNumber('courier')->middleware('throttle:10,1');
         Route::post('platform/admin/orders/{suborder}/assign-courier', [CourierOperationsController::class, 'assign'])
             ->middleware('throttle:10,1');
-        Route::get('platform/admin/orders/{suborder}/pickup-code', [CourierOperationsController::class, 'pickupCode']);
+        Route::post('platform/admin/orders/{suborder}/pickup-code', [CourierOperationsController::class, 'pickupCode'])->middleware('throttle:10,1');
         Route::get('platform/admin/orders/{suborder}/courier-history', [CourierOperationsController::class, 'history']);
         Route::get('platform/admin/incidents', [CourierOperationsController::class, 'incidentIndex']);
         Route::post('platform/admin/incidents', [CourierOperationsController::class, 'incidentCreate']);
