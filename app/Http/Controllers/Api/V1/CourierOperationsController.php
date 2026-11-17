@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Domain\Orders\Services\DeliveryCodes;
+use App\Domain\Orders\Models\Suborder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -265,6 +267,7 @@ final class CourierOperationsController extends Controller
                 'status' => 'on_the_way', 'picked_up_at' => now(), 'updated_at' => now(),
             ]);
             $this->record($job->id, $request->user()->id, $courier->id, 'picked_up');
+            app(DeliveryCodes::class)->issue(Suborder::query()->findOrFail($job->suborder_id));
             DB::table('order_events')->insert([
                 'order_id' => $order->order_id, 'suborder_id' => $order->id,
                 'type' => 'courier_picked_up', 'actor' => 'courier',
@@ -275,6 +278,72 @@ final class CourierOperationsController extends Controller
         }, 3);
         abort_if($status === 'invalid_code', 422, 'Incorrect pickup code.');
         return response()->json(['data' => ['status' => $status]]);
+    }
+
+    /** Day 11: only the assigned courier may verify the separate customer delivery code. */
+    public function completeDelivery(Request $request, int $assignment, DeliveryCodes $codes): JsonResponse
+    {
+        $courier = $this->courier($request);
+        abort_unless($courier->approval_status === 'approved', 403);
+        $data = $request->validate(['delivery_code' => ['required', 'string', 'regex:/^[0-9]{4,8}$/']]);
+        $result = DB::transaction(function () use ($request, $assignment, $courier, $codes, $data): array {
+            $job = DB::table('courier_assignments')->where('id', $assignment)->lockForUpdate()->first();
+            abort_unless($job && (int) $job->courier_profile_id === (int) $courier->id, 404);
+            abort_unless($job->status === 'picked_up', 409, 'Pickup must be confirmed first.');
+            $sub = Suborder::query()->lockForUpdate()->findOrFail($job->suborder_id);
+            abort_unless($sub->status->value === 'on_the_way', 409, 'Order is not on the way.');
+            $codes->verify($sub, $data['delivery_code']);
+            $sub->forceFill(['status' => 'delivered', 'delivered_at' => now()])->save();
+            DB::table('courier_assignments')->where('id', $job->id)->update([
+                'status' => 'delivered', 'updated_at' => now(),
+            ]);
+            $this->record($job->id, $request->user()->id, $courier->id, 'delivered');
+            DB::table('order_events')->insert([
+                'order_id' => $sub->order_id, 'suborder_id' => $sub->id,
+                'type' => 'courier_delivered', 'actor' => 'courier',
+                'note' => 'Customer delivery code verified', 'created_at' => now(),
+            ]);
+            $remaining = DB::table('suborders')->where('order_id', $sub->order_id)
+                ->where('status', '!=', 'delivered')->exists();
+            if (!$remaining) {
+                DB::table('orders')->where('id', $sub->order_id)->where('status', 'confirmed')
+                    ->update(['status' => 'completed', 'updated_at' => now()]);
+            }
+            return ['status' => 'delivered'];
+        }, 3);
+        return response()->json(['data' => $result]);
+    }
+
+    /** Day 11: recorded unsuccessful delivery; do not incorrectly move the order to delivered. */
+    public function failedDelivery(Request $request, int $assignment): JsonResponse
+    {
+        $courier = $this->courier($request);
+        abort_unless($courier->approval_status === 'approved', 403);
+        $input = $request->validate([
+            'reason' => ['required', Rule::in(['customer_absent', 'address_not_found', 'customer_unavailable', 'return_required', 'other'])],
+            'details' => ['required', 'string', 'between:10,500'],
+        ]);
+        $incidentId = DB::transaction(function () use ($request, $assignment, $courier, $input): int {
+            $job = DB::table('courier_assignments')->where('id', $assignment)->lockForUpdate()->first();
+            abort_unless($job && (int) $job->courier_profile_id === (int) $courier->id, 404);
+            abort_unless($job->status === 'picked_up', 409);
+            $sub = DB::table('suborders')->where('id', $job->suborder_id)->lockForUpdate()->first();
+            abort_unless($sub && $sub->status === 'on_the_way', 409);
+            $id = DB::table('delivery_incidents')->insertGetId([
+                'suborder_id' => $sub->id, 'reported_by' => $request->user()->id,
+                'type' => 'delivery_issue', 'status' => 'open',
+                'description' => $input['reason'].': '.$input['details'],
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $this->record($job->id, $request->user()->id, $courier->id, 'delivery_failed', $input['reason']);
+            DB::table('order_events')->insert([
+                'order_id' => $sub->order_id, 'suborder_id' => $sub->id,
+                'type' => 'courier_delivery_failed', 'actor' => 'courier',
+                'note' => $input['reason'], 'created_at' => now(),
+            ]);
+            return $id;
+        }, 3);
+        return response()->json(['data' => ['incident_id' => $incidentId, 'status' => 'open']], 201);
     }
 
     public function history(Request $request, string $suborder): JsonResponse
