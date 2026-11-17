@@ -59,12 +59,18 @@ final class CourierOperationsController extends Controller
     {
         $isOwner = DB::table('platform_super_admin_grants')
             ->where('user_id', $request->user()->id)->where('is_active', true)->exists();
-        abort_if(!$isOwner && $this->permittedSellers($request) === [], 403);
-        return response()->json(['data' => DB::table('courier_profiles as c')
+        $sellerIds = $isOwner ? [] : $this->permittedSellers($request);
+        abort_if(!$isOwner && $sellerIds === [], 403);
+        $rows = DB::table('courier_profiles as c')
             ->join('users as u', 'u.id', '=', 'c.user_id')
+            ->where('u.is_active', true)
+            // A scoped Admin must not enumerate drivers from unrelated service zones.
+            ->when(!$isOwner, fn ($q) => $q->whereIn('c.service_zone_id',
+                DB::table('branches')->select('service_zone_id')->whereIn('seller_id', $sellerIds)))
             ->select('c.id', 'c.user_id', 'u.name', 'c.service_zone_id',
                 'c.vehicle_type', 'c.approval_status', 'c.is_online')
-            ->orderBy('c.id')->limit(200)->get()]);
+            ->orderBy('c.id')->limit(200)->get();
+        return response()->json(['data' => $rows]);
     }
 
     public function register(Request $request): JsonResponse
