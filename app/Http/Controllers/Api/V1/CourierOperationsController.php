@@ -135,8 +135,10 @@ final class CourierOperationsController extends Controller
         $result = DB::transaction(function () use ($request, $suborder, $input): array {
             $order = $this->scopedOrder($request, $suborder, true);
             abort_unless($order->status === 'ready' && $order->ready_at !== null
-                && $order->paid_at !== null && in_array($order->order_status, ['confirmed', 'completed'], true),
-                409, 'Only paid, seller-ready orders can be assigned.');
+                && $order->paid_at !== null && in_array($order->order_status, ['confirmed', 'completed'], true)
+                && DB::table('payments')->where('order_id', $order->order_id)
+                    ->where('status', 'paid')->exists(),
+                409, 'Verified payment and seller readiness are required before dispatch.');
             $courier = DB::table('courier_profiles')->where('id', $input['courier_profile_id'])->first();
             abort_unless($courier && $courier->approval_status === 'approved'
                 && (bool) $courier->is_online && (int) $courier->service_zone_id === (int) $order->service_zone_id,
