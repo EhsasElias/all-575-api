@@ -35,7 +35,7 @@ final class CourierOperationsController extends Controller
 
     private function courier(Request $request): object
     {
-        abort_unless($request->user()->is_active, 403);
+        abort_unless($request->user()->is_active && $request->user()->isVerified(), 403);
         $courier = DB::table('courier_profiles')
             ->where('user_id', $request->user()->id)->first();
         abort_unless($courier !== null, 403);
@@ -72,6 +72,8 @@ final class CourierOperationsController extends Controller
             'vehicle_type' => ['required', 'string', Rule::in(['motorcycle', 'car', 'van', 'bicycle'])],
         ]);
         // Admin can propose an existing verified user, but cannot approve them.
+        abort_unless(DB::table('service_zones')->where('id', $data['service_zone_id'])->where('is_active', true)->exists(),
+            422, 'Courier service zone must be active.');
         $user = DB::table('users')->where('id', $data['user_id'])->where('is_active', true)
             ->where(function ($q): void {
                 $q->whereNotNull('email_verified_at')->orWhereNotNull('phone_verified_at');
@@ -112,7 +114,9 @@ final class CourierOperationsController extends Controller
     public function availability(Request $request): JsonResponse
     {
         $courier = $this->courier($request);
-        abort_unless($courier->approval_status === 'approved', 403);
+        abort_unless($courier->approval_status === 'approved' &&
+            DB::table('service_zones')->where('id', $courier->service_zone_id)->where('is_active', true)->exists(),
+            403, 'Courier must be approved and assigned to an active service zone.');
         $data = $request->validate(['is_online' => ['required', 'boolean']]);
         DB::table('courier_profiles')->where('id', $courier->id)
             ->update(['is_online' => $data['is_online'], 'updated_at' => now()]);
