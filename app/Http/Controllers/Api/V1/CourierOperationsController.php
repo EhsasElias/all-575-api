@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Domain\Orders\Models\Suborder;
 use App\Domain\Orders\Services\DeliveryCodes;
+use App\Domain\Notifications\CourierMilestoneNotifications;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -297,6 +298,7 @@ final class CourierOperationsController extends Controller
                 'note' => 'Seller pickup verified', 'meta' => json_encode(['parcel_count' => $input['parcel_count']]),
                 'created_at' => now(),
             ]);
+            DB::afterCommit(fn () => app(CourierMilestoneNotifications::class)->send($order->id, 'picked_up'));
             return 'picked_up';
         }, 3);
         abort_if($status === 'invalid_code', 422, 'Incorrect pickup code.');
@@ -330,6 +332,7 @@ final class CourierOperationsController extends Controller
                 'type' => 'courier_delivered', 'actor' => 'courier',
                 'note' => 'Customer handover code verified', 'created_at' => now(),
             ]);
+            DB::afterCommit(fn () => app(CourierMilestoneNotifications::class)->send($suborder->id, 'delivered'));
             $remaining = DB::table('suborders')->where('order_id', $suborder->order_id)
                 ->whereNotIn('status', ['delivered', 'cancelled'])->exists();
             if (!$remaining && $order && $order->status === 'confirmed') {
@@ -374,6 +377,7 @@ final class CourierOperationsController extends Controller
                 'type' => 'delivery_attempt_failed', 'actor' => 'courier',
                 'note' => $data['reason'], 'created_at' => now(),
             ]);
+            DB::afterCommit(fn () => app(CourierMilestoneNotifications::class)->send($order->id, 'delivery_failed'));
             // Do not mark returned/delivered without an approved follow-up process.
             return ['attempt_id' => $attempt, 'status' => 'needs_admin_review'];
         }, 3);
