@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Domain\Orders\Models\Suborder;
+use App\Domain\Orders\Services\DeliveryCodes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -295,6 +297,98 @@ final class CourierOperationsController extends Controller
         }, 3);
         abort_if($status === 'invalid_code', 422, 'Incorrect pickup code.');
         return response()->json(['data' => ['status' => $status]]);
+    }
+
+    public function deliver(Request $request, int $assignment, DeliveryCodes $codes): JsonResponse
+    {
+        $courier = $this->courier($request);
+        abort_unless($courier->approval_status === 'approved', 403);
+        $input = $request->validate(['delivery_code' => ['required', 'digits:6']]);
+
+        // Verifying the existing customer-specific delivery code and state transition
+        // occur in one transaction: invalid codes never mark a delivery as completed.
+        $outcome = DB::transaction(function () use ($request, $courier, $assignment, $input, $codes): array {
+            $job = DB::table('courier_assignments')->where('id', $assignment)->lockForUpdate()->first();
+            abort_unless($job && (int) $job->courier_profile_id === (int) $courier->id, 404);
+            abort_unless($job->status === 'picked_up', 409, 'Seller pickup has not been verified.');
+            $suborder = Suborder::query()->lockForUpdate()->findOrFail($job->suborder_id);
+            abort_unless($suborder->status->value === 'on_the_way', 409, 'Suborder not in transit.');
+            $codes->verify($suborder, $input['delivery_code']);
+
+            $suborder->forceFill(['status' => 'delivered', 'delivered_at' => now()])->save();
+            DB::table('courier_assignments')->where('id', $job->id)->update([
+                'status' => 'delivered', 'updated_at' => now(),
+            ]);
+            $this->record($job->id, $request->user()->id, $courier->id, 'delivered');
+            $order = DB::table('orders')->where('id', $suborder->order_id)->lockForUpdate()->first();
+            DB::table('order_events')->insert([
+                'order_id' => $suborder->order_id, 'suborder_id' => $suborder->id,
+                'type' => 'courier_delivered', 'actor' => 'courier',
+                'note' => 'Customer handover code verified', 'created_at' => now(),
+            ]);
+            $remaining = DB::table('suborders')->where('order_id', $suborder->order_id)
+                ->whereNotIn('status', ['delivered', 'cancelled'])->exists();
+            if (!$remaining && $order && $order->status === 'confirmed') {
+                DB::table('orders')->where('id', $order->id)->update([
+                    'status' => 'completed', 'updated_at' => now(),
+                ]);
+            }
+            return ['status' => 'delivered', 'order_id' => $suborder->order_id];
+        }, 3);
+        return response()->json(['data' => $outcome]);
+    }
+
+    public function failedDelivery(Request $request, int $assignment): JsonResponse
+    {
+        $courier = $this->courier($request);
+        abort_unless($courier->approval_status === 'approved', 403);
+        $data = $request->validate([
+            'reason' => ['required', Rule::in(['customer_absent', 'address_issue', 'customer_refused', 'return_required', 'other'])],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $response = DB::transaction(function () use ($request, $courier, $assignment, $data): array {
+            $job = DB::table('courier_assignments')->where('id', $assignment)->lockForUpdate()->first();
+            abort_unless($job && (int) $job->courier_profile_id === (int) $courier->id, 404);
+            abort_unless($job->status === 'picked_up', 409, 'Only in-transit jobs can report failed delivery.');
+            $order = DB::table('suborders')->where('id', $job->suborder_id)
+                ->where('status', 'on_the_way')->first(['id', 'order_id']);
+            abort_unless($order, 409);
+            $attempt = DB::table('courier_delivery_attempts')->insertGetId([
+                'assignment_id' => $job->id, 'courier_profile_id' => $courier->id,
+                'reason' => $data['reason'], 'notes' => $data['notes'] ?? null,
+                'attempted_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            DB::table('delivery_incidents')->insert([
+                'suborder_id' => $order->id, 'reported_by' => $request->user()->id,
+                'type' => 'delivery_issue', 'status' => 'open',
+                'description' => 'Delivery failed: '.$data['reason'].(!empty($data['notes']) ? ' - '.$data['notes'] : ''),
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $this->record($job->id, $request->user()->id, $courier->id, 'delivery_failed', $data['reason']);
+            DB::table('order_events')->insert([
+                'order_id' => $order->order_id, 'suborder_id' => $order->id,
+                'type' => 'delivery_attempt_failed', 'actor' => 'courier',
+                'note' => $data['reason'], 'created_at' => now(),
+            ]);
+            // Do not mark returned/delivered without an approved follow-up process.
+            return ['attempt_id' => $attempt, 'status' => 'needs_admin_review'];
+        }, 3);
+        return response()->json(['data' => $response], 201);
+    }
+
+    public function myHistory(Request $request): JsonResponse
+    {
+        $courier = $this->courier($request);
+        $rows = DB::table('courier_assignments as a')
+            ->join('suborders as s', 's.id', '=', 'a.suborder_id')
+            ->join('orders as o', 'o.id', '=', 's.order_id')
+            ->where('a.courier_profile_id', $courier->id)
+            ->whereIn('a.status', ['declined', 'expired', 'delivered'])
+            ->select('a.id', 'a.status', 'a.accepted_at', 'a.picked_up_at',
+                'a.parcel_count', 'o.number as order_number')
+            ->orderByDesc('a.updated_at')->limit(100)->get();
+        return response()->json(['data' => $rows, 'earnings' => null,
+            'earnings_note' => 'Courier earnings are not configured.']);
     }
 
     public function history(Request $request, string $suborder): JsonResponse
