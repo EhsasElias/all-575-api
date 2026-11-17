@@ -236,6 +236,9 @@ final class CourierOperationsController extends Controller
         $code = DB::transaction(function () use ($request, $suborder): string {
             $assignment = DB::table('courier_assignments')->where('suborder_id', $suborder)->lockForUpdate()->first();
             abort_unless($assignment && $assignment->status === 'accepted', 409, 'No accepted courier.');
+            abort_if($assignment->pickup_attempts >= 5 && $assignment->pickup_code_expires_at &&
+                \Illuminate\Support\Carbon::parse($assignment->pickup_code_expires_at)->isFuture(),
+                429, 'Pickup code locked after too many attempts. Contact support.');
             if ($assignment->pickup_code_encrypted && \Illuminate\Support\Carbon::parse($assignment->pickup_code_expires_at)->isFuture()) {
                 return Crypt::decryptString($assignment->pickup_code_encrypted);
             }
@@ -263,6 +266,7 @@ final class CourierOperationsController extends Controller
             $job = DB::table('courier_assignments')->where('id', $assignment)->lockForUpdate()->first();
             abort_unless($job && (int) $job->courier_profile_id === (int) $courier->id, 404);
             abort_unless($courier->approval_status === 'approved' && $job->status === 'accepted', 409);
+            abort_unless($request->user()->isVerified(), 403);
             $order = DB::table('suborders')->where('id', $job->suborder_id)->lockForUpdate()->first();
             abort_unless($order && $order->status === 'ready', 409, 'Seller preparation is not ready.');
             abort_unless($job->pickup_code_hash && \Illuminate\Support\Carbon::parse($job->pickup_code_expires_at)->isFuture()
