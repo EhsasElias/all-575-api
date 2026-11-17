@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Domain\Orders\Models\Suborder;
+use App\Domain\Orders\Models\DeliveryCode;
 use App\Domain\Orders\Services\DeliveryCodes;
 use App\Domain\Notifications\CourierMilestoneNotifications;
 use Illuminate\Http\JsonResponse;
@@ -305,7 +306,7 @@ final class CourierOperationsController extends Controller
         return response()->json(['data' => ['status' => $status]]);
     }
 
-    public function deliver(Request $request, int $assignment, DeliveryCodes $codes): JsonResponse
+    public function deliver(Request $request, int $assignment): JsonResponse
     {
         $courier = $this->courier($request);
         abort_unless($courier->approval_status === 'approved', 403);
@@ -313,13 +314,28 @@ final class CourierOperationsController extends Controller
 
         // Verifying the existing customer-specific delivery code and state transition
         // occur in one transaction: invalid codes never mark a delivery as completed.
-        $outcome = DB::transaction(function () use ($request, $courier, $assignment, $input, $codes): array {
+        $outcome = DB::transaction(function () use ($request, $courier, $assignment, $input): array {
             $job = DB::table('courier_assignments')->where('id', $assignment)->lockForUpdate()->first();
             abort_unless($job && (int) $job->courier_profile_id === (int) $courier->id, 404);
             abort_unless($job->status === 'picked_up', 409, 'Seller pickup has not been verified.');
             $suborder = Suborder::query()->lockForUpdate()->findOrFail($job->suborder_id);
             abort_unless($suborder->status->value === 'on_the_way', 409, 'Suborder not in transit.');
-            $codes->verify($suborder, $input['delivery_code']);
+            // Keep failed-attempt increments committed: an exception inside this outer
+            // transaction would roll them back, allowing unlimited guesses.
+            $code = DeliveryCode::query()->where('suborder_id', $suborder->id)
+                ->lockForUpdate()->first();
+            if ($code === null || $code->verified_at !== null || $code->expires_at->isPast()) {
+                return ['status' => 'code_unavailable'];
+            }
+            if ($code->attempts >= $code->max_attempts) {
+                return ['status' => 'code_locked'];
+            }
+            if (!hash_equals($code->code_encrypted, $input['delivery_code'])) {
+                $code->increment('attempts');
+                return ['status' => 'incorrect_code',
+                    'attempts_remaining' => max(0, $code->max_attempts - $code->attempts)];
+            }
+            $code->forceFill(['verified_at' => now()])->save();
 
             $suborder->forceFill(['status' => 'delivered', 'delivered_at' => now()])->save();
             DB::table('courier_assignments')->where('id', $job->id)->update([
@@ -342,6 +358,9 @@ final class CourierOperationsController extends Controller
             }
             return ['status' => 'delivered', 'order_id' => $suborder->order_id];
         }, 3);
+        abort_if($outcome['status'] === 'code_unavailable', 409, 'Delivery code expired or unavailable.');
+        abort_if($outcome['status'] === 'code_locked', 429, 'Delivery code locked. Contact support.');
+        abort_if($outcome['status'] === 'incorrect_code', 422, 'Incorrect delivery code.');
         return response()->json(['data' => $outcome]);
     }
 
