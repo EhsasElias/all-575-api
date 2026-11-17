@@ -88,6 +88,8 @@ class OrderDetailResource extends OrderResource
             'status' => $suborder->status,
             'seller' => new SellerResource($suborder->seller),
             'eta' => ['at' => $suborder->eta_at, 'reason' => $suborder->eta_reason],
+            'pickup_at' => $suborder->picked_up_at?->toIso8601String(),
+            'delivered_at' => $suborder->delivered_at?->toIso8601String(),
             'items' => $suborder->items->map(fn (OrderItem $item): array => [
                 'product_slug' => $item->product_slug,
                 'name' => ['ar' => $item->name_ar, 'en' => $item->name_en],
