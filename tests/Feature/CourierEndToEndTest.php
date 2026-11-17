@@ -105,7 +105,7 @@ final class CourierEndToEndTest extends TestCase
         ])->assertStatus(409);
 
         Sanctum::actingAs($f['admin'], ['customer']);
-        $pickup = $this->getJson('/api/v1/platform/admin/orders/'.$f['suborder'].'/pickup-code')
+        $pickup = $this->postJson('/api/v1/platform/admin/orders/'.$f['suborder'].'/pickup-code')
             ->assertOk()->json('data.pickup_code');
         Sanctum::actingAs($f['courier'], ['customer']);
         $this->postJson('/api/v1/courier/jobs/'.$assignment.'/pickup', [
@@ -180,7 +180,7 @@ final class CourierEndToEndTest extends TestCase
         Sanctum::actingAs($f['courier'], ['customer']);
         $this->postJson('/api/v1/courier/jobs/'.$assignment.'/respond', ['decision' => 'accept'])->assertOk();
         Sanctum::actingAs($f['admin'], ['customer']);
-        $code = $this->getJson('/api/v1/platform/admin/orders/'.$f['suborder'].'/pickup-code')
+        $code = $this->postJson('/api/v1/platform/admin/orders/'.$f['suborder'].'/pickup-code')
             ->assertOk()->json('data.pickup_code');
         Sanctum::actingAs($f['courier'], ['customer']);
         $this->postJson('/api/v1/courier/jobs/'.$assignment.'/pickup', [
