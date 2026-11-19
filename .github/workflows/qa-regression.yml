@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   phpunit:
@@ -14,8 +14,6 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
@@ -23,20 +21,5 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: cp .env.example .env && php artisan key:generate
-      # Execute behavioral tests even when the separate code-style gate is failing.
       - name: Laravel API feature and unit tests
         run: php artisan test
-
-      - name: Autoformat existing PHP style issues on QA branch only
-        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/qa-regression-20261119' }}
-        run: |
-          vendor/bin/pint
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -u -- '*.php'
-          if git diff --cached --quiet; then
-            echo "All PHP files already follow Pint."
-          else
-            git commit -m "Apply Laravel Pint formatting to PHP sources"
-            git push origin HEAD:refs/heads/fix/qa-regression-20261119
-          fi
