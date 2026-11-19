@@ -24,3 +24,14 @@ jobs:
       # The main CI stops at Pint; QA must still execute all behavioral assertions.
       - name: Laravel API feature and unit tests
         run: php artisan test
+      # Export the current generated contract for review; do not quietly update the checked-in source.
+      - name: Export current OpenAPI contract
+        if: always()
+        run: composer openapi
+      - name: Upload generated contract for comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-generated-openapi
+          path: docs/api/openapi.json
+          retention-days: 7
