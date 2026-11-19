@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   phpunit:
@@ -14,8 +14,6 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
@@ -23,35 +21,6 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: cp .env.example .env && php artisan key:generate
-      # The main CI stops at Pint; QA must still execute all behavioral assertions.
+      # Execute behavioral tests even when the separate code-style gate is failing.
       - name: Laravel API feature and unit tests
         run: php artisan test
-      # Export the current generated contract for review; do not quietly update the checked-in source.
-      - name: Prepare isolated SQLite schema for OpenAPI analysis
-        if: always()
-        run: |
-          mkdir -p database
-          touch database/database.sqlite
-          php artisan migrate --force
-      - name: Export current OpenAPI contract
-        if: always()
-        run: composer openapi
-      - name: Upload generated contract for comparison
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: qa-generated-openapi
-          path: docs/api/openapi.json
-          retention-days: 7
-      - name: Commit regenerated contract on the isolated QA branch
-        if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/qa-regression-20261119' }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/api/openapi.json
-          if git diff --cached --quiet; then
-            echo "OpenAPI already matches generated version."
-          else
-            git commit -m "Regenerate OpenAPI contract from current Laravel routes"
-            git push origin HEAD:refs/heads/fix/qa-regression-20261119
-          fi
