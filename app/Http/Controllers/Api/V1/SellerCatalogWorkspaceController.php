@@ -41,6 +41,7 @@ class SellerCatalogWorkspaceController extends Controller
             $zoneIds = ($coverage->get($branch->id) ?? collect())
                 ->pluck('service_zone_id')->map(fn ($id): int => (int) $id)->all();
             $branch->service_zone_ids = $zoneIds === [] ? [(int) $branch->service_zone_id] : $zoneIds;
+
             return $branch;
         });
 

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Identity\Models\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 final class SuperAdminAccountController extends Controller
 {
@@ -41,14 +43,16 @@ final class SuperAdminAccountController extends Controller
             DB::table('users')->where('id', $user)->update($input + ['updated_at' => now()]);
             if (array_key_exists('is_active', $input) && ! $input['is_active']) {
                 DB::table('personal_access_tokens')->where('tokenable_type',
-                    \App\Domain\Identity\Models\User::class)->where('tokenable_id', $user)->delete();
+                    User::class)->where('tokenable_id', $user)->delete();
             }
+
             return DB::table('users')->where('id', $user)
                 ->first(['id', 'name', 'email', 'is_active', 'created_at']);
         }, 3);
 
         return response()->json(['data' => $result], 200);
     }
+
     public function updateSeller(Request $request, int $seller): JsonResponse
     {
         $this->authorizeOwner($request);
@@ -70,18 +74,18 @@ final class SuperAdminAccountController extends Controller
             }
             $updates['updated_at'] = now();
             DB::table('sellers')->where('id', $seller)->update($updates);
-            \Illuminate\Support\Facades\Log::info('platform.super_admin.seller_updated', [
+            Log::info('platform.super_admin.seller_updated', [
                 'actor_user_id' => $request->user()->id,
                 'seller_id' => $seller,
                 'previous_status' => $existing->status,
                 'new_status' => $updates['status'] ?? $existing->status,
                 'updated_fields' => array_keys($input),
             ]);
+
             return DB::table('sellers')->where('id', $seller)
                 ->first(['id', 'name_ar', 'name_en', 'status', 'created_at']);
         }, 3);
 
         return response()->json(['data' => $result]);
     }
-
 }

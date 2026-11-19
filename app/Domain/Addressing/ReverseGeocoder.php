@@ -46,6 +46,7 @@ class ReverseGeocoder
                 if (count($endpoints) === 1) {
                     abort(429, 'Try address lookup again shortly.');
                 }
+
                 continue;
             }
 

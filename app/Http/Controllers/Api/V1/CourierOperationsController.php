@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -17,6 +18,7 @@ final class CourierOperationsController extends Controller
     private function permittedSellers(Request $request): array
     {
         abort_unless($request->user()->is_active, 403);
+
         return DB::table('platform_admin_access')->where('user_id', $request->user()->id)
             ->where('is_active', true)->where('can_view_orders', true)->pluck('seller_id')->all();
     }
@@ -30,6 +32,7 @@ final class CourierOperationsController extends Controller
             ->select('suborders.*', 'orders.service_zone_id', 'orders.paid_at', 'orders.status as order_status');
         $row = ($lock ? $q->lockForUpdate() : $q)->first();
         abort_unless($row, 404);
+
         return $row;
     }
 
@@ -39,6 +42,7 @@ final class CourierOperationsController extends Controller
         $courier = DB::table('courier_profiles')
             ->where('user_id', $request->user()->id)->first();
         abort_unless($courier !== null, 403);
+
         return $courier;
     }
 
@@ -55,7 +59,8 @@ final class CourierOperationsController extends Controller
     {
         $isOwner = DB::table('platform_super_admin_grants')
             ->where('user_id', $request->user()->id)->where('is_active', true)->exists();
-        abort_if(!$isOwner && $this->permittedSellers($request) === [], 403);
+        abort_if(! $isOwner && $this->permittedSellers($request) === [], 403);
+
         return response()->json(['data' => DB::table('courier_profiles as c')
             ->join('users as u', 'u.id', '=', 'c.user_id')
             ->select('c.id', 'c.user_id', 'u.name', 'c.service_zone_id',
@@ -82,6 +87,7 @@ final class CourierOperationsController extends Controller
             'approval_status' => 'pending', 'is_online' => false,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+
         return response()->json(['data' => ['id' => $id, 'approval_status' => 'pending']], 201);
     }
 
@@ -96,12 +102,14 @@ final class CourierOperationsController extends Controller
             'is_online' => false, 'updated_at' => now(),
         ]);
         abort_unless($changed, 404);
+
         return response()->json(['data' => ['approval_status' => $data['approved'] ? 'approved' : 'rejected']]);
     }
 
     public function profile(Request $request): JsonResponse
     {
         $courier = $this->courier($request);
+
         return response()->json(['data' => [
             'id' => $courier->id, 'service_zone_id' => $courier->service_zone_id,
             'approval_status' => $courier->approval_status,
@@ -116,6 +124,7 @@ final class CourierOperationsController extends Controller
         $data = $request->validate(['is_online' => ['required', 'boolean']]);
         DB::table('courier_profiles')->where('id', $courier->id)
             ->update(['is_online' => $data['is_online'], 'updated_at' => now()]);
+
         return response()->json(['data' => ['is_online' => $data['is_online']]]);
     }
 
@@ -139,7 +148,7 @@ final class CourierOperationsController extends Controller
             if ($existing) {
                 abort_unless(in_array($existing->status, ['declined', 'expired', 'offered'], true), 409,
                     'Accepted or picked-up assignments cannot be replaced.');
-                abort_if($existing->status === 'offered' && \Illuminate\Support\Carbon::parse($existing->expires_at)->isFuture()
+                abort_if($existing->status === 'offered' && Carbon::parse($existing->expires_at)->isFuture()
                     && (int) $existing->courier_profile_id === (int) $courier->id, 409,
                     'This courier already has a pending offer.');
                 abort_if($existing->status === 'offered' && empty(trim((string) ($input['reason'] ?? ''))), 422,
@@ -162,8 +171,10 @@ final class CourierOperationsController extends Controller
             }
             $this->record($id, $request->user()->id, $courier->id,
                 $existing ? 'reassigned' : 'assigned', $input['reason'] ?? null);
+
             return ['assignment_id' => $id, 'status' => 'offered'];
         }, 3);
+
         return response()->json(['data' => $result]);
     }
 
@@ -181,6 +192,7 @@ final class CourierOperationsController extends Controller
                 'o.number as order_number', 's.branch_id', 'b.lat as pickup_lat',
                 'b.lng as pickup_lng', 's.status as suborder_status')
             ->orderByDesc('a.id')->limit(100)->get();
+
         return response()->json(['data' => $jobs]);
     }
 
@@ -193,10 +205,11 @@ final class CourierOperationsController extends Controller
             $job = DB::table('courier_assignments')->where('id', $assignment)->lockForUpdate()->first();
             abort_unless($job && (int) $job->courier_profile_id === (int) $courier->id, 404);
             abort_unless($job->status === 'offered', 409, 'Offer already answered.');
-            if (\Illuminate\Support\Carbon::parse($job->expires_at)->isPast()) {
+            if (Carbon::parse($job->expires_at)->isPast()) {
                 DB::table('courier_assignments')->where('id', $job->id)
                     ->update(['status' => 'expired', 'updated_at' => now()]);
                 $this->record($job->id, $request->user()->id, $courier->id, 'expired');
+
                 return 'expired';
             }
             if ($data['decision'] === 'accept') {
@@ -208,8 +221,10 @@ final class CourierOperationsController extends Controller
                 'updated_at' => now(),
             ]);
             $this->record($job->id, $request->user()->id, $courier->id, $status);
+
             return $status;
         }, 3);
+
         return response()->json(['data' => ['status' => $status]], $status === 'expired' ? 409 : 200);
     }
 
@@ -220,7 +235,7 @@ final class CourierOperationsController extends Controller
         $code = DB::transaction(function () use ($request, $suborder): string {
             $assignment = DB::table('courier_assignments')->where('suborder_id', $suborder)->lockForUpdate()->first();
             abort_unless($assignment && $assignment->status === 'accepted', 409, 'No accepted courier.');
-            if ($assignment->pickup_code_encrypted && \Illuminate\Support\Carbon::parse($assignment->pickup_code_expires_at)->isFuture()) {
+            if ($assignment->pickup_code_encrypted && Carbon::parse($assignment->pickup_code_expires_at)->isFuture()) {
                 return Crypt::decryptString($assignment->pickup_code_encrypted);
             }
             $code = (string) random_int(100000, 999999);
@@ -231,8 +246,10 @@ final class CourierOperationsController extends Controller
                 'pickup_attempts' => 0, 'updated_at' => now(),
             ]);
             $this->record($assignment->id, $request->user()->id, $assignment->courier_profile_id, 'code_issued');
+
             return $code;
         }, 3);
+
         return response()->json(['data' => ['pickup_code' => $code]]);
     }
 
@@ -249,11 +266,12 @@ final class CourierOperationsController extends Controller
             abort_unless($courier->approval_status === 'approved' && $job->status === 'accepted', 409);
             $order = DB::table('suborders')->where('id', $job->suborder_id)->lockForUpdate()->first();
             abort_unless($order && $order->status === 'ready', 409, 'Seller preparation is not ready.');
-            abort_unless($job->pickup_code_hash && \Illuminate\Support\Carbon::parse($job->pickup_code_expires_at)->isFuture()
+            abort_unless($job->pickup_code_hash && Carbon::parse($job->pickup_code_expires_at)->isFuture()
                 && $job->pickup_attempts < 5, 409, 'Pickup code expired or locked.');
-            if (!Hash::check($input['pickup_code'], $job->pickup_code_hash)) {
+            if (! Hash::check($input['pickup_code'], $job->pickup_code_hash)) {
                 DB::table('courier_assignments')->where('id', $job->id)
                     ->update(['pickup_attempts' => $job->pickup_attempts + 1, 'updated_at' => now()]);
+
                 return 'invalid_code';
             }
             DB::table('courier_assignments')->where('id', $job->id)->update([
@@ -271,9 +289,11 @@ final class CourierOperationsController extends Controller
                 'note' => 'Seller pickup verified', 'meta' => json_encode(['parcel_count' => $input['parcel_count']]),
                 'created_at' => now(),
             ]);
+
             return 'picked_up';
         }, 3);
         abort_if($status === 'invalid_code', 422, 'Incorrect pickup code.');
+
         return response()->json(['data' => ['status' => $status]]);
     }
 
@@ -285,6 +305,7 @@ final class CourierOperationsController extends Controller
             ->where('a.suborder_id', $suborder)
             ->select('e.action', 'e.reason', 'e.actor_user_id', 'e.courier_profile_id', 'e.created_at')
             ->orderBy('e.id')->limit(100)->get();
+
         return response()->json(['data' => $events]);
     }
 
@@ -294,6 +315,7 @@ final class CourierOperationsController extends Controller
         abort_if($ids === [], 403);
         $rows = DB::table('delivery_incidents as i')->join('suborders as s', 's.id', '=', 'i.suborder_id')
             ->whereIn('s.seller_id', $ids)->select('i.*')->orderByDesc('i.id')->limit(100)->get();
+
         return response()->json(['data' => $rows]);
     }
 
@@ -307,7 +329,7 @@ final class CourierOperationsController extends Controller
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
         ]);
         $this->scopedOrder($request, $data['suborder_id']);
-        if (!empty($data['assigned_to'])) {
+        if (! empty($data['assigned_to'])) {
             abort_unless(DB::table('platform_admin_access')->where('user_id', $data['assigned_to'])
                 ->where('is_active', true)->where('can_view_orders', true)
                 ->where('seller_id', DB::table('suborders')->where('id', $data['suborder_id'])->value('seller_id'))
@@ -317,6 +339,7 @@ final class CourierOperationsController extends Controller
             'reported_by' => $request->user()->id, 'status' => 'open',
             'created_at' => now(), 'updated_at' => now(),
         ]);
+
         return response()->json(['data' => ['id' => $id]], 201);
     }
 
@@ -336,6 +359,7 @@ final class CourierOperationsController extends Controller
             'resolved_at' => $data['status'] === 'resolved' ? now() : null,
             'updated_at' => now(),
         ]);
+
         return response()->json(['data' => ['id' => $incident, 'status' => $data['status']]]);
     }
 
@@ -347,6 +371,7 @@ final class CourierOperationsController extends Controller
         $cases = DB::table('delivery_incidents as i')->join('suborders as s', 's.id', '=', 'i.suborder_id')
             ->whereIn('s.seller_id', $ids);
         $orders = DB::table('suborders')->whereIn('seller_id', $ids);
+
         return response()->json(['data' => [
             'day' => $today,
             'open_incidents' => (clone $cases)->where('i.status', '!=', 'resolved')->count(),

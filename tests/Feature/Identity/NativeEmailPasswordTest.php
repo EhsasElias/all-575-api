@@ -85,7 +85,7 @@ final class NativeEmailPasswordTest extends TestCase
 
         $this->postJson('/api/v1/auth/email/password-reset', [
             'challenge_id' => $resetChallenge,
-            'code' => '999999' === $this->otp->lastCode() ? '000000' : '999999',
+            'code' => $this->otp->lastCode() === '999999' ? '000000' : '999999',
             'password' => 'AnotherSecurePassword2026!',
         ])->assertUnprocessable();
 

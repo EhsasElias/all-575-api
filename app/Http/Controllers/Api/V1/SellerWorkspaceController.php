@@ -5,13 +5,15 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Orders\Enums\SuborderStatus;
 use App\Domain\Orders\Models\Suborder;
 use App\Domain\Orders\Services\SuborderTransitions;
-use App\Http\Controllers\Controller;
 use App\Domain\Reporting\Services\XlsxWriter;
-use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SellerWorkspaceController extends Controller
 {
@@ -215,6 +217,7 @@ class SellerWorkspaceController extends Controller
     private function orderExportLocale(Request $request): string
     {
         $value = (string) $request->input('lang', $request->header('Accept-Language', 'ar'));
+
         return str_starts_with(strtolower($value), 'ar') ? 'ar' : 'en';
     }
 
@@ -245,6 +248,7 @@ class SellerWorkspaceController extends Controller
                 ? (trim((string) $branch->name_ar) ?: trim((string) $branch->name_en))
                 : (trim((string) $branch->name_en) ?: trim((string) $branch->name_ar)))
             : '';
+
         return [
             $suborder->order->number,
             $labels[$status] ?? $status,
@@ -253,7 +257,7 @@ class SellerWorkspaceController extends Controller
         ];
     }
 
-    public function exportOrdersExcel(Request $request, XlsxWriter $xlsx): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    public function exportOrdersExcel(Request $request, XlsxWriter $xlsx): BinaryFileResponse
     {
         $locale = $this->orderExportLocale($request);
         $rows = $this->exportOrdersQuery($request)->with('branch:id,name_ar,name_en')
@@ -263,7 +267,7 @@ class SellerWorkspaceController extends Controller
         return $xlsx->download($this->orderExportHeaders($locale), $rows, 'seller-orders.xlsx');
     }
 
-    public function exportOrders(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function exportOrders(Request $request): StreamedResponse
     {
         $locale = $this->orderExportLocale($request);
         $query = $this->exportOrdersQuery($request)->with('branch:id,name_ar,name_en');
@@ -276,6 +280,7 @@ class SellerWorkspaceController extends Controller
                 // Avoid spreadsheet formula execution when CSV is opened in Excel.
                 $cells = array_map(static function ($value): string {
                     $text = (string) $value;
+
                     return preg_match('/^[=+@\\-\\t\\r]/u', $text) ? "'".$text : $text;
                 }, $this->orderExportRow($suborder, $locale));
                 fputcsv($handle, $cells);

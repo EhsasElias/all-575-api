@@ -8,16 +8,16 @@ use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Pricing\VatClass;
 use App\Http\Controllers\Controller;
-use App\Support\SellerProductImageSource;
 use App\Support\SellerDemoMode;
+use App\Support\SellerProductImageSource;
+use DOMDocument;
+use DOMXPath;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use DOMDocument;
-use DOMXPath;
 use ZipArchive;
 
 /**
@@ -27,7 +27,9 @@ use ZipArchive;
 final class SellerCatalogImportController extends Controller
 {
     private const HEADERS = ['category_id', 'name_ar', 'name_en', 'price_halalas', 'vat_class', 'sku', 'barcode'];
+
     private const ARABIC_HEADERS = ['رقم التصنيف', 'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'السعر بالهللة', 'فئة الضريبة', 'رمز المنتج SKU', 'الباركود (اختياري)'];
+
     // The same names and order as the Add Product form.
     private const FORM_HEADERS = [
         'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
@@ -36,6 +38,7 @@ final class SellerCatalogImportController extends Controller
         'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–100) (إجباري)',
         'فئة الضريبة (إجباري)',
     ];
+
     // Optional selling-unit labels correspond to the variant fields in the Add Product workflow.
     private const EXTENDED_FORM_HEADERS = [
         'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
@@ -45,6 +48,7 @@ final class SellerCatalogImportController extends Controller
         'فئة الضريبة (إجباري)', 'اسم وحدة البيع بالعربية (اختياري)',
         'اسم وحدة البيع بالإنجليزية (اختياري)',
     ];
+
     private const EXTENDED_ENGLISH_FORM_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store (optional)', 'Category (required)',
         'Arabic product name (required)', 'English product name (required)',
@@ -52,6 +56,7 @@ final class SellerCatalogImportController extends Controller
         'Price SAR (1–100) (required)', 'VAT class (required)',
         'Arabic variant name (optional)', 'English variant name (optional)',
     ];
+
     private const IMAGE_FORM_HEADERS = [
         'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
         'التصنيف (إجباري)', 'اسم المنتج بالعربية (إجباري)',
@@ -61,12 +66,15 @@ final class SellerCatalogImportController extends Controller
         'اسم وحدة البيع بالإنجليزية (اختياري)',
         'رابط صورة المنتج HTTPS (اختياري)', 'صورة داخل Excel (اختياري)',
     ];
+
     private const VAT_IMAGE_FORM_HEADERS = [
         ...self::IMAGE_FORM_HEADERS, 'السبب النظامي للضريبة (إجباري للصفرية والمعفاة)',
     ];
+
     private const VAT_IMAGE_ENGLISH_HEADERS = [
         ...self::IMAGE_ENGLISH_HEADERS, 'Legal VAT justification (required for zero-rated/exempt)',
     ];
+
     private const IMAGE_ENGLISH_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store (optional)', 'Category (required)',
         'Arabic product name (required)', 'English product name (required)',
@@ -75,34 +83,38 @@ final class SellerCatalogImportController extends Controller
         'Arabic variant name (optional)', 'English variant name (optional)',
         'HTTPS image URL (optional)', 'Embedded Excel image (optional)',
     ];
+
     // Prior Arabic layout (same values, earlier captions) remains supported.
     private const PREVIOUS_FORM_HEADERS = [
         'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
         'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'الوصف بالعربية',
         'الوصف بالإنجليزية', 'السعر بالريال (1–100)', 'فئة الضريبة',
     ];
+
     private const LEGACY_FORM_HEADERS = [
         'رمز SKU (مطلوب)', 'الباركود (اختياري)', 'المتجر', 'التصنيف',
         'اسم المنتج بالعربية', 'اسم المنتج بالإنجليزية', 'الوصف بالعربية',
         'الوصف بالإنجليزية', 'السعر بالريال (1–100)', 'فئة الضريبة',
     ];
+
     private const LEGACY_ENGLISH_FORM_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store', 'Category',
         'Arabic product name', 'English product name', 'Arabic description',
         'English description', 'Price SAR (1–100)', 'VAT class',
     ];
+
     private const ENGLISH_FORM_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store (optional)', 'Category (required)',
         'Arabic product name (required)', 'English product name (required)',
         'Arabic description (optional)', 'English description (optional)',
         'Price SAR (1–100) (required)', 'VAT class (required)',
     ];
+
     private const PREVIOUS_ENGLISH_FORM_HEADERS = [
         'SKU code (required)', 'Barcode (optional)', 'Store', 'Category',
         'Arabic product name', 'English product name', 'Arabic description',
         'English description', 'Price SAR (1–100)', 'VAT class',
     ];
-
 
     /** @var array<int, string> Excel row number to JPEG/PNG/WebP bytes. */
     private array $embeddedImages = [];
@@ -121,10 +133,10 @@ final class SellerCatalogImportController extends Controller
             return [];
         }
 
-        $drawingDoc = new DOMDocument();
-        $relsDoc = new DOMDocument();
-        if (!@$drawingDoc->loadXML($drawing, LIBXML_NONET) ||
-            !@$relsDoc->loadXML($relations, LIBXML_NONET)) {
+        $drawingDoc = new DOMDocument;
+        $relsDoc = new DOMDocument;
+        if (! @$drawingDoc->loadXML($drawing, LIBXML_NONET) ||
+            ! @$relsDoc->loadXML($relations, LIBXML_NONET)) {
             throw ValidationException::withMessages(['file' => ['Invalid Excel image definitions.']]);
         }
         $relXp = new DOMXPath($relsDoc);
@@ -133,7 +145,9 @@ final class SellerCatalogImportController extends Controller
             $id = $rel->attributes?->getNamedItem('Id')?->nodeValue;
             $target = $rel->attributes?->getNamedItem('Target')?->nodeValue;
             $mode = $rel->attributes?->getNamedItem('TargetMode')?->nodeValue;
-            if (!is_string($id) || !is_string($target) || $mode === 'External') continue;
+            if (! is_string($id) || ! is_string($target) || $mode === 'External') {
+                continue;
+            }
             $name = basename(str_replace('\\', '/', $target));
             if (preg_match('/^[\w.-]+\.(png|jpe?g|webp)$/iD', $name)) {
                 $targets[$id] = 'xl/media/'.$name;
@@ -146,11 +160,17 @@ final class SellerCatalogImportController extends Controller
         foreach ($xp->query('/*[local-name()="wsDr"]/*[local-name()="oneCellAnchor" or local-name()="twoCellAnchor"]') as $anchor) {
             $col = $xp->query('./*[local-name()="from"]/*[local-name()="col"]', $anchor)->item(0)?->textContent;
             $row = $xp->query('./*[local-name()="from"]/*[local-name()="row"]', $anchor)->item(0)?->textContent;
-            if ($col === null || $row === null || (int) $col !== 13) continue;
+            if ($col === null || $row === null || (int) $col !== 13) {
+                continue;
+            }
             $sheetRow = (int) $row + 1;
-            if ($sheetRow < 2 || $sheetRow > 201) continue;
+            if ($sheetRow < 2 || $sheetRow > 201) {
+                continue;
+            }
             $blip = $xp->query('.//*[local-name()="blip"]', $anchor)->item(0);
-            if ($blip === null) continue;
+            if ($blip === null) {
+                continue;
+            }
             $id = $blip->getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed');
             $name = $targets[$id] ?? null;
             if ($name === null || isset($images[$sheetRow])) {
@@ -170,6 +190,7 @@ final class SellerCatalogImportController extends Controller
             }
             $images[$sheetRow] = $bytes;
         }
+
         return $images;
     }
 
@@ -180,7 +201,7 @@ final class SellerCatalogImportController extends Controller
      */
     private function xlsxAsCsv(string $file): string
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($file) !== true) {
             throw ValidationException::withMessages(['file' => ['Excel file is invalid or corrupt.']]);
         }
@@ -196,8 +217,8 @@ final class SellerCatalogImportController extends Controller
                 if (strlen($sharedXml) > 3 * 1024 * 1024) {
                     throw ValidationException::withMessages(['file' => ['Excel string table is too large.']]);
                 }
-                $shared = new DOMDocument();
-                if (!@$shared->loadXML($sharedXml, LIBXML_NONET)) {
+                $shared = new DOMDocument;
+                if (! @$shared->loadXML($sharedXml, LIBXML_NONET)) {
                     throw ValidationException::withMessages(['file' => ['Invalid Excel string table.']]);
                 }
                 $xp = new DOMXPath($shared);
@@ -209,13 +230,15 @@ final class SellerCatalogImportController extends Controller
                     $strings[] = $value;
                 }
             }
-            $document = new DOMDocument();
-            if (!@$document->loadXML($sheet, LIBXML_NONET)) {
+            $document = new DOMDocument;
+            if (! @$document->loadXML($sheet, LIBXML_NONET)) {
                 throw ValidationException::withMessages(['file' => ['Invalid Excel worksheet.']]);
             }
             $xp = new DOMXPath($document);
             $temp = tempnam(sys_get_temp_dir(), 'seller-xlsx-csv-');
-            if ($temp === false) abort(500);
+            if ($temp === false) {
+                abort(500);
+            }
             $handle = fopen($temp, 'wb');
             if ($handle === false) {
                 @unlink($temp);
@@ -226,14 +249,20 @@ final class SellerCatalogImportController extends Controller
                 $columnCount = 14;
                 foreach ($xp->query('/*[local-name()="worksheet"]/*[local-name()="sheetData"]/*[local-name()="row"]') as $row) {
                     $number = (int) $row->attributes?->getNamedItem('r')?->nodeValue;
-                    if ($number < 1) continue;
+                    if ($number < 1) {
+                        continue;
+                    }
                     $cells = array_fill(0, 15, '');
                     $hasProductCell = false;
                     foreach ($xp->query('./*[local-name()="c"]', $row) as $cell) {
                         $reference = (string) $cell->attributes?->getNamedItem('r')?->nodeValue;
-                        if (!preg_match('/^([A-Z]+)[0-9]+$/', $reference, $m)) continue;
+                        if (! preg_match('/^([A-Z]+)[0-9]+$/', $reference, $m)) {
+                            continue;
+                        }
                         $column = $m[1];
-                        if (strlen($column) !== 1 || $column < 'A' || $column > 'O') continue;
+                        if (strlen($column) !== 1 || $column < 'A' || $column > 'O') {
+                            continue;
+                        }
                         $index = ord($column) - 65;
                         if ($xp->query('./*[local-name()="f"]', $cell)->length > 0) {
                             throw ValidationException::withMessages(['file' => ['Formula cells are not allowed in product imports.']]);
@@ -253,7 +282,9 @@ final class SellerCatalogImportController extends Controller
                         $cells[$index] = $value;
                         $hasProductCell = true;
                     }
-                    if (!$hasProductCell) continue;
+                    if (! $hasProductCell) {
+                        continue;
+                    }
                     if ($number === 1) {
                         $columnCount = $cells[14] !== '' ? 15 : 14;
                     }
@@ -268,6 +299,7 @@ final class SellerCatalogImportController extends Controller
             } finally {
                 fclose($handle);
             }
+
             return $temp;
         } finally {
             $zip->close();
@@ -301,7 +333,9 @@ final class SellerCatalogImportController extends Controller
         $converted = $isExcel ? $this->xlsxAsCsv($input['file']->getRealPath()) : null;
         $handle = fopen($converted ?? $input['file']->getRealPath(), 'rb');
         if ($handle === false) {
-            if ($converted !== null) @unlink($converted);
+            if ($converted !== null) {
+                @unlink($converted);
+            }
             throw ValidationException::withMessages(['file' => ['Unable to read upload.']]);
         }
 
@@ -367,7 +401,7 @@ final class SellerCatalogImportController extends Controller
             $line = 1;
 
             while (($cells = fgetcsv($handle)) !== false) {
-                ++$line;
+                $line++;
                 if (count($cells) === 1 && trim((string) $cells[0]) === '') {
                     continue;
                 }
@@ -382,6 +416,7 @@ final class SellerCatalogImportController extends Controller
                 if (count($cells) !== $expectedColumns) {
                     $actual = count($cells);
                     $errors[] = "الصف {$line} - الأعمدة: الملف يحتوي على {$actual} أعمدة، والمطلوب {$expectedColumns}. احتفظ بترتيب الأعمدة ولا تحذف أعمدة القالب.";
+
                     continue;
                 }
                 $values = array_map('trim', $cells);
@@ -393,23 +428,27 @@ final class SellerCatalogImportController extends Controller
                     $imageUrl = $imageForm ? $values[12] : '';
                     $embeddedHint = $imageForm ? $values[13] : '';
                     $vatJustification = $vatImageForm ? $values[14] : '';
-                    if ($embeddedHint !== '' && !$isExcel) {
+                    if ($embeddedHint !== '' && ! $isExcel) {
                         $errors[] = "الصف {$line} - صورة داخل Excel: لا يمكن تضمين الصور في CSV؛ استخدم رابط HTTPS في عمود رابط الصورة أو ملف Excel.";
+
                         continue;
                     }
-                    if ($imageUrl !== '' && (!filter_var($imageUrl, FILTER_VALIDATE_URL) ||
-                        !str_starts_with($imageUrl, 'https://') || strlen($imageUrl) > 2048)) {
+                    if ($imageUrl !== '' && (! filter_var($imageUrl, FILTER_VALIDATE_URL) ||
+                        ! str_starts_with($imageUrl, 'https://') || strlen($imageUrl) > 2048)) {
                         $errors[] = "الصف {$line} - رابط الصورة: أدخل رابط HTTPS صالحًا أو اتركه فارغًا.";
+
                         continue;
                     }
-                    if ($storeValue !== '' && !in_array($storeValue, $validStoreNames, true)) {
+                    if ($storeValue !== '' && ! in_array($storeValue, $validStoreNames, true)) {
                         $expected = trim((string) ($store?->name_ar ?? '')) ?: (string) $sellerId;
                         $errors[] = "الصف {$line} - عمود المتجر: القيمة «{$storeValue}» لا تطابق المتجر المحدد «{$expected}» (رقم {$sellerId}). اترك الخانة فارغة لاستخدام المتجر المحدد تلقائيًا، أو أدخل اسمه/رقمه الصحيح.";
+
                         continue;
                     }
                     // Avoid float rounding for prices; the UI shows SAR and the API stores halalas.
-                    if (!preg_match('/^[0-9]+(?:\\.[0-9]{1,2})?$/D', $priceSar)) {
+                    if (! preg_match('/^[0-9]+(?:\\.[0-9]{1,2})?$/D', $priceSar)) {
                         $errors[] = "الصف {$line} - عمود السعر بالريال: القيمة «{$priceSar}» غير صحيحة. أدخل رقمًا من 1 إلى 100 مثل 5.75، بفاصلة عشرية نقطة وبحد أقصى منزلتين.";
+
                         continue;
                     }
                     $priceParts = explode('.', $priceSar, 2);
@@ -421,9 +460,10 @@ final class SellerCatalogImportController extends Controller
                         'معفاة', 'معفى من الضريبة', 'Exempt', 'VAT exempt', 'exempt' => 'exempt',
                         default => $vatLabel,
                     };
-                    if (!ctype_digit($category)) {
-                        if (!isset($categoryNames[$category])) {
+                    if (! ctype_digit($category)) {
+                        if (! isset($categoryNames[$category])) {
                             $errors[] = "الصف {$line} - عمود التصنيف: القيمة «{$category}» غير معروفة أو اسم مكرر. اختر تصنيفًا نشطًا من قائمة القالب أو اكتب رقم التصنيف الصحيح.";
+
                             continue;
                         }
                         $category = (string) $categoryNames[$category];
@@ -457,47 +497,67 @@ final class SellerCatalogImportController extends Controller
                 $sku = $row['sku'];
                 $barcode = $row['barcode'];
                 $rowErrors = [];
-                if ($imageForm && $isExcel && $embeddedHint !== '' && $row['image_bytes'] === null)
+                if ($imageForm && $isExcel && $embeddedHint !== '' && $row['image_bytes'] === null) {
                     $rowErrors[] = 'صورة Excel: العمود مخصص للصورة داخل الخلية؛ استخدم Insert > Pictures > Place over Cells وحدد موضعها في العمود N بنفس الصف';
-                if ($row['image_url'] !== '' && $row['image_bytes'] !== null)
+                }
+                if ($row['image_url'] !== '' && $row['image_bytes'] !== null) {
                     $rowErrors[] = 'الصورة: استخدم رابط الصورة أو الصورة المضمنة، وليس كليهما';
-                if (mb_strlen($row['variant_name_ar']) > 180) $rowErrors[] = 'اسم وحدة البيع بالعربية: الحد الأقصى 180 حرفًا';
-                if (mb_strlen($row['variant_name_en']) > 180) $rowErrors[] = 'اسم وحدة البيع بالإنجليزية: الحد الأقصى 180 حرفًا';
-                if ($sku === '') $rowErrors[] = 'رمز SKU: مطلوب؛ أدخل رمزًا فريدًا للمنتج';
-                if ($row['category_id'] === '' || !ctype_digit($row['category_id']))
+                }
+                if (mb_strlen($row['variant_name_ar']) > 180) {
+                    $rowErrors[] = 'اسم وحدة البيع بالعربية: الحد الأقصى 180 حرفًا';
+                }
+                if (mb_strlen($row['variant_name_en']) > 180) {
+                    $rowErrors[] = 'اسم وحدة البيع بالإنجليزية: الحد الأقصى 180 حرفًا';
+                }
+                if ($sku === '') {
+                    $rowErrors[] = 'رمز SKU: مطلوب؛ أدخل رمزًا فريدًا للمنتج';
+                }
+                if ($row['category_id'] === '' || ! ctype_digit($row['category_id'])) {
                     $rowErrors[] = 'التصنيف: أدخل رقم تصنيف نشط أو اسمه الصحيح';
-                if ($row['name_ar'] === '') $rowErrors[] = 'الاسم بالعربية: مطلوب';
-                if ($row['name_en'] === '') $rowErrors[] = 'الاسم بالإنجليزية: مطلوب';
-                if ($row['price_halalas'] === '' || !ctype_digit($row['price_halalas']) ||
-                    (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 10000)
+                }
+                if ($row['name_ar'] === '') {
+                    $rowErrors[] = 'الاسم بالعربية: مطلوب';
+                }
+                if ($row['name_en'] === '') {
+                    $rowErrors[] = 'الاسم بالإنجليزية: مطلوب';
+                }
+                if ($row['price_halalas'] === '' || ! ctype_digit($row['price_halalas']) ||
+                    (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 10000) {
                     $rowErrors[] = 'السعر: يجب أن يكون من 1 إلى 100 ريال';
-                if (!in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true))
+                }
+                if (! in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true)) {
                     $rowErrors[] = 'فئة الضريبة: القيمة «'.$row['vat_class'].'» غير صحيحة؛ اختر قياسية أو صفرية أو معفاة';
+                }
                 $justification = trim((string) $row['vat_justification']);
                 if (in_array($row['vat_class'], ['zero', 'exempt'], true) &&
-                    (mb_strlen($justification) < 15 || mb_strlen($justification) > 500))
+                    (mb_strlen($justification) < 15 || mb_strlen($justification) > 500)) {
                     $rowErrors[] = 'السبب النظامي: للصفرية أو المعفاة اكتب سببًا نظاميًا واضحًا من 15 إلى 500 حرف في العمود O';
-                if ($row['vat_class'] === 'standard' && $justification !== '')
+                }
+                if ($row['vat_class'] === 'standard' && $justification !== '') {
                     $rowErrors[] = 'السبب النظامي: اتركه فارغًا للضريبة القياسية';
+                }
                 if ($rowErrors !== []) {
                     foreach ($rowErrors as $problem) {
                         $errors[] = "الصف {$line} - {$problem}.";
                     }
+
                     continue;
                 }
-                if (!ctype_digit($row['category_id']) || !ctype_digit($row['price_halalas'])
+                if (! ctype_digit($row['category_id']) || ! ctype_digit($row['price_halalas'])
                     || (int) $row['price_halalas'] < 100 || (int) $row['price_halalas'] > 10000
-                    || !in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true)
+                    || ! in_array($row['vat_class'], array_column(VatClass::cases(), 'value'), true)
                     || $sku === '' || strlen($sku) > 100
                     || $barcode !== '' && strlen($barcode) > 100
                     || $row['name_ar'] === '' || $row['name_en'] === ''
                     || mb_strlen($row['name_ar']) > 180 || mb_strlen($row['name_en']) > 180
                     || mb_strlen($row['description_ar']) > 10000 || mb_strlen($row['description_en']) > 10000) {
                     $errors[] = "الصف {$line}: تحقق من طول اسم المنتج (حتى 180 حرفًا)، والوصف (حتى 10000 حرف)، ورمز SKU أو الباركود (حتى 100 حرف).";
+
                     continue;
                 }
                 if (isset($seenSkus[$sku]) || ($barcode !== '' && isset($seenBarcodes[$barcode]))) {
                     $errors[] = "الصف {$line} - رمز SKU أو الباركود: قيمة مكررة داخل الملف (SKU: {$sku}). يجب أن يكون كل SKU والباركود فريدين.";
+
                     continue;
                 }
                 $seenSkus[$sku] = true;
@@ -508,7 +568,9 @@ final class SellerCatalogImportController extends Controller
             }
         } finally {
             fclose($handle);
-            if ($converted !== null) @unlink($converted);
+            if ($converted !== null) {
+                @unlink($converted);
+            }
         }
 
         if ($rows === [] && $errors === []) {
@@ -574,68 +636,72 @@ final class SellerCatalogImportController extends Controller
                 }
             }
 
-        // Publishing requires an actual local cover image; all rows have already
-        // passed category, VAT/legal-basis, SKU and variant validation.
-        // Reject the entire batch rather than publishing only some products.
-        if ($directPublishEnabled) {
-            foreach ($rows as $index => $row) {
-                $imagePath = $storedImages[$index] ?? null;
-                if (!$imagePath || !Storage::disk('public')->exists($imagePath)) {
-                    throw ValidationException::withMessages(['file' => [
-                        'Row '.($index + 2).': A valid product cover image is required for direct publication.',
-                    ]]);
+            // Publishing requires an actual local cover image; all rows have already
+            // passed category, VAT/legal-basis, SKU and variant validation.
+            // Reject the entire batch rather than publishing only some products.
+            if ($directPublishEnabled) {
+                foreach ($rows as $index => $row) {
+                    $imagePath = $storedImages[$index] ?? null;
+                    if (! $imagePath || ! Storage::disk('public')->exists($imagePath)) {
+                        throw ValidationException::withMessages(['file' => [
+                            'Row '.($index + 2).': A valid product cover image is required for direct publication.',
+                        ]]);
+                    }
                 }
             }
-        }
 
-        $result = DB::transaction(function () use ($rows, $sellerId, $storedImages, $submitAfterImport, $directPublishEnabled): array {
-            $skus = array_column($rows, 'sku');
-            $barcodes = array_values(array_filter(array_column($rows, 'barcode'), static fn ($v) => $v !== ''));
-            if (DB::table('product_variants')->whereIn('sku', $skus)
-                ->orWhereIn('barcode', $barcodes)->exists()) {
-                throw ValidationException::withMessages(['file' => ['One or more SKUs/barcodes already exist.']]);
-            }
+            $result = DB::transaction(function () use ($rows, $sellerId, $storedImages, $submitAfterImport, $directPublishEnabled): array {
+                $skus = array_column($rows, 'sku');
+                $barcodes = array_values(array_filter(array_column($rows, 'barcode'), static fn ($v) => $v !== ''));
+                if (DB::table('product_variants')->whereIn('sku', $skus)
+                    ->orWhereIn('barcode', $barcodes)->exists()) {
+                    throw ValidationException::withMessages(['file' => ['One or more SKUs/barcodes already exist.']]);
+                }
 
-            $published = 0;
-            $submitted = 0;
-            foreach ($rows as $index => $row) {
-                $directPublish = $directPublishEnabled;
-                $status = !$submitAfterImport ? ProductStatus::Draft
-                    : ($directPublish ? ProductStatus::Published : ProductStatus::PendingReview);
-                if ($directPublish) ++$published;
-                elseif ($submitAfterImport) ++$submitted;
-                $product = Product::query()->create([
-                    'seller_id' => $sellerId,
-                    'category_id' => (int) $row['category_id'],
-                    'slug' => (string) Str::uuid(),
-                    'name_ar' => $row['name_ar'],
-                    'name_en' => $row['name_en'],
-                    'description_ar' => $row['description_ar'] !== '' ? $row['description_ar'] : null,
-                    'description_en' => $row['description_en'] !== '' ? $row['description_en'] : null,
-                    'image_path' => $storedImages[$index] ?? null,
-                    'price_halalas' => (int) $row['price_halalas'],
-                    'vat_class' => $row['vat_class'],
-                    'vat_justification' => $row['vat_class'] === 'standard' ? null : $row['vat_justification'],
-                    'status' => $status,
-                    'is_featured' => false,
-                    'rating_average' => 0,
-                    'rating_count' => 0,
-                ]);
-                $product->variants()->create([
-                    'sku' => $row['sku'],
-                    'barcode' => $row['barcode'] ?: null,
-                    'name_ar' => $row['variant_name_ar'] ?: null,
-                    'name_en' => $row['variant_name_en'] ?: null,
-                    'is_active' => true,
-                    'sort_order' => 0,
-                ]);
-            }
-            return [
-                'created_drafts' => $submitAfterImport ? 0 : count($rows),
-                'published' => $published,
-                'submitted_for_review' => $submitted,
-            ];
-        }, 3);
+                $published = 0;
+                $submitted = 0;
+                foreach ($rows as $index => $row) {
+                    $directPublish = $directPublishEnabled;
+                    $status = ! $submitAfterImport ? ProductStatus::Draft
+                        : ($directPublish ? ProductStatus::Published : ProductStatus::PendingReview);
+                    if ($directPublish) {
+                        $published++;
+                    } elseif ($submitAfterImport) {
+                        $submitted++;
+                    }
+                    $product = Product::query()->create([
+                        'seller_id' => $sellerId,
+                        'category_id' => (int) $row['category_id'],
+                        'slug' => (string) Str::uuid(),
+                        'name_ar' => $row['name_ar'],
+                        'name_en' => $row['name_en'],
+                        'description_ar' => $row['description_ar'] !== '' ? $row['description_ar'] : null,
+                        'description_en' => $row['description_en'] !== '' ? $row['description_en'] : null,
+                        'image_path' => $storedImages[$index] ?? null,
+                        'price_halalas' => (int) $row['price_halalas'],
+                        'vat_class' => $row['vat_class'],
+                        'vat_justification' => $row['vat_class'] === 'standard' ? null : $row['vat_justification'],
+                        'status' => $status,
+                        'is_featured' => false,
+                        'rating_average' => 0,
+                        'rating_count' => 0,
+                    ]);
+                    $product->variants()->create([
+                        'sku' => $row['sku'],
+                        'barcode' => $row['barcode'] ?: null,
+                        'name_ar' => $row['variant_name_ar'] ?: null,
+                        'name_en' => $row['variant_name_en'] ?: null,
+                        'is_active' => true,
+                        'sort_order' => 0,
+                    ]);
+                }
+
+                return [
+                    'created_drafts' => $submitAfterImport ? 0 : count($rows),
+                    'published' => $published,
+                    'submitted_for_review' => $submitted,
+                ];
+            }, 3);
         } catch (\Throwable $exception) {
             if ($storedImages !== []) {
                 Storage::disk('public')->delete(array_values($storedImages));

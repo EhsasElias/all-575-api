@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Domain\Catalog\Models\Seller;
 use App\Domain\Catalog\Models\Branch;
+use App\Domain\Catalog\Models\Seller;
 use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

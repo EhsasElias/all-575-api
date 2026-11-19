@@ -1,12 +1,12 @@
 <?php
 
-use App\Http\Controllers\Api\V1\SuperAdminDashboardController;
-use App\Http\Controllers\Api\V1\SuperAdminMetricController;
-use App\Http\Controllers\Api\V1\SuperAdminAccountController;
+use App\Http\Controllers\Api\V1\CourierOperationsController;
 use App\Http\Controllers\Api\V1\PlatformAdminAccessController;
 use App\Http\Controllers\Api\V1\PlatformAdminDashboardController;
+use App\Http\Controllers\Api\V1\SuperAdminAccountController;
+use App\Http\Controllers\Api\V1\SuperAdminDashboardController;
+use App\Http\Controllers\Api\V1\SuperAdminMetricController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\CourierOperationsController;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])
     ->get('platform/super-admin/dashboard', [SuperAdminDashboardController::class, 'show']);

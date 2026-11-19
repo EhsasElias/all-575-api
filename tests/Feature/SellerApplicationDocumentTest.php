@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -47,7 +48,7 @@ final class SellerApplicationDocumentTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.original_name', 'registration.pdf');
 
-        $document = \Illuminate\Support\Facades\DB::table('seller_application_documents')->first();
+        $document = DB::table('seller_application_documents')->first();
         $this->assertNotNull($document);
         Storage::disk('local')->assertExists($document->file_path);
         $this->assertStringNotContainsString('public', $document->file_path);

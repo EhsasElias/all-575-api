@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Domain\Identity\Models\User;
 use App\Domain\Finance\TwoPersonApproval;
-use Illuminate\Support\Facades\DB;
+use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 final class FinanceReviewEndpointTest extends TestCase

@@ -2,7 +2,7 @@
 
 return [
 
-'geocoding' => [
+    'geocoding' => [
         'provider' => env('GEOCODING_PROVIDER', 'nominatim'),
         'geoapify_key' => env('GEOAPIFY_API_KEY', ''),
         'url' => env('GEOCODING_REVERSE_URL', 'https://nominatim.openstreetmap.org/reverse'),

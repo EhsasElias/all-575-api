@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Identity;
 
 use App\Domain\Identity\Enums\OtpChannel;
-use App\Domain\Identity\Services\MailOtpSender;
 use App\Domain\Identity\Services\TaqnyatOtpSender;
 use App\Support\Exceptions\DomainRuleViolation;
 use Illuminate\Support\Facades\Http;
@@ -22,8 +21,7 @@ final class TaqnyatOtpSenderTest extends TestCase
 
         app(TaqnyatOtpSender::class)->send(OtpChannel::Phone, '+966512345678', '123456', 'ar');
 
-        Http::assertSent(fn ($request) =>
-            $request->url() === 'https://api.taqnyat.sa/v1/messages'
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.taqnyat.sa/v1/messages'
             && $request['recipients'] === ['966512345678']
             && $request['sender'] === 'TEST'
             && str_contains((string) $request['body'], '123456')

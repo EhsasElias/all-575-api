@@ -33,9 +33,10 @@ final class SellerProductImageSource
             throw ValidationException::withMessages(['image' => ['Use a valid JPEG, PNG or WebP image.']]);
         }
         $path = 'products/'.$sellerId.'/'.bin2hex(random_bytes(16)).'.'.$ext;
-        if (!Storage::disk('public')->put($path, $bytes)) {
+        if (! Storage::disk('public')->put($path, $bytes)) {
             throw ValidationException::withMessages(['image' => ['Could not save product image.']]);
         }
+
         return $path;
     }
 
@@ -47,12 +48,12 @@ final class SellerProductImageSource
     public static function storeUrl(string $url, int $sellerId): string
     {
         $url = trim($url);
-        for ($hop = 0; $hop <= 4; ++$hop) {
+        for ($hop = 0; $hop <= 4; $hop++) {
             [$status, $body, $location] = self::downloadPublicImageUrl($url);
             if ($status === 200) {
                 return self::storeBytes($body, $sellerId);
             }
-            if (!in_array($status, [301, 302, 303, 307, 308], true) || $location === null || $hop === 4) {
+            if (! in_array($status, [301, 302, 303, 307, 308], true) || $location === null || $hop === 4) {
                 throw ValidationException::withMessages(['image_url' => [
                     'Image URL did not return an image (HTTP '.$status.'). Use a direct public HTTPS image URL.',
                 ]]);
@@ -70,16 +71,23 @@ final class SellerProductImageSource
             throw ValidationException::withMessages(['image_url' => ['Invalid image redirect URL.']]);
         }
         // Permit HTTPS absolute, scheme-relative, and root-relative redirects.
-        if (str_starts_with($location, 'https://')) return $location;
+        if (str_starts_with($location, 'https://')) {
+            return $location;
+        }
         $parts = parse_url($current);
         $origin = 'https://'.($parts['host'] ?? '');
-        if (str_starts_with($location, '//')) return 'https:'.$location;
-        if (str_starts_with($location, '/')) return $origin.$location;
+        if (str_starts_with($location, '//')) {
+            return 'https:'.$location;
+        }
+        if (str_starts_with($location, '/')) {
+            return $origin.$location;
+        }
         if (preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:/', $location)) {
             throw ValidationException::withMessages(['image_url' => ['Only HTTPS image redirects are allowed.']]);
         }
         $path = (string) ($parts['path'] ?? '/');
         $directory = substr($path, 0, (int) strrpos($path, '/') + 1);
+
         return $origin.$directory.$location;
     }
 
@@ -96,8 +104,8 @@ final class SellerProductImageSource
             ]]);
         }
         $host = (string) $parts['host'];
-        if (!preg_match('/^[a-zA-Z0-9.-]+$/D', $host) ||
-            !str_contains($host, '.') || str_ends_with(strtolower($host), '.local')) {
+        if (! preg_match('/^[a-zA-Z0-9.-]+$/D', $host) ||
+            ! str_contains($host, '.') || str_ends_with(strtolower($host), '.local')) {
             throw ValidationException::withMessages(['image_url' => ['Invalid public image host.']]);
         }
 
@@ -107,17 +115,18 @@ final class SellerProductImageSource
         $ips = [];
         foreach ($dns ?: [] as $record) {
             $ip = $record['ip'] ?? $record['ipv6'] ?? null;
-            if (is_string($ip)) $ips[] = $ip;
+            if (is_string($ip)) {
+                $ips[] = $ip;
+            }
         }
         if ($ips === [] || count($ips) > 20 ||
-            array_filter($ips, static fn (string $ip): bool =>
-                filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false
+            array_filter($ips, static fn (string $ip): bool => filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false
             ) !== []) {
             throw ValidationException::withMessages(['image_url' => [
                 'Image host must resolve only to public IP addresses.',
             ]]);
         }
-        if (!function_exists('curl_init')) {
+        if (! function_exists('curl_init')) {
             throw ValidationException::withMessages(['image_url' => ['The server image downloader is unavailable.']]);
         }
 
@@ -142,14 +151,17 @@ final class SellerProductImageSource
                 if (stripos($header, 'Location:') === 0) {
                     $location = trim(substr($header, strlen('Location:')));
                 }
+
                 return strlen($header);
             },
             CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body, &$tooLarge): int {
                 if (strlen($body) + strlen($chunk) > self::MAX_BYTES) {
                     $tooLarge = true;
+
                     return 0;
                 }
                 $body .= $chunk;
+
                 return strlen($chunk);
             },
         ]);
@@ -167,7 +179,7 @@ final class SellerProductImageSource
                 'Could not download image. Check that this public HTTPS URL is reachable from the server.',
             ]]);
         }
+
         return [$status, $body, $location];
     }
-
 }

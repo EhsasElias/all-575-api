@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Notifications\RoleNotificationWriter;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Domain\Notifications\RoleNotificationWriter;
-use Illuminate\Validation\Rule;
 
 final class PlatformAdminAccessController extends Controller
 {
@@ -22,6 +21,7 @@ final class PlatformAdminAccessController extends Controller
     public function sellers(Request $request): JsonResponse
     {
         $this->authorizeOwner($request);
+
         return response()->json(['data' => DB::table('sellers')
             ->select('id', 'name_ar', 'name_en', 'status')
             ->orderBy('id')->limit(250)->get()]);
@@ -76,6 +76,7 @@ final class PlatformAdminAccessController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
             return DB::table('platform_admin_access')->where('id', $id)->first();
         }, 3);
 
@@ -106,6 +107,7 @@ final class PlatformAdminAccessController extends Controller
                 $input['is_active'] ? 'يمكنك الآن الوصول إلى المتجر المسند إليك.' : 'تم إيقاف وصولك إلى المتجر المسند إليك.',
                 '/account');
         }
+
         return response()->json(['data' => DB::table('platform_admin_access')->where('id', $access)->first()]);
     }
 }

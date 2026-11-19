@@ -8,14 +8,15 @@ use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Enums\SellerStatus;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\Seller;
+use App\Domain\Catalog\Models\ServiceZone;
+use App\Domain\Notifications\RoleNotificationWriter;
 use App\Http\Controllers\Controller;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use App\Domain\Notifications\RoleNotificationWriter;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -284,7 +285,7 @@ final class SellerReviewController extends Controller
             abort_unless(DB::table('sellers')->where('id', $row->seller_id)
                 ->where('status', 'approved')->exists(), 409, 'Seller approval required.');
 
-            $zone = \App\Domain\Catalog\Models\ServiceZone::query()->active()
+            $zone = ServiceZone::query()->active()
                 ->findOrFail($row->service_zone_id);
             abort_unless($zone->distanceTo((float) $row->lat, (float) $row->lng) <= $zone->radius_meters,
                 422, 'Branch location must belong to the active zone.');

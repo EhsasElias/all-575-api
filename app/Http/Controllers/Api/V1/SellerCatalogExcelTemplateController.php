@@ -58,15 +58,17 @@ final class SellerCatalogExcelTemplateController extends Controller
         $counts = [];
         foreach ($categoryRecords as $category) {
             foreach ([(string) $category->name_ar, (string) $category->name_en] as $name) {
-                if (trim($name) !== '') $counts[trim($name)] = ($counts[trim($name)] ?? 0) + 1;
+                if (trim($name) !== '') {
+                    $counts[trim($name)] = ($counts[trim($name)] ?? 0) + 1;
+                }
             }
         }
         $categories = $categoryRecords->map(static function ($category) use ($counts): string {
             $name = trim((string) $category->name_ar);
+
             return $name !== '' && ($counts[$name] ?? 0) === 1 ? $name : (string) $category->id;
         })->all();
-        $storeOptions = $sellers->map(fn ($seller): string =>
-            trim((string) $seller->name_ar) !== '' ? $seller->name_ar : (string) $seller->id
+        $storeOptions = $sellers->map(fn ($seller): string => trim((string) $seller->name_ar) !== '' ? $seller->name_ar : (string) $seller->id
         )->all();
         // Zero-rated/exempt selections must have a legal basis in column O;
         // the importer enforces this before creating reviewable drafts.
@@ -81,14 +83,16 @@ final class SellerCatalogExcelTemplateController extends Controller
         // Put the selectable values in hidden columns on this sheet: Excel list
         // validation accepts same-sheet references even without named ranges.
         $count = max(1, ...array_values(array_map('count', $lists)));
-        for ($row = 2; $row <= $count + 1; ++$row) {
+        for ($row = 2; $row <= $count + 1; $row++) {
             $cells = '';
             foreach ($lists as $column => $values) {
                 if (isset($values[$row - 2])) {
                     $cells .= self::cell($column.$row, (string) $values[$row - 2]);
                 }
             }
-            if ($cells !== '') $rows .= '<row r="'.$row.'">'.$cells.'</row>';
+            if ($cells !== '') {
+                $rows .= '<row r="'.$row.'">'.$cells.'</row>';
+            }
         }
 
         $validations = '';
@@ -136,8 +140,10 @@ final class SellerCatalogExcelTemplateController extends Controller
 
         $file = tempnam(sys_get_temp_dir(), 'seller-template-');
         abort_if($file === false, 500);
-        $zip = new ZipArchive();
-        if ($zip->open($file, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) abort(500);
+        $zip = new ZipArchive;
+        if ($zip->open($file, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            abort(500);
+        }
         try {
             $zip->addFromString('[Content_Types].xml', '<?xml version="1.0"?>'.
                 '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'.
@@ -165,6 +171,7 @@ final class SellerCatalogExcelTemplateController extends Controller
         } finally {
             $zip->close();
         }
+
         return response()->download($file, 'seller-products-template.xlsx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Cache-Control' => 'no-store',

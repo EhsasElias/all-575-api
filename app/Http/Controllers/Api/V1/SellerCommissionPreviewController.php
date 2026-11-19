@@ -65,7 +65,7 @@ final class SellerCommissionPreviewController extends Controller
                 && $rate->approved_at <= $order->placed_at)->last();
 
             if ($eligible === null) {
-                ++$unrated;
+                $unrated++;
 
                 continue;
             }

@@ -13,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\File;
-use Illuminate\Validation\Rule;
 
 /**
  * Stores the product cover image after checking seller access and draft status.
@@ -43,7 +42,7 @@ final class SellerProductImageController extends Controller
         abort_unless(in_array($item->status, [ProductStatus::Draft, ProductStatus::Rejected], true),
             409, 'Only draft or rejected products can change images.');
 
-        $path = !empty($data['image'])
+        $path = ! empty($data['image'])
             ? SellerProductImageSource::storeBytes(file_get_contents($data['image']->getRealPath()), (int) $item->seller_id)
             : SellerProductImageSource::storeUrl((string) $data['image_url'], (int) $item->seller_id);
 

@@ -93,7 +93,7 @@ final class SellerCatalogImportPreviewTest extends TestCase
         $seller = $this->signInSeller();
         $category = Category::factory()->create();
 
-        for ($n = 0; $n < 2; ++$n) {
+        for ($n = 0; $n < 2; $n++) {
             $this->post('/api/v1/seller/products/import', [
                 'seller_id' => $seller->id,
                 'dry_run' => '1',

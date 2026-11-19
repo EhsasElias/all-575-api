@@ -7,6 +7,7 @@ use App\Domain\Catalog\Models\ProductVariant;
 use App\Domain\Catalog\Models\Seller;
 use App\Domain\Catalog\Models\ServiceZone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\Support\CatalogBuilder;
 use Tests\TestCase;
 
@@ -155,7 +156,7 @@ class ProductBrowsingTest extends TestCase
 
         $this->assertSame([], $this->slugs('?zone_id='.$additionalZone->id.'&in_stock=1'));
 
-        \Illuminate\Support\Facades\DB::table('branch_service_zones')->insert([
+        DB::table('branch_service_zones')->insert([
             'branch_id' => $branch->id,
             'service_zone_id' => $additionalZone->id,
             'created_at' => now(),

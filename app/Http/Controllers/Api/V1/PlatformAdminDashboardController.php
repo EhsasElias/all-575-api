@@ -41,7 +41,7 @@ final class PlatformAdminDashboardController extends Controller
             ->when(isset($input['from']), fn ($q) => $q->whereDate('orders.placed_at', '>=', $input['from']))
             ->when(isset($input['to']), fn ($q) => $q->whereDate('orders.placed_at', '<=', $input['to']))
             ->when(isset($input['q']), function ($q) use ($input): void {
-                $value = '%' . addcslashes(trim($input['q']), '%_\\\\') . '%';
+                $value = '%'.addcslashes(trim($input['q']), '%_\\\\').'%';
                 $q->where(function ($where) use ($value): void {
                     $where->where('orders.number', 'like', $value)
                         ->orWhere('sellers.name_ar', 'like', $value)
@@ -87,7 +87,7 @@ final class PlatformAdminDashboardController extends Controller
             ->whereColumn('products.seller_id', 'branches.seller_id')
             ->whereIn('branches.seller_id', $sellerIds)
             ->when(isset($input['q']) && trim($input['q']) !== '', function ($q) use ($input): void {
-                $like = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], trim($input['q'])) . '%';
+                $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], trim($input['q'])).'%';
                 $q->where(function ($search) use ($like): void {
                     $search->whereRaw("product_variants.sku LIKE ? ESCAPE '!'", [$like])
                         ->orWhereRaw("products.name_ar LIKE ? ESCAPE '!'", [$like])
@@ -96,8 +96,7 @@ final class PlatformAdminDashboardController extends Controller
             })
             ->when(isset($input['seller_id']), fn ($q) => $q->where('branches.seller_id', $input['seller_id']))
             ->when(isset($input['branch_id']), fn ($q) => $q->where('branch_stock.branch_id', $input['branch_id']))
-            ->when(!empty($input['low_stock_only']), fn ($q) =>
-                $q->whereRaw('(branch_stock.on_hand - branch_stock.reserved) <= ?', [5]))
+            ->when(! empty($input['low_stock_only']), fn ($q) => $q->whereRaw('(branch_stock.on_hand - branch_stock.reserved) <= ?', [5]))
             ->when(isset($input['before_id']), fn ($q) => $q->where('branch_stock.id', '<', $input['before_id']))
             ->select('branch_stock.id', 'branches.seller_id', 'branch_stock.branch_id',
                 'branch_stock.on_hand', 'branch_stock.reserved', 'product_variants.sku',

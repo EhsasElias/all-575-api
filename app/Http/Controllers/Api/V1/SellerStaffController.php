@@ -99,11 +99,13 @@ final class SellerStaffController extends Controller
                 'role' => $input['role'],
                 'is_active' => true,
             ]);
+
             return ['id' => $id, 'user_id' => (int) $input['user_id'],
                 'employee_number' => $employeeNumber,
                 'seller_id' => $sellerId, 'branch_id' => (int) $input['branch_id'],
                 'role' => $input['role'], 'is_active' => true];
         }, 3);
+
         return response()->json(['data' => $result], 201);
     }
 
@@ -127,12 +129,14 @@ final class SellerStaffController extends Controller
                 'branch_id' => (int) $input['branch_id'],
                 'is_active' => (bool) $input['is_active'],
             ]);
+
             return ['id' => (int) $target->id, 'user_id' => (int) $target->user_id,
                 'employee_number' => $target->employee_number,
                 'seller_id' => (int) $target->seller_id,
                 'role' => $input['role'], 'branch_id' => (int) $input['branch_id'],
                 'is_active' => (bool) $input['is_active']];
         }, 3);
+
         return response()->json(['data' => $result]);
     }
 
