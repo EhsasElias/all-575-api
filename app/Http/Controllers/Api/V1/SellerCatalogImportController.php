@@ -12,6 +12,7 @@ use App\Support\SellerDemoMode;
 use App\Support\SellerProductImageSource;
 use DOMDocument;
 use DOMXPath;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -291,7 +292,7 @@ final class SellerCatalogImportController extends Controller
                     if ($number > 201 || ++$seen > 201) {
                         throw ValidationException::withMessages(['file' => ['Maximum 200 product rows per upload.']]);
                     }
-                    fputcsv($handle, array_slice($cells, 0, $columnCount));
+                    fputcsv($handle, array_slice($cells, 0, $columnCount), escape: '\\');
                 }
             } catch (\Throwable $error) {
                 @unlink($temp);
@@ -340,15 +341,17 @@ final class SellerCatalogImportController extends Controller
         }
 
         try {
-            $header = fgetcsv($handle);
+            if (fread($handle, 3) !== "\xEF\xBB\xBF") {
+                rewind($handle);
+            }
+            $header = fgetcsv($handle, escape: '\\');
             if ($header === false) {
                 throw ValidationException::withMessages(['file' => ['CSV is empty.']]);
             }
-            $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
             // Accept older downloaded templates while enforcing the current price range.
             // Compare the normalized caption only; price values are checked separately.
             if (isset($header[8])) {
-                $header[8] = str_replace(['1–10', '1–5.75'], '1–100', $header[8]);
+                $header[8] = str_replace(['(1–10)', '(1–5.75)'], '(1–100)', $header[8]);
             }
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
@@ -400,7 +403,7 @@ final class SellerCatalogImportController extends Controller
             $errors = [];
             $line = 1;
 
-            while (($cells = fgetcsv($handle)) !== false) {
+            while (($cells = fgetcsv($handle, escape: '\\')) !== false) {
                 $line++;
                 if (count($cells) === 1 && trim((string) $cells[0]) === '') {
                     continue;
@@ -592,15 +595,19 @@ final class SellerCatalogImportController extends Controller
             throw ValidationException::withMessages(['file' => array_slice($errors, 0, 20)]);
         }
 
-        // Read-only preview uses the same validation as the real import.
-        // It checks existing SKUs/barcodes but never creates a draft.
-        if ($request->boolean('dry_run')) {
-            $skus = array_column($rows, 'sku');
-            $barcodes = array_values(array_filter(array_column($rows, 'barcode'), static fn ($v) => $v !== ''));
-            if (DB::table('product_variants')->whereIn('sku', $skus)
-                ->orWhereIn('barcode', $barcodes)->exists()) {
+        $skus = array_column($rows, 'sku');
+        $barcodes = array_values(array_filter(array_column($rows, 'barcode'), static fn ($v) => $v !== ''));
+        $duplicatesExist = static fn (): bool => DB::table('product_variants')->whereIn('sku', $skus)
+            ->orWhereIn('barcode', $barcodes)->exists();
+        $rejectDuplicates = static function () use ($duplicatesExist): void {
+            if ($duplicatesExist()) {
                 throw ValidationException::withMessages(['file' => ['One or more SKUs/barcodes already exist.']]);
             }
+        };
+
+        // Preview is read-only. Check again under the seller lock before saving.
+        $rejectDuplicates();
+        if ($request->boolean('dry_run')) {
 
             return response()->json(['data' => [
                 'valid_rows' => count($rows),
@@ -650,13 +657,11 @@ final class SellerCatalogImportController extends Controller
                 }
             }
 
-            $result = DB::transaction(function () use ($rows, $sellerId, $storedImages, $submitAfterImport, $directPublishEnabled): array {
-                $skus = array_column($rows, 'sku');
-                $barcodes = array_values(array_filter(array_column($rows, 'barcode'), static fn ($v) => $v !== ''));
-                if (DB::table('product_variants')->whereIn('sku', $skus)
-                    ->orWhereIn('barcode', $barcodes)->exists()) {
-                    throw ValidationException::withMessages(['file' => ['One or more SKUs/barcodes already exist.']]);
-                }
+            $result = DB::transaction(function () use ($rows, $sellerId, $storedImages, $submitAfterImport, $directPublishEnabled, $rejectDuplicates): array {
+                // Lock before reading duplicates. SQLite needs a write as the first statement
+                // to avoid a lock upgrade race. The no-op update leaves the timestamp intact.
+                DB::table('sellers')->where('id', $sellerId)->update(['updated_at' => DB::raw('updated_at')]);
+                $rejectDuplicates();
 
                 $published = 0;
                 $submitted = 0;
@@ -705,6 +710,9 @@ final class SellerCatalogImportController extends Controller
         } catch (\Throwable $exception) {
             if ($storedImages !== []) {
                 Storage::disk('public')->delete(array_values($storedImages));
+            }
+            if ($exception instanceof UniqueConstraintViolationException) {
+                $rejectDuplicates();
             }
             throw $exception;
         }

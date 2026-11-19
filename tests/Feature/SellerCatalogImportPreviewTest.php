@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Seller;
 use App\Domain\Identity\Models\User;
+use App\Domain\Reporting\Services\XlsxWriter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -101,6 +102,36 @@ final class SellerCatalogImportPreviewTest extends TestCase
             ], ['Accept' => 'application/json'])->assertOk();
         }
 
+        $this->assertDatabaseCount('products', 0);
+    }
+
+    public function test_current_downloaded_price_header_is_accepted_in_csv_and_excel(): void
+    {
+        $seller = $this->signInSeller();
+        $category = Category::factory()->create();
+        $template = $this->get('/api/v1/seller/products/import/template.csv')->assertOk()->getContent();
+        $headers = str_getcsv(trim(substr($template, 3)), escape: '\\');
+        $row = ['TEST-TEMPLATE-001', '', '', $category->id, 'منتج اختبار', 'Test Product', '', '', '5.75', 'standard', '', '', '', '', ''];
+        $xlsx = (new XlsxWriter)->download($headers, [$row], 'products.xlsx')->getFile();
+        $uploads = [
+            UploadedFile::fake()->createWithContent('products.csv', rtrim($template)."\n".implode(',', $row)."\n"),
+            new UploadedFile($xlsx->getPathname(), 'products.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ];
+
+        try {
+            foreach ($uploads as $upload) {
+                $this->post('/api/v1/seller/products/import', [
+                    'seller_id' => $seller->id,
+                    'dry_run' => '1',
+                    'file' => $upload,
+                ], ['Accept' => 'application/json'])
+                    ->assertOk()
+                    ->assertJsonPath('data.valid_rows', 1)
+                    ->assertJsonPath('data.preview.0.price_halalas', 575);
+            }
+        } finally {
+            @unlink($xlsx->getPathname());
+        }
         $this->assertDatabaseCount('products', 0);
     }
 }
