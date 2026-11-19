@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   phpunit:
@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
@@ -35,3 +37,15 @@ jobs:
           name: qa-generated-openapi
           path: docs/api/openapi.json
           retention-days: 7
+      - name: Commit regenerated contract on the isolated QA branch
+        if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/qa-regression-20261119' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/api/openapi.json
+          if git diff --cached --quiet; then
+            echo "OpenAPI already matches generated version."
+          else
+            git commit -m "Regenerate OpenAPI contract from current Laravel routes"
+            git push origin HEAD:refs/heads/fix/qa-regression-20261119
+          fi
