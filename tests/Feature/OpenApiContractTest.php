@@ -17,7 +17,13 @@ class OpenApiContractTest extends TestCase
         // and nothing other tests did to the application can leak into the document.
         $fresh = tempnam(sys_get_temp_dir(), 'openapi');
         $database = tempnam(sys_get_temp_dir(), 'openapi-db');
-        $env = ['APP_ENV' => 'local', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => $database, 'DB_URL' => ''];
+        $env = [
+            'APP_ENV' => 'local',
+            'APP_URL' => 'http://localhost:8000',
+            'DB_CONNECTION' => 'sqlite',
+            'DB_DATABASE' => $database,
+            'DB_URL' => '',
+        ];
 
         $migrated = Process::path(base_path())->env($env)->run([PHP_BINARY, 'artisan', 'migrate', '--force']);
         $this->assertTrue($migrated->successful(), $migrated->errorOutput());
