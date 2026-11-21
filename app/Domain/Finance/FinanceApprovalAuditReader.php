@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Finance;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Internal read-only audit access; only active finance reviewers may inspect.

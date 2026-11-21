@@ -22,6 +22,7 @@ final class TaqnyatOtpSender implements OtpSender
     {
         if ($channel === OtpChannel::Email) {
             $this->emailSender->send($channel, $destination, $code, $locale);
+
             return;
         }
 

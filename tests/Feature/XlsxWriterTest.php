@@ -12,7 +12,7 @@ class XlsxWriterTest extends TestCase
 {
     public function test_download_contains_valid_excel_parts_and_escapes_untrusted_cells(): void
     {
-        if (!class_exists(ZipArchive::class)) {
+        if (! class_exists(ZipArchive::class)) {
             $this->markTestSkipped('ZIP extension is unavailable.');
         }
 
@@ -24,7 +24,7 @@ class XlsxWriterTest extends TestCase
 
         $this->assertSame('attachment; filename=seller-orders.xlsx', $response->headers->get('Content-Disposition'));
         $path = $response->getFile()->getPathname();
-        $archive = new ZipArchive();
+        $archive = new ZipArchive;
         $this->assertTrue($archive->open($path) === true);
 
         try {

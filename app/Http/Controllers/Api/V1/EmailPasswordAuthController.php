@@ -54,6 +54,7 @@ final class EmailPasswordAuthController extends Controller
             $user = User::query()->create(['email' => $email, 'locale' => app()->getLocale(), 'is_active' => true]);
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
             $recordConsents->handle($user, $data['consents'], app()->getLocale(), $request->ip());
+
             return $requestOtp->handle(OtpChannel::Email, $email, app()->getLocale(), $request->ip());
         });
 
@@ -119,11 +120,11 @@ final class EmailPasswordAuthController extends Controller
             $user->passkeys()->delete();
             $user->tokens()->where('id', '!=', $login->token->accessToken->id)->delete();
         });
+
         return response()->json(['data' => [
             'token' => $login->token->plainTextToken,
             'user' => new UserResource($user->refresh()),
             'is_new_user' => false,
         ]]);
     }
-
 }

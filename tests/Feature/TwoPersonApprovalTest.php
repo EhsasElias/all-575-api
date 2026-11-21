@@ -9,6 +9,7 @@ use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 final class TwoPersonApprovalTest extends TestCase
@@ -53,10 +54,11 @@ final class TwoPersonApprovalTest extends TestCase
         $this->actingAs($second);
         $service->approve($id, $second->id);
     }
+
     public function test_ungranted_user_cannot_create_approval(): void
     {
         $user = User::factory()->create();
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
         $this->actingAs($user);
         app(TwoPersonApproval::class)->request('refund_allocation', 'ungranted', $user->id, hash('sha256', 'fixture'));
     }
@@ -103,7 +105,7 @@ final class TwoPersonApprovalTest extends TestCase
         try {
             $service->approve($id, $second->id);
             self::fail('Revoked approver must be denied.');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+        } catch (HttpException $exception) {
             self::assertSame(403, $exception->getStatusCode());
         }
 
@@ -171,7 +173,7 @@ final class TwoPersonApprovalTest extends TestCase
         $this->grant($first->id, 'first');
         $this->actingAs($outsider);
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
         app(TwoPersonApproval::class)->request(
             'refund_allocation',
             'spoofed-request',
@@ -185,7 +187,7 @@ final class TwoPersonApprovalTest extends TestCase
         $first = User::factory()->create();
         $this->grant($first->id, 'first');
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
         app(TwoPersonApproval::class)->request(
             'refund_allocation', 'unauthenticated-ref', $first->id, hash('sha256', 'fixture')
         );
@@ -212,7 +214,7 @@ final class TwoPersonApprovalTest extends TestCase
         try {
             app(TwoPersonApproval::class)->approve($id, $second->id);
             self::fail('Revoked first approver must prevent second approval.');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+        } catch (HttpException $exception) {
             self::assertSame(403, $exception->getStatusCode());
         }
 
@@ -245,7 +247,7 @@ final class TwoPersonApprovalTest extends TestCase
         try {
             app(TwoPersonApproval::class)->reject($id, $second->id, 'Supporting documents are insufficient.');
             self::fail('Revoked first approver must block rejection.');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+        } catch (HttpException $exception) {
             self::assertSame(403, $exception->getStatusCode());
         }
 

@@ -16,7 +16,7 @@ final class SellerEmployeeNumberSeeder extends Seeder
 {
     public function run(): void
     {
-        if (!Schema::hasColumn('seller_staff_access', 'employee_number')) {
+        if (! Schema::hasColumn('seller_staff_access', 'employee_number')) {
             throw new \RuntimeException('Run php artisan migrate before this seeder.');
         }
 
@@ -43,7 +43,7 @@ final class SellerEmployeeNumberSeeder extends Seeder
                     DB::table('seller_staff_access')->where('id', $membershipId)
                         ->whereNull('employee_number')
                         ->update(['employee_number' => sprintf('EMP-%06d', ++$sequence)]);
-                    ++$assigned;
+                    $assigned++;
                 }
             }, 3);
         }

@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Identity\Services\AuditLogger;
 use App\Domain\Reporting\Services\CsvWriter;
-use App\Domain\Reporting\Services\XlsxWriter;
 use App\Domain\Reporting\Services\SpendingReport;
+use App\Domain\Reporting\Services\XlsxWriter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\SpendingReportRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SpendingReportController extends Controller
 {
@@ -50,7 +51,8 @@ class SpendingReportController extends Controller
             'Content-Disposition' => 'attachment; filename="all575-spending-'.$request->from()->toDateString().'-to-'.$request->to()->toDateString().'.csv"',
         ]);
     }
-    public function excel(SpendingReportRequest $request, SpendingReport $report, XlsxWriter $xlsx, AuditLogger $audit): \Symfony\Component\HttpFoundation\BinaryFileResponse
+
+    public function excel(SpendingReportRequest $request, SpendingReport $report, XlsxWriter $xlsx, AuditLogger $audit): BinaryFileResponse
     {
         $data = $report->for($request->user(), $request->from(), $request->to(), $request->safe()->only(['category', 'seller', 'status']));
         $tz = config('store.slots.timezone');
@@ -68,5 +70,4 @@ class SpendingReportController extends Controller
             'المجموع قبل الخصم (ريال)', 'الخصم (ريال)', 'رسوم التوصيل (ريال)', 'ضريبة القيمة المضافة (ريال)', 'الإجمالي (ريال)', 'المبلغ المسترد (ريال)', 'صافي المصروفات (ريال)',
         ], $rows, 'all575-spending-'.$request->from()->toDateString().'-to-'.$request->to()->toDateString().'.xlsx');
     }
-
 }

@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "http://192.168.8.104:8000/api"
+            "url": "http://localhost:8000/api"
         }
     ],
     "paths": {
@@ -20,7 +20,7 @@
                             "text/csv; charset=UTF-8": {
                                 "schema": {
                                     "type": "string",
-                                    "const": "\ufeff\u0631\u0645\u0632 SKU (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0645\u062a\u062c\u0631 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u062a\u0635\u0646\u064a\u0641 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062a\u062c \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062a\u062c \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0644\u0648\u0635\u0641 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0648\u0635\u0641 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0633\u0639\u0631 \u0628\u0627\u0644\u0631\u064a\u0627\u0644 (1\u201310) (\u0625\u062c\u0628\u0627\u0631\u064a),\u0641\u0626\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0648\u062d\u062f\u0629 \u0627\u0644\u0628\u064a\u0639 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0633\u0645 \u0648\u062d\u062f\u0629 \u0627\u0644\u0628\u064a\u0639 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0631\u0627\u0628\u0637 \u0635\u0648\u0631\u0629 \u0627\u0644\u0645\u0646\u062a\u062c HTTPS (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0635\u0648\u0631\u0629 \u062f\u0627\u062e\u0644 Excel (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0633\u0628\u0628 \u0627\u0644\u0646\u0638\u0627\u0645\u064a \u0644\u0644\u0636\u0631\u064a\u0628\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a \u0644\u0644\u0635\u0641\u0631\u064a\u0629 \u0648\u0627\u0644\u0645\u0639\u0641\u0627\u0629)\r\n"
+                                    "const": "\ufeff\u0631\u0645\u0632 SKU (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0644\u0628\u0627\u0631\u0643\u0648\u062f (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0645\u062a\u062c\u0631 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u062a\u0635\u0646\u064a\u0641 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062a\u062c \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062a\u062c \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0644\u0648\u0635\u0641 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0648\u0635\u0641 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0633\u0639\u0631 \u0628\u0627\u0644\u0631\u064a\u0627\u0644 (1\u2013100) (\u0625\u062c\u0628\u0627\u0631\u064a),\u0641\u0626\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a),\u0627\u0633\u0645 \u0648\u062d\u062f\u0629 \u0627\u0644\u0628\u064a\u0639 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0633\u0645 \u0648\u062d\u062f\u0629 \u0627\u0644\u0628\u064a\u0639 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0631\u0627\u0628\u0637 \u0635\u0648\u0631\u0629 \u0627\u0644\u0645\u0646\u062a\u062c HTTPS (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0635\u0648\u0631\u0629 \u062f\u0627\u062e\u0644 Excel (\u0627\u062e\u062a\u064a\u0627\u0631\u064a),\u0627\u0644\u0633\u0628\u0628 \u0627\u0644\u0646\u0638\u0627\u0645\u064a \u0644\u0644\u0636\u0631\u064a\u0628\u0629 (\u0625\u062c\u0628\u0627\u0631\u064a \u0644\u0644\u0635\u0641\u0631\u064a\u0629 \u0648\u0627\u0644\u0645\u0639\u0641\u0627\u0629)\r\n"
                                 }
                             }
                         },
@@ -807,6 +807,1203 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/platform/admin/couriers": {
+            "get": {
+                "operationId": "courierOperations.couriers",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "courierOperations.register",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "user_id": {
+                                        "type": "integer"
+                                    },
+                                    "service_zone_id": {
+                                        "type": "integer"
+                                    },
+                                    "vehicle_type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "motorcycle",
+                                            "car",
+                                            "van",
+                                            "bicycle"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "user_id",
+                                    "service_zone_id",
+                                    "vehicle_type"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "approval_status": {
+                                                    "type": "string",
+                                                    "const": "pending"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "approval_status"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/platform/super-admin/couriers/{courier}/approval": {
+            "patch": {
+                "operationId": "courierOperations.approve",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "parameters": [
+                    {
+                        "name": "courier",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "approved": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "approved"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "approval_status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "approved",
+                                                        "rejected"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "approval_status"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/platform/admin/orders/{suborder}/assign-courier": {
+            "post": {
+                "operationId": "courierOperations.assign",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "parameters": [
+                    {
+                        "name": "suborder",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "courier_profile_id": {
+                                        "type": "integer"
+                                    },
+                                    "reason": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 300
+                                    }
+                                },
+                                "required": [
+                                    "courier_profile_id"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "assignment_id": {
+                                                    "type": "integer"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "const": "offered"
+                                                }
+                                            },
+                                            "required": [
+                                                "assignment_id",
+                                                "status"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/platform/admin/orders/{suborder}/pickup-code": {
+            "get": {
+                "operationId": "courierOperations.pickupCode",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "parameters": [
+                    {
+                        "name": "suborder",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "pickup_code": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "pickup_code"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/platform/admin/orders/{suborder}/courier-history": {
+            "get": {
+                "operationId": "courierOperations.history",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "parameters": [
+                    {
+                        "name": "suborder",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/platform/admin/incidents": {
+            "get": {
+                "operationId": "courierOperations.incidentIndex",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "courierOperations.incidentCreate",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "suborder_id": {
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "complaint",
+                                            "refund",
+                                            "delivery_issue"
+                                        ]
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "minLength": 10,
+                                        "maxLength": 2000
+                                    },
+                                    "assigned_to": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "suborder_id",
+                                    "type",
+                                    "description"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "id"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/platform/admin/incidents/{incident}": {
+            "patch": {
+                "operationId": "courierOperations.incidentUpdate",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "parameters": [
+                    {
+                        "name": "incident",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "open",
+                                            "investigating",
+                                            "resolved"
+                                        ]
+                                    },
+                                    "resolution": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 2000
+                                    }
+                                },
+                                "required": [
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "status"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/platform/admin/daily-status": {
+            "get": {
+                "operationId": "courierOperations.daily",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "day": {
+                                                    "type": "string"
+                                                },
+                                                "open_incidents": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "resolved_today": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "ready_orders": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "picked_up_today": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "day",
+                                                "open_incidents",
+                                                "resolved_today",
+                                                "ready_orders",
+                                                "picked_up_today"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/courier/profile": {
+            "get": {
+                "operationId": "courierOperations.profile",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "service_zone_id": {
+                                                    "type": "string"
+                                                },
+                                                "approval_status": {
+                                                    "type": "string"
+                                                },
+                                                "vehicle_type": {
+                                                    "type": "string"
+                                                },
+                                                "is_online": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "service_zone_id",
+                                                "approval_status",
+                                                "vehicle_type",
+                                                "is_online"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/courier/jobs": {
+            "get": {
+                "operationId": "courierOperations.jobs",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/courier/availability": {
+            "patch": {
+                "operationId": "courierOperations.availability",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "is_online": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "is_online"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "is_online": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "is_online"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/courier/jobs/{assignment}/respond": {
+            "post": {
+                "operationId": "courierOperations.respond",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "parameters": [
+                    {
+                        "name": "assignment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "decision": {
+                                        "type": "string",
+                                        "enum": [
+                                            "accept",
+                                            "decline"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "decision"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                ""
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/courier/jobs/{assignment}/pickup": {
+            "post": {
+                "operationId": "courierOperations.pickup",
+                "tags": [
+                    "CourierOperations"
+                ],
+                "parameters": [
+                    {
+                        "name": "assignment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "pickup_code": {
+                                        "type": "string"
+                                    },
+                                    "parcel_count": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 500
+                                    }
+                                },
+                                "required": [
+                                    "pickup_code",
+                                    "parcel_count"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "picked_up",
+                                                        "invalid_code"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "status"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -3726,7 +4923,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Paginated set of `ProductListResource`",
+                        "description": "Array of `ProductListResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3737,84 +4934,10 @@
                                             "items": {
                                                 "$ref": "#/components/schemas/ProductListResource"
                                             }
-                                        },
-                                        "links": {
-                                            "type": "object",
-                                            "properties": {
-                                                "first": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "last": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "prev": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "next": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "first",
-                                                "last",
-                                                "prev",
-                                                "next"
-                                            ]
-                                        },
-                                        "meta": {
-                                            "type": "object",
-                                            "properties": {
-                                                "path": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ],
-                                                    "description": "Base path for paginator generated URLs."
-                                                },
-                                                "per_page": {
-                                                    "type": "integer",
-                                                    "description": "Number of items shown per page.",
-                                                    "minimum": 0
-                                                },
-                                                "next_cursor": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ],
-                                                    "description": "The \"cursor\" that points to the next set of items."
-                                                },
-                                                "prev_cursor": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ],
-                                                    "description": "The \"cursor\" that points to the previous set of items."
-                                                }
-                                            },
-                                            "required": [
-                                                "path",
-                                                "per_page",
-                                                "next_cursor",
-                                                "prev_cursor"
-                                            ]
                                         }
                                     },
                                     "required": [
-                                        "data",
-                                        "links",
-                                        "meta"
+                                        "data"
                                     ]
                                 }
                             }
@@ -4043,6 +5166,9 @@
                                                         "vat_included": {
                                                             "type": "integer"
                                                         },
+                                                        "vat_amount": {
+                                                            "type": "integer"
+                                                        },
                                                         "vat": {
                                                             "type": "array",
                                                             "items": {
@@ -4119,6 +5245,7 @@
                                                         "delivery_fee",
                                                         "total",
                                                         "vat_included",
+                                                        "vat_amount",
                                                         "vat",
                                                         "promo_code",
                                                         "address_id",
@@ -11307,21 +12434,33 @@
                     "200": {
                         "description": "",
                         "content": {
-                            "text/html": {
+                            "text/csv; charset=UTF-8": {
                                 "schema": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            },
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
                                 }
                             }
                         },
                         "headers": {
                             "Transfer-Encoding": {
-                                "required": true,
                                 "schema": {
                                     "type": "string",
                                     "enum": [
                                         "chunked"
                                     ]
                                 }
+                            },
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "attachment"
                             }
                         }
                     },

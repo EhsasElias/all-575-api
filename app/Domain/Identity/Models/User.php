@@ -11,9 +11,9 @@ use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Laravel\Sanctum\HasApiTokens;
 use Laravel\Passkeys\Contracts\PasskeyUser;
 use Laravel\Passkeys\PasskeyAuthenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
 #[UseFactory(UserFactory::class)]
 #[Fillable(['name', 'phone', 'email', 'phone_verified_at', 'email_verified_at', 'locale', 'is_active', 'last_login_at'])]

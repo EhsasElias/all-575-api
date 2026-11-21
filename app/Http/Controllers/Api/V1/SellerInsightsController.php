@@ -38,6 +38,7 @@ final class SellerInsightsController extends Controller
     private function allowedOrders(Request $request, array $filters): Builder
     {
         $userId = $request->user()->id;
+
         return DB::table('suborders')
             ->join('orders', 'orders.id', '=', 'suborders.order_id')
             ->join('branches', 'branches.id', '=', 'suborders.branch_id')
@@ -70,6 +71,7 @@ final class SellerInsightsController extends Controller
         if (in_array($metric, ['awaiting_seller', 'preparing', 'ready', 'on_the_way', 'delivered'], true)) {
             return $orders->where('suborders.status', $metric);
         }
+
         return $orders;
     }
 
@@ -85,6 +87,7 @@ final class SellerInsightsController extends Controller
                 ->selectRaw('order_items.product_id as id, order_items.name_ar, order_items.name_en, SUM(order_items.quantity) as units, SUM(order_items.line_total_halalas) as sales_halalas')
                 ->groupBy('order_items.product_id', 'order_items.name_ar', 'order_items.name_en')
                 ->orderByDesc('units')->limit($limit)->get();
+
             return [
                 ['Product ID', 'Arabic name', 'English name', 'Units', 'Merchandise SAR'],
                 $records->map(static fn ($row) => [
@@ -98,6 +101,7 @@ final class SellerInsightsController extends Controller
             $records = $base->selectRaw('branches.id, branches.name_ar, branches.name_en, COUNT(*) as orders, SUM(CASE WHEN suborders.status = \'delivered\' THEN suborders.subtotal_halalas - suborders.discount_halalas ELSE 0 END) as delivered_sales_halalas')
                 ->groupBy('branches.id', 'branches.name_ar', 'branches.name_en')
                 ->orderByDesc('orders')->limit($limit)->get();
+
             return [
                 ['Branch ID', 'Arabic name', 'English name', 'Orders', 'Delivered merchandise SAR'],
                 $records->map(static fn ($row) => [
@@ -132,6 +136,7 @@ final class SellerInsightsController extends Controller
                 ->select('branches.'.$branchColumn.' as branch', 'product_variants.sku', 'products.name_ar',
                     'branch_stock.on_hand', 'branch_stock.reserved')
                 ->orderBy('branch_stock.id')->limit($limit)->get();
+
             return [
                 ['Branch', 'SKU', 'Product', 'On hand', 'Reserved', 'Available'],
                 $records->map(static fn ($row) => [
@@ -148,6 +153,7 @@ final class SellerInsightsController extends Controller
                 'suborders.discount_halalas')
             ->orderByDesc('orders.placed_at')->orderByDesc('suborders.id')
             ->limit($limit)->get();
+
         return [
             ['Order', 'Date', 'Branch', 'Status', 'Subtotal SAR', 'Discount SAR', 'Merchandise SAR'],
             $records->map(static fn ($row) => [
@@ -183,6 +189,7 @@ final class SellerInsightsController extends Controller
     {
         $filters = $this->filters($request);
         [$columns, $rows] = $this->rows($request, $filters);
+
         return response()->json(['data' => [
             'metric' => $filters['metric'],
             'from' => $filters['from'],
@@ -232,8 +239,10 @@ final class SellerInsightsController extends Controller
                     ? ($statuses[$code] ?? $code)
                     : ($englishStatuses[$code] ?? $code);
             }
+
             return $row;
         }, $rows);
+
         return [$outputColumns, $outputRows];
     }
 
@@ -258,6 +267,7 @@ final class SellerInsightsController extends Controller
                 // Prevent spreadsheet formula injection when CSV is opened in Excel.
                 fputcsv($out, array_map(static function ($cell): string {
                     $value = (string) $cell;
+
                     return preg_match('/^[=+@\-\t\r]/u', $value) ? "'".$value : $value;
                 }, $row));
             }

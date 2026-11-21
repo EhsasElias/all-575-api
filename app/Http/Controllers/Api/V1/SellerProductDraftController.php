@@ -9,12 +9,13 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\Pricing\VatClass;
 use App\Http\Controllers\Controller;
 use App\Support\SellerDemoMode;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Sellers may compose drafts, but publication remains a back-office decision.
@@ -53,7 +54,7 @@ final class SellerProductDraftController extends Controller
             $vatClass = $data['vat_class'] ?? $item->vat_class->value;
             $justification = trim((string) ($data['vat_justification'] ?? $item->vat_justification ?? ''));
             if ($vatClass !== VatClass::Standard->value && strlen($justification) < 15) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'vat_justification' => 'A legal VAT justification of at least 15 characters is required.',
                 ]);
             }
@@ -76,7 +77,7 @@ final class SellerProductDraftController extends Controller
             abort_unless($item->status === ProductStatus::Draft, 409, 'Only drafts may be submitted.');
             abort_unless($item->variants()->exists(), 422, 'Add a product variant before submitting.');
             if ($item->vat_class !== VatClass::Standard && mb_strlen(trim((string) $item->vat_justification)) < 15) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'vat_justification' => 'A documented legal VAT justification is required before submission.',
                 ]);
             }
@@ -154,6 +155,7 @@ final class SellerProductDraftController extends Controller
             $data['vat_justification'] = ($data['vat_class'] ?? 'standard') === 'standard'
                 ? null : trim((string) ($data['vat_justification'] ?? ''));
         }
+
         return $data;
     }
 

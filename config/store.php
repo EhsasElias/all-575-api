@@ -15,7 +15,6 @@ return [
         'seller_id' => (int) env('SELLER_DEMO_SELLER_ID', 0),
     ],
 
-
     // Legacy ceiling/reference for the storefront; individual products have prices from 100 to 575 halalas.
     // Changing this setting does not change product prices or existing order snapshots.
     'price_halalas' => 575,

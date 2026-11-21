@@ -66,7 +66,8 @@ final class SellerSettlementPreviewController extends Controller
             $gross += $amount;
             $rate = $rates->filter(static fn ($r) => $r->effective_from <= $row->placed_at && $r->approved_at <= $row->placed_at)->last();
             if ($rate === null) {
-                ++$missingRates;
+                $missingRates++;
+
                 continue;
             }
             $commission += $calculator->calculate($amount, (int) $rate->rate_basis_points);

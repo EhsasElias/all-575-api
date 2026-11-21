@@ -5,13 +5,15 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Orders\Enums\SuborderStatus;
 use App\Domain\Orders\Models\Suborder;
 use App\Domain\Orders\Services\SuborderTransitions;
-use App\Http\Controllers\Controller;
 use App\Domain\Reporting\Services\XlsxWriter;
-use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SellerWorkspaceController extends Controller
 {
@@ -215,29 +217,42 @@ class SellerWorkspaceController extends Controller
     private function orderExportLocale(Request $request): string
     {
         $value = (string) $request->input('lang', $request->header('Accept-Language', 'ar'));
-        return str_starts_with(strtolower($value), 'ar') ? 'ar' : 'en';
+
+        return match (substr(strtolower($value), 0, 2)) {
+            'ar' => 'ar',
+            'fr' => 'fr',
+            default => 'en',
+        };
     }
 
     private function orderExportHeaders(string $locale): array
     {
-        return $locale === 'ar'
-            ? ['رقم الطلب', 'حالة الطلب', 'اسم الفرع', 'تاريخ الطلب']
-            : ['Order number', 'Order status', 'Branch name', 'Order date'];
+        return match ($locale) {
+            'ar' => ['رقم الطلب', 'حالة الطلب', 'اسم الفرع', 'تاريخ الطلب'],
+            'fr' => ['Numéro de commande', 'Statut de la commande', 'Nom de la succursale', 'Date de la commande'],
+            default => ['Order number', 'Order status', 'Branch name', 'Order date'],
+        };
     }
 
     private function orderExportRow(Suborder $suborder, string $locale): array
     {
-        $labels = $locale === 'ar'
-            ? [
+        $labels = match ($locale) {
+            'ar' => [
                 'awaiting_seller' => 'بانتظار البائع', 'preparing' => 'قيد التجهيز',
                 'ready' => 'جاهز', 'on_the_way' => 'في الطريق', 'delivered' => 'تم التسليم',
                 'cancelled' => 'ملغي',
-            ]
-            : [
+            ],
+            'fr' => [
+                'awaiting_seller' => 'En attente du vendeur', 'preparing' => 'En préparation',
+                'ready' => 'Prête', 'on_the_way' => 'En route', 'delivered' => 'Livrée',
+                'cancelled' => 'Annulée',
+            ],
+            default => [
                 'awaiting_seller' => 'Awaiting seller', 'preparing' => 'Preparing',
                 'ready' => 'Ready', 'on_the_way' => 'On the way', 'delivered' => 'Delivered',
                 'cancelled' => 'Cancelled',
-            ];
+            ],
+        };
         $status = $suborder->status->value;
         $branch = $suborder->branch;
         $branchName = $branch !== null
@@ -245,15 +260,22 @@ class SellerWorkspaceController extends Controller
                 ? (trim((string) $branch->name_ar) ?: trim((string) $branch->name_en))
                 : (trim((string) $branch->name_en) ?: trim((string) $branch->name_ar)))
             : '';
+
+        $unnamedBranch = match ($locale) {
+            'ar' => 'فرع غير محدد',
+            'fr' => 'Succursale sans nom',
+            default => 'Unnamed branch',
+        };
+
         return [
             $suborder->order->number,
             $labels[$status] ?? $status,
-            $branchName !== '' ? $branchName : ($locale === 'ar' ? 'فرع غير محدد' : 'Unnamed branch'),
+            $branchName !== '' ? $branchName : $unnamedBranch,
             $suborder->order->placed_at?->format('Y-m-d H:i') ?? '',
         ];
     }
 
-    public function exportOrdersExcel(Request $request, XlsxWriter $xlsx): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    public function exportOrdersExcel(Request $request, XlsxWriter $xlsx): BinaryFileResponse
     {
         $locale = $this->orderExportLocale($request);
         $rows = $this->exportOrdersQuery($request)->with('branch:id,name_ar,name_en')
@@ -263,7 +285,7 @@ class SellerWorkspaceController extends Controller
         return $xlsx->download($this->orderExportHeaders($locale), $rows, 'seller-orders.xlsx');
     }
 
-    public function exportOrders(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function exportOrders(Request $request): StreamedResponse
     {
         $locale = $this->orderExportLocale($request);
         $query = $this->exportOrdersQuery($request)->with('branch:id,name_ar,name_en');
@@ -276,6 +298,7 @@ class SellerWorkspaceController extends Controller
                 // Avoid spreadsheet formula execution when CSV is opened in Excel.
                 $cells = array_map(static function ($value): string {
                     $text = (string) $value;
+
                     return preg_match('/^[=+@\\-\\t\\r]/u', $text) ? "'".$text : $text;
                 }, $this->orderExportRow($suborder, $locale));
                 fputcsv($handle, $cells);

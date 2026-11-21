@@ -46,8 +46,7 @@ class OrderController extends Controller
             }));
         }
         if ($request->filled('payment_method')) {
-            $query->whereHas('payments', fn ($payments) =>
-                $payments->where('method', $request->input('payment_method')));
+            $query->whereHas('payments', fn ($payments) => $payments->where('method', $request->input('payment_method')));
         }
         if ($request->filled('min_price')) {
             $query->where('total_halalas', '>=', (int) round(((float) $request->input('min_price')) * 100));

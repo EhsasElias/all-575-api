@@ -6,6 +6,8 @@ namespace Tests\Feature;
 
 use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 final class SellerExtendedApplicationTest extends TestCase
@@ -39,10 +41,10 @@ final class SellerExtendedApplicationTest extends TestCase
             ->assertJsonPath('data.postal_code', '12345')
             ->assertJsonPath('data.iban', 'SA0380000000608010167519');
 
-        $rawIban = \Illuminate\Support\Facades\DB::table('seller_applications')->value('iban');
+        $rawIban = DB::table('seller_applications')->value('iban');
         $this->assertNotSame('SA0380000000608010167519', $rawIban);
         $this->assertSame('SA0380000000608010167519',
-            \Illuminate\Support\Facades\Crypt::decryptString($rawIban));
+            Crypt::decryptString($rawIban));
 
         $this->getJson('/api/v1/seller/application')->assertOk()
             ->assertJsonPath('data.building_number', '1234')

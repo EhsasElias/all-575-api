@@ -23,7 +23,7 @@ return new class extends Migration
             DB::table('seller_staff_access')->where('seller_id', $sellerId)
                 ->orderBy('id')->select('id')->chunk(200, function ($members) use (&$sequence): void {
                     foreach ($members as $member) {
-                        ++$sequence;
+                        $sequence++;
                         DB::table('seller_staff_access')->where('id', $member->id)
                             ->update(['employee_number' => sprintf('EMP-%06d', $sequence)]);
                     }

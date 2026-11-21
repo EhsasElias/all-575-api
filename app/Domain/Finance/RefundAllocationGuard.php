@@ -13,7 +13,7 @@ use InvalidArgumentException;
 final class RefundAllocationGuard
 {
     /**
-     * @param list<int> $amountsHalalas
+     * @param  list<int>  $amountsHalalas
      */
     public function validate(int $refundHalalas, array $amountsHalalas): void
     {

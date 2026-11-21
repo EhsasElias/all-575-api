@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -117,7 +118,7 @@ final class SellerReturnController extends Controller
         return response()->json(['data' => $result], 201);
     }
 
-    private function visibleCases(Request $request): \Illuminate\Database\Query\Builder
+    private function visibleCases(Request $request): Builder
     {
         return DB::table('customer_cases')
             ->join('order_items', 'order_items.id', '=', 'customer_cases.order_item_id')
