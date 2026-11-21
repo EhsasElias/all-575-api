@@ -67,7 +67,7 @@ Route::get('seller/memberships', [SellerAccessController::class, 'memberships'])
     ->middleware(['auth:sanctum', 'abilities:customer', 'active']);
 
 Route::post('seller/session', [SellerAccessController::class, 'issue'])
-    ->middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:10,1']);
+    ->middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:10,1,seller-session:']);
 
 Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
     ->prefix('seller')->group(function (): void {
