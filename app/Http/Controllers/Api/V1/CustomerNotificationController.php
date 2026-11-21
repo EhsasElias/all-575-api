@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Notifications\NotificationTranslation;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,18 @@ class CustomerNotificationController extends Controller
         return response()->json([
             'data' => $page->orderByDesc('id')->limit($limit)->get([
                 'id', 'type', 'title', 'message', 'target_path', 'read_at', 'created_at',
-            ]),
+            ])->map(function ($notice) use ($request) {
+                $translated = NotificationTranslation::render(
+                    $notice->type,
+                    $notice->title,
+                    $notice->message,
+                    $request->getPreferredLanguage(['ar', 'en', 'fr']) ?? 'ar'
+                );
+                $notice->title = $translated['title'];
+                $notice->message = $translated['message'];
+
+                return $notice;
+            }),
             'unread_count' => DB::table('customer_notifications')
                 ->where('user_id', $userId)->whereNull('read_at')->count(),
         ]);
