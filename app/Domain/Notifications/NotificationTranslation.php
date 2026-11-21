@@ -60,7 +60,7 @@ final class NotificationTranslation
 
         // These system-generated messages include the order number after "الطلب".
         // Do not invent numbers or translate arbitrary messages if the format differs.
-        if (preg_match('/الطلب\\s+([^\\s]+)/u', $message, $matches) !== 1) {
+        if (preg_match('/الطلب[[:space:]]+([^[:space:]]+)/u', $message, $matches) !== 1) {
             return compact('title', 'message');
         }
 
