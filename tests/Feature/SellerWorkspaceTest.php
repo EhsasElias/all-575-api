@@ -109,4 +109,32 @@ class SellerWorkspaceTest extends TestCase
         Sanctum::actingAs($user, ['seller']);
         $this->getJson('/api/v1/seller/orders')->assertOk()->assertJsonCount(0, 'data');
     }
+
+    public function test_seller_session_has_its_own_rate_limit(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $seller = Seller::factory()->create();
+        DB::table('seller_staff_access')->insert([
+            'user_id' => $user->id,
+            'seller_id' => $seller->id,
+            'role' => 'owner',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($user, ['seller']);
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->get('/api/v1/seller/orders/export.csv')->assertOk();
+        }
+
+        $this->actingAsCustomer($user);
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->postJson('/api/v1/seller/session', ['device_name' => 'test-device'])->assertOk();
+        }
+
+        $this->postJson('/api/v1/seller/session', ['device_name' => 'test-device'])
+            ->assertTooManyRequests()
+            ->assertHeader('Retry-After');
+    }
 }
