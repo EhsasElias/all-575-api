@@ -218,29 +218,41 @@ class SellerWorkspaceController extends Controller
     {
         $value = (string) $request->input('lang', $request->header('Accept-Language', 'ar'));
 
-        return str_starts_with(strtolower($value), 'ar') ? 'ar' : 'en';
+        return match (substr(strtolower($value), 0, 2)) {
+            'ar' => 'ar',
+            'fr' => 'fr',
+            default => 'en',
+        };
     }
 
     private function orderExportHeaders(string $locale): array
     {
-        return $locale === 'ar'
-            ? ['رقم الطلب', 'حالة الطلب', 'اسم الفرع', 'تاريخ الطلب']
-            : ['Order number', 'Order status', 'Branch name', 'Order date'];
+        return match ($locale) {
+            'ar' => ['رقم الطلب', 'حالة الطلب', 'اسم الفرع', 'تاريخ الطلب'],
+            'fr' => ['Numéro de commande', 'Statut de la commande', 'Nom de la succursale', 'Date de la commande'],
+            default => ['Order number', 'Order status', 'Branch name', 'Order date'],
+        };
     }
 
     private function orderExportRow(Suborder $suborder, string $locale): array
     {
-        $labels = $locale === 'ar'
-            ? [
+        $labels = match ($locale) {
+            'ar' => [
                 'awaiting_seller' => 'بانتظار البائع', 'preparing' => 'قيد التجهيز',
                 'ready' => 'جاهز', 'on_the_way' => 'في الطريق', 'delivered' => 'تم التسليم',
                 'cancelled' => 'ملغي',
-            ]
-            : [
+            ],
+            'fr' => [
+                'awaiting_seller' => 'En attente du vendeur', 'preparing' => 'En préparation',
+                'ready' => 'Prête', 'on_the_way' => 'En route', 'delivered' => 'Livrée',
+                'cancelled' => 'Annulée',
+            ],
+            default => [
                 'awaiting_seller' => 'Awaiting seller', 'preparing' => 'Preparing',
                 'ready' => 'Ready', 'on_the_way' => 'On the way', 'delivered' => 'Delivered',
                 'cancelled' => 'Cancelled',
-            ];
+            ],
+        };
         $status = $suborder->status->value;
         $branch = $suborder->branch;
         $branchName = $branch !== null
@@ -249,10 +261,16 @@ class SellerWorkspaceController extends Controller
                 : (trim((string) $branch->name_en) ?: trim((string) $branch->name_ar)))
             : '';
 
+        $unnamedBranch = match ($locale) {
+            'ar' => 'فرع غير محدد',
+            'fr' => 'Succursale sans nom',
+            default => 'Unnamed branch',
+        };
+
         return [
             $suborder->order->number,
             $labels[$status] ?? $status,
-            $branchName !== '' ? $branchName : ($locale === 'ar' ? 'فرع غير محدد' : 'Unnamed branch'),
+            $branchName !== '' ? $branchName : $unnamedBranch,
             $suborder->order->placed_at?->format('Y-m-d H:i') ?? '',
         ];
     }
