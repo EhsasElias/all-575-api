@@ -297,6 +297,59 @@ final class CourierOperationsController extends Controller
         return response()->json(['data' => ['status' => $status]]);
     }
 
+    /**
+     * Record a failed handover without falsely marking the parcel as delivered.
+     * An unresolved incident blocks repeated reporting of the same failure.
+     */
+    public function failedDelivery(Request $request, int $assignment): JsonResponse
+    {
+        $courier = $this->courier($request);
+        abort_unless($courier->approval_status === 'approved', 403);
+        $data = $request->validate([
+            'reason' => ['required', Rule::in(['customer_absent', 'address_issue', 'customer_refused', 'other'])],
+            'description' => ['required', 'string', 'between:10,1000'],
+        ]);
+
+        $incidentId = DB::transaction(function () use ($request, $assignment, $courier, $data): int {
+            $job = DB::table('courier_assignments')
+                ->where('id', $assignment)->lockForUpdate()->first();
+            abort_unless($job && (int) $job->courier_profile_id === (int) $courier->id, 404);
+            abort_unless($job->status === 'picked_up', 409, 'Only picked-up jobs can report failed delivery.');
+
+            $suborder = DB::table('suborders')->where('id', $job->suborder_id)->lockForUpdate()->first();
+            abort_unless($suborder && $suborder->status === 'on_the_way', 409);
+
+            $alreadyOpen = DB::table('delivery_incidents')
+                ->where('suborder_id', $job->suborder_id)
+                ->where('type', 'delivery_issue')
+                ->where('status', '!=', 'resolved')->exists();
+            abort_if($alreadyOpen, 409, 'An unresolved delivery incident already exists.');
+
+            $id = DB::table('delivery_incidents')->insertGetId([
+                'suborder_id' => $job->suborder_id,
+                'reported_by' => $request->user()->id,
+                'assigned_to' => null,
+                'type' => 'delivery_issue',
+                'status' => 'open',
+                'description' => $data['reason'].': '.$data['description'],
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+
+            $this->record($job->id, $request->user()->id, $courier->id, 'delivery_failed', $data['reason']);
+            DB::table('order_events')->insert([
+                'order_id' => $suborder->order_id, 'suborder_id' => $suborder->id,
+                'type' => 'courier_delivery_failed', 'actor' => 'courier',
+                'note' => 'Delivery attempt failed: '.$data['reason'],
+                'meta' => json_encode(['incident_id' => $id]),
+                'created_at' => now(),
+            ]);
+
+            return $id;
+        }, 3);
+
+        return response()->json(['data' => ['incident_id' => $incidentId, 'status' => 'open']], 201);
+    }
+
     public function history(Request $request, string $suborder): JsonResponse
     {
         $this->scopedOrder($request, $suborder);
