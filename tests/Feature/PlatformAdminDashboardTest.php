@@ -22,6 +22,7 @@ class PlatformAdminDashboardTest extends TestCase
             'user_id' => $user->id, 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+
         return $user;
     }
 
@@ -123,7 +124,7 @@ class PlatformAdminDashboardTest extends TestCase
             ->assertOk()->assertJsonPath('data', []);
         $this->getJson('/api/v1/platform/admin/orders?from=2026-12-31&to=2026-01-01')
             ->assertUnprocessable();
-        $this->getJson('/api/v1/platform/admin/orders?seller_id=' . ($seller->id + 1000))
+        $this->getJson('/api/v1/platform/admin/orders?seller_id='.($seller->id + 1000))
             ->assertOk()->assertJsonPath('data', []);
         $this->getJson('/api/v1/platform/admin/orders?branch_id=-1')->assertUnprocessable();
     }

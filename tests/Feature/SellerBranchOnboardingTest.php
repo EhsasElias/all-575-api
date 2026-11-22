@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Domain\Catalog\Models\Seller;
 use App\Domain\Catalog\Models\Branch;
+use App\Domain\Catalog\Models\Seller;
 use App\Domain\Catalog\Models\ServiceZone;
 use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,6 +80,7 @@ final class SellerBranchOnboardingTest extends TestCase
         $this->postJson('/api/v1/seller/branches', $data)->assertStatus(422);
         $this->assertDatabaseCount('branches', 0);
     }
+
     public function test_legacy_disabled_branch_is_not_a_pending_proposal(): void
     {
         $seller = Seller::factory()->create();
@@ -97,5 +98,4 @@ final class SellerBranchOnboardingTest extends TestCase
             ['decision' => 'activate'])->assertNotFound();
         $this->assertDatabaseHas('branches', ['id' => $branch->id, 'is_active' => false]);
     }
-
 }

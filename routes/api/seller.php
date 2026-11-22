@@ -1,34 +1,35 @@
 <?php
 
-use App\Http\Controllers\Api\V1\SellerWorkspaceController;
-use App\Http\Controllers\Api\V1\SellerInsightsController;
 use App\Http\Controllers\Api\V1\SellerAccessController;
 use App\Http\Controllers\Api\V1\SellerApplicationController;
 use App\Http\Controllers\Api\V1\SellerApplicationDocumentController;
-use App\Http\Controllers\Api\V1\SellerReviewController;
-use App\Http\Controllers\Api\V1\SellerCatalogWorkspaceController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\SellerStockAdjustmentController;
-use App\Http\Controllers\Api\V1\SellerStockCreationController;
-use App\Http\Controllers\Api\V1\SellerProductDraftController;
-use App\Http\Controllers\Api\V1\SellerProductCodeLookupController;
-use App\Http\Controllers\Api\V1\SellerProductVariantController;
-use App\Http\Controllers\Api\V1\SellerProductImageController;
-use App\Http\Controllers\Api\V1\SellerCatalogImportController;
+use App\Http\Controllers\Api\V1\SellerBranchOnboardingController;
+use App\Http\Controllers\Api\V1\SellerBranchProfileController;
 use App\Http\Controllers\Api\V1\SellerCatalogExcelTemplateController;
-use App\Http\Controllers\Api\V1\SellerStaffController;
-use App\Http\Controllers\Api\V1\SellerReturnController;
+use App\Http\Controllers\Api\V1\SellerCatalogImportController;
+use App\Http\Controllers\Api\V1\SellerCatalogWorkspaceController;
+use App\Http\Controllers\Api\V1\SellerCategoryManagementController;
+use App\Http\Controllers\Api\V1\SellerCommissionPreviewController;
+use App\Http\Controllers\Api\V1\SellerCommissionRateController;
 use App\Http\Controllers\Api\V1\SellerFinanceController;
 use App\Http\Controllers\Api\V1\SellerFinanceLedgerController;
-use App\Http\Controllers\Api\V1\SellerSettlementReadinessController;
-use App\Http\Controllers\Api\V1\SellerCommissionRateController;
-use App\Http\Controllers\Api\V1\SellerCommissionPreviewController;
-use App\Http\Controllers\Api\V1\SellerSettlementPreviewController;
+use App\Http\Controllers\Api\V1\SellerInsightsController;
+use App\Http\Controllers\Api\V1\SellerProductCodeLookupController;
+use App\Http\Controllers\Api\V1\SellerProductDraftController;
+use App\Http\Controllers\Api\V1\SellerProductImageController;
+use App\Http\Controllers\Api\V1\SellerProductVariantController;
 use App\Http\Controllers\Api\V1\SellerRefundAllocationController;
-use App\Http\Controllers\Api\V1\SellerBranchProfileController;
-use App\Http\Controllers\Api\V1\SellerBranchOnboardingController;
+use App\Http\Controllers\Api\V1\SellerReturnController;
+use App\Http\Controllers\Api\V1\SellerReviewController;
+use App\Http\Controllers\Api\V1\SellerSettlementPreviewController;
+use App\Http\Controllers\Api\V1\SellerSettlementReadinessController;
+use App\Http\Controllers\Api\V1\SellerStaffController;
+use App\Http\Controllers\Api\V1\SellerStockAdjustmentController;
+use App\Http\Controllers\Api\V1\SellerStockCreationController;
 use App\Http\Controllers\Api\V1\SellerStoreProfileController;
-use App\Http\Controllers\Api\V1\SellerCategoryManagementController;
+use App\Http\Controllers\Api\V1\SellerWorkspaceController;
+use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpFoundation\Response;
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,1'])->group(function (): void {
     Route::get('seller/application', [SellerApplicationController::class, 'show']);
@@ -66,7 +67,7 @@ Route::get('seller/memberships', [SellerAccessController::class, 'memberships'])
     ->middleware(['auth:sanctum', 'abilities:customer', 'active']);
 
 Route::post('seller/session', [SellerAccessController::class, 'issue'])
-    ->middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:10,1']);
+    ->middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:10,1,seller-session:']);
 
 Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
     ->prefix('seller')->group(function (): void {
@@ -89,9 +90,10 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::post('category-requests', [SellerCategoryManagementController::class, 'requestCategory'])->middleware('throttle:5,1');
         Route::get('products', [SellerCatalogWorkspaceController::class, 'products']);
         Route::get('products/code-lookup', SellerProductCodeLookupController::class)->middleware('throttle:30,1');
-        Route::get('products/import/template.csv', function (): \Symfony\Component\HttpFoundation\Response {
+        Route::get('products/import/template.csv', function (): Response {
             // Headers mirror the seller's Add Product form. Store is chosen at import time.
             $header = "رمز SKU (إجباري),الباركود (اختياري),المتجر (اختياري),التصنيف (إجباري),اسم المنتج بالعربية (إجباري),اسم المنتج بالإنجليزية (إجباري),الوصف بالعربية (اختياري),الوصف بالإنجليزية (اختياري),السعر بالريال (1–100) (إجباري),فئة الضريبة (إجباري),اسم وحدة البيع بالعربية (اختياري),اسم وحدة البيع بالإنجليزية (اختياري),رابط صورة المنتج HTTPS (اختياري),صورة داخل Excel (اختياري),السبب النظامي للضريبة (إجباري للصفرية والمعفاة)\r\n";
+
             return response("\xEF\xBB\xBF".$header, 200, [
                 'Content-Type' => 'text/csv; charset=UTF-8',
                 'Content-Disposition' => 'attachment; filename="seller-products-template.csv"',

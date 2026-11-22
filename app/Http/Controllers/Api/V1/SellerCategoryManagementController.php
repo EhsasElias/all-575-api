@@ -41,12 +41,14 @@ final class SellerCategoryManagementController extends Controller
 
     private function validParent(?int $parentId, ?int $selfId = null): void
     {
-        if ($parentId === null) return;
+        if ($parentId === null) {
+            return;
+        }
         abort_if($selfId !== null && $parentId === $selfId, 422, 'A category cannot be its own parent.');
         $parent = Category::query()->where('is_active', true)->findOrFail($parentId);
         abort_unless($parent->parent_id === null, 422, 'Only top-level categories can contain subcategories.');
         if ($selfId !== null) {
-            abort_unless(!Category::query()->where('parent_id', $selfId)->exists(), 422,
+            abort_unless(! Category::query()->where('parent_id', $selfId)->exists(), 422,
                 'A parent category with children cannot become a subcategory.');
         }
     }
@@ -90,19 +92,23 @@ final class SellerCategoryManagementController extends Controller
         $duplicate = DB::table('seller_category_requests')->where('seller_id', $sellerId)
             ->where('status', 'pending')->where('parent_id', $parentId)
             ->where('name_ar', $ar)->exists();
-        if ($duplicate) throw ValidationException::withMessages(['name_ar' => ['This category has already been requested.']]);
+        if ($duplicate) {
+            throw ValidationException::withMessages(['name_ar' => ['This category has already been requested.']]);
+        }
         $id = DB::table('seller_category_requests')->insertGetId([
             'seller_id' => $sellerId, 'requested_by' => $request->user()->id,
             'parent_id' => $parentId, 'name_ar' => $ar, 'name_en' => $en,
             'reason' => $input['reason'] ?? null, 'status' => 'pending',
             'created_at' => now(), 'updated_at' => now(),
         ]);
+
         return response()->json(['data' => ['id' => $id, 'status' => 'pending']], 201);
     }
 
     public function categories(Request $request): JsonResponse
     {
         $this->reviewer($request);
+
         return response()->json(['data' => Category::query()
             ->orderBy('parent_id')->orderBy('sort_order')->orderBy('id')
             ->get(['id', 'parent_id', 'name_ar', 'name_en', 'is_active', 'sort_order'])]);
@@ -125,6 +131,7 @@ final class SellerCategoryManagementController extends Controller
             'name_ar' => trim($data['name_ar']), 'name_en' => trim($data['name_en']),
             'sort_order' => $data['sort_order'] ?? 0, 'is_active' => true,
         ]);
+
         return response()->json(['data' => $category], 201);
     }
 
@@ -138,6 +145,7 @@ final class SellerCategoryManagementController extends Controller
             'sort_order' => ['sometimes', 'integer', 'between:0,10000'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+
         return DB::transaction(function () use ($category, $data): JsonResponse {
             $item = Category::query()->lockForUpdate()->findOrFail($category);
             $parentId = array_key_exists('parent_id', $data)
@@ -157,6 +165,7 @@ final class SellerCategoryManagementController extends Controller
                 'name_en' => $en, 'sort_order' => $data['sort_order'] ?? $item->sort_order,
                 'is_active' => $data['is_active'] ?? $item->is_active]);
             $item->save();
+
             return response()->json(['data' => $item]);
         }, 3);
     }
@@ -164,6 +173,7 @@ final class SellerCategoryManagementController extends Controller
     public function destroy(Request $request, int $category): JsonResponse
     {
         $this->reviewer($request);
+
         return DB::transaction(function () use ($category): JsonResponse {
             $item = Category::query()->lockForUpdate()->findOrFail($category);
             abort_if(Category::query()->where('parent_id', $category)->exists(), 422,
@@ -176,6 +186,7 @@ final class SellerCategoryManagementController extends Controller
                 })->exists(), 422,
                 'This category is referenced by seller category requests. Deactivate it instead.');
             $item->delete();
+
             return response()->json(['message' => 'Category deleted.']);
         }, 3);
     }
@@ -183,6 +194,7 @@ final class SellerCategoryManagementController extends Controller
     public function requests(Request $request): JsonResponse
     {
         $this->reviewer($request);
+
         return response()->json(['data' => DB::table('seller_category_requests')
             ->orderByDesc('id')->limit(100)->get()]);
     }
@@ -194,6 +206,7 @@ final class SellerCategoryManagementController extends Controller
             'decision' => ['required', Rule::in(['approve', 'reject'])],
             'review_note' => ['nullable', 'string', 'max:1000', 'required_if:decision,reject'],
         ]);
+
         return DB::transaction(function () use ($request, $categoryRequest, $input): JsonResponse {
             $row = DB::table('seller_category_requests')->where('id', $categoryRequest)
                 ->lockForUpdate()->first();
@@ -217,6 +230,7 @@ final class SellerCategoryManagementController extends Controller
                 'reviewed_by' => $request->user()->id,
                 'reviewed_at' => now(), 'updated_at' => now(),
             ]);
+
             return response()->json(['data' => [
                 'id' => $categoryRequest,
                 'status' => $input['decision'] === 'approve' ? 'approved' : 'rejected',

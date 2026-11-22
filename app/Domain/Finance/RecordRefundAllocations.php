@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Finance;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -17,7 +17,7 @@ final class RecordRefundAllocations
     public function __construct(private readonly RefundAllocationValidator $validator, private readonly RefundAllocationFingerprint $fingerprint) {}
 
     /**
-     * @param list<array{suborder_id: string, seller_id: int, amount_halalas: int}> $allocations
+     * @param  list<array{suborder_id: string, seller_id: int, amount_halalas: int}>  $allocations
      */
     public function record(string $refundId, array $allocations, int $approverUserId): int
     {

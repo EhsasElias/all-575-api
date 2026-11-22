@@ -98,4 +98,56 @@ class CustomerNotificationsTest extends TestCase
         $this->getJson('/api/v1/me/notifications?limit=2&before_id=3')->assertOk()
             ->assertJsonCount(2, 'data');
     }
+    public function test_known_order_notifications_are_rendered_in_requested_language_without_changing_storage(): void
+    {
+        $user = $this->actingAsCustomer();
+        DB::table('customer_notifications')->insert([
+            'user_id' => $user->id,
+            'type' => 'order_confirmed',
+            'title' => 'تم تأكيد طلبك',
+            'message' => 'تم تأكيد الطلب 575-123 ويمكنك متابعة حالته من صفحة طلباتي.',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withHeaders(['Accept-Language' => 'en'])->getJson('/api/v1/me/notifications')
+            ->assertOk()
+            ->assertJsonPath('data.0.title', 'Your order is confirmed')
+            ->assertJsonPath('data.0.message', 'Order 575-123 has been confirmed. You can track it from My Orders.');
+
+        $this->withHeaders(['Accept-Language' => 'fr'])->getJson('/api/v1/me/notifications')
+            ->assertOk()
+            ->assertJsonPath('data.0.title', 'Votre commande est confirmée')
+            ->assertJsonPath('data.0.message', 'La commande 575-123 est confirmée. Vous pouvez la suivre dans Mes commandes.');
+
+        $this->withHeaders(['Accept-Language' => 'ar'])->getJson('/api/v1/me/notifications')
+            ->assertOk()
+            ->assertJsonPath('data.0.title', 'تم تأكيد طلبك');
+
+        $this->assertDatabaseHas('customer_notifications', [
+            'user_id' => $user->id,
+            'type' => 'order_confirmed',
+            'title' => 'تم تأكيد طلبك',
+        ]);
+    }
+
+    public function test_unknown_notification_type_keeps_its_original_content(): void
+    {
+        $user = $this->actingAsCustomer();
+        DB::table('customer_notifications')->insert([
+            'user_id' => $user->id,
+            'type' => 'support_reply',
+            'title' => 'رد الدعم',
+            'message' => 'نص مخصص من الدعم',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withHeaders(['Accept-Language' => 'en'])->getJson('/api/v1/me/notifications')
+            ->assertOk()
+            ->assertJsonPath('data.0.title', 'رد الدعم')
+            ->assertJsonPath('data.0.message', 'نص مخصص من الدعم');
+    }
+
+
 }

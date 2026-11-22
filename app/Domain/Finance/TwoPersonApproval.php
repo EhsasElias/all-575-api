@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Finance;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -92,6 +92,7 @@ final class TwoPersonApproval
             $this->audit($requestId, $secondApproverId, 'approval_granted', $approval->payload_hash);
         }, 3);
     }
+
     public function reject(int $requestId, int $reviewerId, string $reason): void
     {
         $reason = trim($reason);

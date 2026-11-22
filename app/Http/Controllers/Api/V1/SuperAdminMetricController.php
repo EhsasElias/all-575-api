@@ -7,12 +7,13 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Reporting\Services\CsvWriter;
 use App\Domain\Reporting\Services\XlsxWriter;
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class SuperAdminMetricController extends Controller
 {
@@ -41,7 +42,7 @@ final class SuperAdminMetricController extends Controller
             ->where('user_id', $request->user()->id)->where('is_active', true)->exists(), 403);
     }
 
-    /** @return array{0: \Illuminate\Database\Query\Builder, 1: array<int, string>} */
+    /** @return array{0: Builder, 1: array<int, string>} */
     private function validatedFilters(Request $request): array
     {
         return $request->validate([
@@ -73,14 +74,14 @@ final class SuperAdminMetricController extends Controller
         }
         // Apply the same validated restrictions to paginated details and exports.
         if (isset($filters['from'])) {
-            $query->whereDate($table . '.created_at', '>=', $filters['from']);
+            $query->whereDate($table.'.created_at', '>=', $filters['from']);
         }
         if (isset($filters['to'])) {
-            $query->whereDate($table . '.created_at', '<=', $filters['to']);
+            $query->whereDate($table.'.created_at', '<=', $filters['to']);
         }
         if (isset($filters['seller_id'])) {
             if (Schema::hasColumn($table, 'seller_id')) {
-                $query->where($table . '.seller_id', $filters['seller_id']);
+                $query->where($table.'.seller_id', $filters['seller_id']);
             } elseif ($table === 'sellers') {
                 $query->where('sellers.id', $filters['seller_id']);
             } elseif ($table === 'orders') {
@@ -95,10 +96,10 @@ final class SuperAdminMetricController extends Controller
         }
         if (isset($filters['status'])) {
             abort_unless(Schema::hasColumn($table, 'status'), 422);
-            $query->where($table . '.status', $filters['status']);
+            $query->where($table.'.status', $filters['status']);
         }
         if (isset($filters['q']) && trim($filters['q']) !== '') {
-            $term = '%' . addcslashes(trim($filters['q']), '%_\\\\') . '%';
+            $term = '%'.addcslashes(trim($filters['q']), '%_\\\\').'%';
             $searchable = array_values(array_intersect(
                 ['name', 'name_ar', 'name_en', 'email', 'number', 'status'],
                 $columns
@@ -106,10 +107,11 @@ final class SuperAdminMetricController extends Controller
             abort_if($searchable === [], 422, 'Search is not available for this statistic.');
             $query->where(function ($inner) use ($searchable, $table, $term): void {
                 foreach ($searchable as $column) {
-                    $inner->orWhere($table . '.' . $column, 'like', $term);
+                    $inner->orWhere($table.'.'.$column, 'like', $term);
                 }
             });
         }
+
         return [$query, $columns];
     }
 
@@ -124,6 +126,7 @@ final class SuperAdminMetricController extends Controller
         $page = $query->orderByDesc('id')->paginate(
             (int) ($input['per_page'] ?? 15), $columns, 'page', (int) ($input['page'] ?? 1)
         );
+
         return response()->json(['data' => $page->items(), 'columns' => $columns,
             'total' => $page->total(), 'page' => $page->currentPage(), 'last_page' => $page->lastPage()]);
     }
@@ -134,7 +137,7 @@ final class SuperAdminMetricController extends Controller
         // Legacy /xls requests are still accepted, but return a genuine .xlsx file.
         abort_unless(in_array($format, ['csv', 'xlsx', 'xls'], true), 404);
         [$query, $columns] = $this->metricQuery($metric, $this->validatedFilters($request));
-        $name = 'all575-' . $metric . '-' . now()->format('Ymd-His');
+        $name = 'all575-'.$metric.'-'.now()->format('Ymd-His');
 
         if ($format !== 'csv') {
             $rows = (static function () use ($query, $columns): \Generator {
@@ -143,7 +146,7 @@ final class SuperAdminMetricController extends Controller
                 }
             })();
 
-            return $xlsx->download($columns, $rows, $name . '.xlsx');
+            return $xlsx->download($columns, $rows, $name.'.xlsx');
         }
 
         return response()->streamDownload(function () use ($query, $columns, $csv): void {
@@ -163,10 +166,9 @@ final class SuperAdminMetricController extends Controller
             } finally {
                 fclose($out);
             }
-        }, $name . '.csv', [
+        }, $name.'.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Cache-Control' => 'private, no-store',
         ]);
     }
-
 }

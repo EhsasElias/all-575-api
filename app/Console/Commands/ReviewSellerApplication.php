@@ -9,18 +9,27 @@ use Illuminate\Support\Facades\DB;
 class ReviewSellerApplication extends Command
 {
     protected $signature = 'seller:review {id} {action} {--note=} {--verified-documents}';
+
     protected $description = 'Review a submitted seller application from the trusted console.';
 
     public function handle(): int
     {
         $action = (string) $this->argument('action');
         $note = trim((string) $this->option('note'));
-        if (! in_array($action, ['approve', 'correction', 'reject'], true)) return self::FAILURE;
-        if ($action !== 'approve' && $note === '') return self::FAILURE;
-        if ($action === 'approve' && ! $this->option('verified-documents')) return self::FAILURE;
+        if (! in_array($action, ['approve', 'correction', 'reject'], true)) {
+            return self::FAILURE;
+        }
+        if ($action !== 'approve' && $note === '') {
+            return self::FAILURE;
+        }
+        if ($action === 'approve' && ! $this->option('verified-documents')) {
+            return self::FAILURE;
+        }
 
         $id = (int) $this->argument('id');
-        if ($id < 1) return self::FAILURE;
+        if ($id < 1) {
+            return self::FAILURE;
+        }
 
         DB::transaction(function () use ($id, $action, $note): void {
             $application = DB::table('seller_applications')->where('id', $id)->lockForUpdate()->firstOrFail();
@@ -65,6 +74,7 @@ class ReviewSellerApplication extends Command
         });
 
         $this->info('Application reviewed.');
+
         return self::SUCCESS;
     }
 }

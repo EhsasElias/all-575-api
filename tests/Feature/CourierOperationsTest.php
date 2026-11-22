@@ -24,6 +24,7 @@ final class CourierOperationsTest extends TestCase
             'is_active' => true, 'can_view_orders' => true, 'can_view_inventory' => false,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+
         return $user;
     }
 
@@ -34,6 +35,7 @@ final class CourierOperationsTest extends TestCase
             'user_id' => $user->id, 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+
         return $user;
     }
 

@@ -14,16 +14,16 @@ return new class extends Migration
         // Resume safely without dropping any existing commission data.
         if (! Schema::hasTable('seller_commission_rates')) {
             Schema::create('seller_commission_rates', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('seller_id')->constrained('sellers')->restrictOnDelete();
-            $table->unsignedSmallInteger('rate_basis_points');
-            $table->dateTime('effective_from');
-            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->dateTime('approved_at')->nullable();
-            $table->timestamps();
+                $table->id();
+                $table->foreignId('seller_id')->constrained('sellers')->restrictOnDelete();
+                $table->unsignedSmallInteger('rate_basis_points');
+                $table->dateTime('effective_from');
+                $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->dateTime('approved_at')->nullable();
+                $table->timestamps();
 
-            $table->unique(['seller_id', 'effective_from']);
-            $table->index(['seller_id', 'approved_at', 'effective_from'], 'seller_commission_approval_idx');
+                $table->unique(['seller_id', 'effective_from']);
+                $table->index(['seller_id', 'approved_at', 'effective_from'], 'seller_commission_approval_idx');
             });
 
             return;
@@ -33,7 +33,7 @@ return new class extends Migration
         // but failed before adding the long composite index.
         $required = ['seller_id', 'approved_at', 'effective_from'];
         if (! Schema::hasColumns('seller_commission_rates', $required)) {
-            throw new \RuntimeException('Existing seller_commission_rates table has an unexpected schema; inspect it before migrating.');
+            throw new RuntimeException('Existing seller_commission_rates table has an unexpected schema; inspect it before migrating.');
         }
 
         $hasIndex = collect(Schema::getIndexes('seller_commission_rates'))

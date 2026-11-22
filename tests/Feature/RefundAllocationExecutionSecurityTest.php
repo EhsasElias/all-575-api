@@ -11,6 +11,7 @@ use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 final class RefundAllocationExecutionSecurityTest extends TestCase
@@ -53,7 +54,7 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         $this->grant($reviewer->id, 'second');
         $this->actingAs($outsider);
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
         app(RecordRefundAllocations::class)->record(
             '01K00000000000000000000009',
             $this->allocation(),
@@ -105,7 +106,7 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         try {
             app(RecordRefundAllocations::class)->record($refundId, $allocations, $second->id);
             self::fail('Revoked financial permission must prevent execution.');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+        } catch (HttpException $exception) {
             self::assertSame(403, $exception->getStatusCode());
         }
 
@@ -139,7 +140,7 @@ final class RefundAllocationExecutionSecurityTest extends TestCase
         try {
             app(RecordRefundAllocations::class)->record($refundId, $allocations, $second->id);
             self::fail('A revoked first approver must block execution.');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+        } catch (HttpException $exception) {
             self::assertSame(403, $exception->getStatusCode());
         }
 

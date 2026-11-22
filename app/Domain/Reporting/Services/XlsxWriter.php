@@ -15,12 +15,12 @@ use ZipArchive;
 final class XlsxWriter
 {
     /**
-     * @param list<string> $headers
-     * @param iterable<list<int|float|string|null>> $rows
+     * @param  list<string>  $headers
+     * @param  iterable<list<int|float|string|null>>  $rows
      */
     public function download(array $headers, iterable $rows, string $filename): BinaryFileResponse
     {
-        if (!class_exists(ZipArchive::class)) {
+        if (! class_exists(ZipArchive::class)) {
             throw new RuntimeException('The PHP zip extension is required for Excel exports.');
         }
 
@@ -44,7 +44,7 @@ final class XlsxWriter
                         $number = $column + 1;
                         $letters = '';
                         while ($number > 0) {
-                            --$number;
+                            $number--;
                             $letters = chr(65 + ($number % 26)).$letters;
                             $number = intdiv($number, 26);
                         }
@@ -64,7 +64,7 @@ final class XlsxWriter
                 fclose($handle);
             }
 
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             if ($zip->open($xlsx, ZipArchive::OVERWRITE | ZipArchive::CREATE) !== true) {
                 throw new RuntimeException('Unable to build the XLSX archive.');
             }
@@ -88,7 +88,7 @@ final class XlsxWriter
                     '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'.
                     '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'.
                     '</Relationships>');
-                if (!$zip->addFile($sheet, 'xl/worksheets/sheet1.xml')) {
+                if (! $zip->addFile($sheet, 'xl/worksheets/sheet1.xml')) {
                     throw new RuntimeException('Unable to package XLSX worksheet.');
                 }
             } finally {

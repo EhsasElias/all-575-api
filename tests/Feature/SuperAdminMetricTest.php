@@ -117,7 +117,7 @@ class SuperAdminMetricTest extends TestCase
             $this->assertStringContainsString('.xlsx', (string) $response->headers->get('content-disposition'));
             $this->assertSame('PK', file_get_contents($file, false, null, 0, 2));
 
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             $this->assertTrue($zip->open($file) === true);
             try {
                 $sheet = $zip->getFromName('xl/worksheets/sheet1.xml');

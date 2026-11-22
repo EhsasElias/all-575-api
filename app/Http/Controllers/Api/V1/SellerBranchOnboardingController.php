@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /** Sellers can propose inactive branches. A separate reviewer must activate them. */
 final class SellerBranchOnboardingController extends Controller
@@ -52,7 +53,7 @@ final class SellerBranchOnboardingController extends Controller
         // A demo seller cannot override fees for customers by creating a new zone.
         $parentZone = ServiceZone::resolve((float) $data['center_lat'], (float) $data['center_lng']);
         if ($parentZone === null) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'center_lat' => ['حدد مركز المنطقة ضمن نطاق توصيل قائم.'],
             ]);
         }
@@ -66,6 +67,7 @@ final class SellerBranchOnboardingController extends Controller
             'free_delivery_threshold_halalas' => $parentZone->free_delivery_threshold_halalas,
             'is_active' => true,
         ]);
+
         return response()->json(['data' => $zone->only([
             'id', 'name_ar', 'name_en', 'center_lat', 'center_lng', 'radius_meters',
         ])], 201);
@@ -106,7 +108,7 @@ final class SellerBranchOnboardingController extends Controller
 
         $coverageZoneIds = array_map('intval', $input['service_zone_ids'] ?? [$zone->id]);
         if (! in_array($zone->id, $coverageZoneIds, true)) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'service_zone_ids' => ['يجب تضمين المنطقة الأساسية ضمن مناطق تغطية الفرع.'],
             ]);
         }
