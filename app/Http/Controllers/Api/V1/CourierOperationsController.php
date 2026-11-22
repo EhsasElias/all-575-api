@@ -160,7 +160,10 @@ final class CourierOperationsController extends Controller
                 'expires_at' => now()->addMinutes(15), 'accepted_at' => null,
                 'pickup_code_hash' => null, 'pickup_code_encrypted' => null,
                 'pickup_code_expires_at' => null, 'pickup_attempts' => 0,
-                'parcel_count' => null, 'picked_up_at' => null, 'updated_at' => now(),
+                'parcel_count' => null, 'picked_up_at' => null,
+                'delivery_code_hash' => null, 'delivery_code_expires_at' => null,
+                'delivery_attempts' => 0, 'delivered_at' => null,
+                'updated_at' => now(),
             ];
             if ($existing) {
                 DB::table('courier_assignments')->where('id', $existing->id)->update($attributes);
