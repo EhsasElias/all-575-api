@@ -35,6 +35,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
 });
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(function (): void {
+    Route::post('me/suborders/{suborder}/delivery-code', [DeliveryVerificationController::class, 'issue'])
+        ->middleware('throttle:10,1');
     Route::get('me/dashboard', CustomerDashboardController::class);
     Route::delete('auth/session', [AuthController::class, 'logout']);
 
