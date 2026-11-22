@@ -136,13 +136,29 @@ final class DeliveryVerificationController extends Controller
                 ]);
             }
 
-            DB::table('customer_notifications')->insert([
-                'user_id' => $order->user_id, 'type' => 'order_delivered',
-                'title' => 'Order delivered',
-                'message' => 'A parcel in your order was delivered and verified.',
-                'target_path' => '/account/orders/'.$order->id,
-                'created_at' => now(), 'updated_at' => now(),
-            ]);
+            // Never include the one-time proof or recipient address in notifications.
+            // Each role only receives notifications for sellers within its active scope.
+            $sellerUserIds = DB::table('seller_staff_access')
+                ->where('seller_id', $suborder->seller_id)->where('is_active', true)
+                ->whereIn('role', ['owner', 'branch_manager'])
+                ->where(function ($q) use ($suborder): void {
+                    $q->whereNull('branch_id')->orWhere('branch_id', $suborder->branch_id);
+                })->pluck('user_id')->all();
+            $adminUserIds = DB::table('platform_admin_access')
+                ->where('seller_id', $suborder->seller_id)->where('is_active', true)
+                ->where('can_view_orders', true)->pluck('user_id')->all();
+            $recipients = array_unique(array_merge([(int) $order->user_id], $sellerUserIds, $adminUserIds));
+            foreach ($recipients as $userId) {
+                DB::table('customer_notifications')->insertOrIgnore([
+                    'user_id' => $userId,
+                    'event_key' => 'courier_delivered:'.$suborder->id,
+                    'type' => 'order_delivered',
+                    'title' => 'تم تسليم الطلب',
+                    'message' => 'تم تسليم الطلب '.$order->number.' والتحقق من الاستلام.',
+                    'target_path' => '/orders',
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
 
             return 'delivered';
         }, 3);
