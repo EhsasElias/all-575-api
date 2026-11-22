@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Notifications\OrderProgressNotifier;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -289,6 +290,8 @@ final class CourierOperationsController extends Controller
                 'note' => 'Seller pickup verified', 'meta' => json_encode(['parcel_count' => $input['parcel_count']]),
                 'created_at' => now(),
             ]);
+            $orderRecord = DB::table('orders')->where('id', $order->order_id)->first();
+            app(OrderProgressNotifier::class)->record($orderRecord, $order, 'courier_picked_up', $request->user()->id);
 
             return 'picked_up';
         }, 3);
@@ -343,6 +346,8 @@ final class CourierOperationsController extends Controller
                 'meta' => json_encode(['incident_id' => $id]),
                 'created_at' => now(),
             ]);
+            $orderRecord = DB::table('orders')->where('id', $suborder->order_id)->first();
+            app(OrderProgressNotifier::class)->record($orderRecord, $suborder, 'courier_delivery_failed', $request->user()->id);
 
             return $id;
         }, 3);
