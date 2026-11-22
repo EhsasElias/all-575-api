@@ -63,6 +63,22 @@ final class OrderProgressNotificationsTest extends TestCase
         $this->assertSame(4, DB::table('customer_notifications')->count());
     }
 
+    public function test_pickup_and_delivery_events_are_translated_without_changing_stored_text(): void
+    {
+        foreach (['courier_picked_up', 'courier_delivered'] as $event) {
+            $arabic = $event === 'courier_picked_up'
+                ? 'تم استلام الطلب 575-123 من البائع وهو في الطريق.'
+                : 'تم تسليم الطلب 575-123 والتحقق من الاستلام.';
+            $translated = \App\Domain\Notifications\NotificationTranslation::render(
+                $event, 'تحديث حالة الطلب', $arabic, 'fr'
+            );
+
+            $this->assertNotSame($arabic, $translated['message']);
+            $this->assertStringContainsString('575-123', $translated['message']);
+            $this->assertStringNotContainsString('verification code', $translated['message']);
+        }
+    }
+
     public function test_delivery_events_translate_to_english_and_french_without_exposing_codes(): void
     {
         $arabic = NotificationTranslation::render(
