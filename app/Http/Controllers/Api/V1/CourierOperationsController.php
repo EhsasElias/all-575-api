@@ -188,7 +188,7 @@ final class CourierOperationsController extends Controller
             ->join('branches as b', 'b.id', '=', 's.branch_id')
             ->where('a.courier_profile_id', $courier->id)
             ->select('a.id', 'a.suborder_id', 'a.status', 'a.expires_at',
-                'a.accepted_at', 'a.picked_up_at', 'a.parcel_count',
+                'a.accepted_at', 'a.picked_up_at', 'a.delivered_at', 'a.parcel_count',
                 'o.number as order_number', 's.branch_id', 'b.lat as pickup_lat',
                 'b.lng as pickup_lng', 's.status as suborder_status')
             ->orderByDesc('a.id')->limit(100)->get();
