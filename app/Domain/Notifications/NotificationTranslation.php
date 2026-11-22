@@ -40,6 +40,10 @@ final class NotificationTranslation
                 'en' => ['Your order is confirmed', 'Order %s has been confirmed. You can track it from My Orders.'],
                 'fr' => ['Votre commande est confirmée', 'La commande %s est confirmée. Vous pouvez la suivre dans Mes commandes.'],
             ],
+            'order_delivered' => [
+                'en' => ['Order delivered', 'Order %s has been delivered and verified.'],
+                'fr' => ['Commande livrée', 'La livraison de la commande %s a été vérifiée.'],
+            ],
             'seller_new_order' => [
                 'en' => ['New store order', 'Order %s is confirmed and needs preparation.'],
                 'fr' => ['Nouvelle commande du magasin', 'La commande %s est confirmée et doit être préparée.'],
