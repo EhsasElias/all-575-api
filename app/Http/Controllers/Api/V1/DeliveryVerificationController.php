@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Notifications\OrderProgressNotifier;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -136,29 +137,7 @@ final class DeliveryVerificationController extends Controller
                 ]);
             }
 
-            // Never include the one-time proof or recipient address in notifications.
-            // Each role only receives notifications for sellers within its active scope.
-            $sellerUserIds = DB::table('seller_staff_access')
-                ->where('seller_id', $suborder->seller_id)->where('is_active', true)
-                ->whereIn('role', ['owner', 'branch_manager'])
-                ->where(function ($q) use ($suborder): void {
-                    $q->whereNull('branch_id')->orWhere('branch_id', $suborder->branch_id);
-                })->pluck('user_id')->all();
-            $adminUserIds = DB::table('platform_admin_access')
-                ->where('seller_id', $suborder->seller_id)->where('is_active', true)
-                ->where('can_view_orders', true)->pluck('user_id')->all();
-            $recipients = array_unique(array_merge([(int) $order->user_id], $sellerUserIds, $adminUserIds));
-            foreach ($recipients as $userId) {
-                DB::table('customer_notifications')->insertOrIgnore([
-                    'user_id' => $userId,
-                    'event_key' => 'courier_delivered:'.$suborder->id,
-                    'type' => 'order_delivered',
-                    'title' => 'تم تسليم الطلب',
-                    'message' => 'تم تسليم الطلب '.$order->number.' والتحقق من الاستلام.',
-                    'target_path' => '/orders',
-                    'created_at' => now(), 'updated_at' => now(),
-                ]);
-            }
+            app(OrderProgressNotifier::class)->record($order, $suborder, 'courier_delivered', $request->user()->id);
 
             return 'delivered';
         }, 3);
