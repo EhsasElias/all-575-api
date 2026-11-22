@@ -49,6 +49,34 @@ final class CourierOperationsTest extends TestCase
         ]);
     }
 
+    public function test_ordinary_customer_cannot_report_courier_delivery_failure(): void
+    {
+        Sanctum::actingAs(User::factory()->create(), ['customer']);
+        $this->postJson('/api/v1/courier/jobs/1/failed-delivery', [
+            'reason' => 'customer_absent',
+            'description' => 'Customer was not available at the door.',
+        ])->assertForbidden();
+    }
+
+    public function test_unapproved_courier_cannot_report_failed_delivery(): void
+    {
+        $admin = $this->admin();
+        $courier = User::factory()->create(['email_verified_at' => now()]);
+        $zone = $this->zone();
+        Sanctum::actingAs($admin, ['customer']);
+        $this->postJson('/api/v1/platform/admin/couriers', [
+            'user_id' => $courier->id,
+            'service_zone_id' => $zone,
+            'vehicle_type' => 'car',
+        ])->assertCreated();
+
+        Sanctum::actingAs($courier, ['customer']);
+        $this->postJson('/api/v1/courier/jobs/1/failed-delivery', [
+            'reason' => 'customer_absent',
+            'description' => 'Customer was not available at the door.',
+        ])->assertForbidden();
+    }
+
     public function test_ordinary_customer_cannot_access_admin_dispatch_or_courier_jobs(): void
     {
         Sanctum::actingAs(User::factory()->create(), ['customer']);
