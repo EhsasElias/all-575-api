@@ -53,4 +53,6 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
             ->whereNumber('assignment')->middleware('throttle:10,1');
         Route::post('courier/jobs/{assignment}/failed-delivery', [CourierOperationsController::class, 'failedDelivery'])
             ->whereNumber('assignment')->middleware('throttle:10,1');
+        Route::post('courier/jobs/{assignment}/deliver', [DeliveryVerificationController::class, 'deliver'])
+            ->whereNumber('assignment')->middleware('throttle:10,1');
     });
