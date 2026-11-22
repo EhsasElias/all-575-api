@@ -149,6 +149,4 @@ class CustomerNotificationsTest extends TestCase
             ->assertJsonPath('data.0.title', 'رد الدعم')
             ->assertJsonPath('data.0.message', 'نص مخصص من الدعم');
     }
-
-
 }
