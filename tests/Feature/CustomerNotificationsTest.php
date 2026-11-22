@@ -98,6 +98,7 @@ class CustomerNotificationsTest extends TestCase
         $this->getJson('/api/v1/me/notifications?limit=2&before_id=3')->assertOk()
             ->assertJsonCount(2, 'data');
     }
+
     public function test_known_order_notifications_are_rendered_in_requested_language_without_changing_storage(): void
     {
         $user = $this->actingAsCustomer();
@@ -148,6 +149,4 @@ class CustomerNotificationsTest extends TestCase
             ->assertJsonPath('data.0.title', 'رد الدعم')
             ->assertJsonPath('data.0.message', 'نص مخصص من الدعم');
     }
-
-
 }

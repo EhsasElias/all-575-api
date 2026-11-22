@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\CourierOperationsController;
+use App\Http\Controllers\Api\V1\DeliveryVerificationController;
 use App\Http\Controllers\Api\V1\PlatformAdminAccessController;
 use App\Http\Controllers\Api\V1\PlatformAdminDashboardController;
 use App\Http\Controllers\Api\V1\SuperAdminAccountController;
@@ -49,5 +50,9 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
         Route::post('courier/jobs/{assignment}/respond', [CourierOperationsController::class, 'respond'])
             ->whereNumber('assignment')->middleware('throttle:10,1');
         Route::post('courier/jobs/{assignment}/pickup', [CourierOperationsController::class, 'pickup'])
+            ->whereNumber('assignment')->middleware('throttle:10,1');
+        Route::post('courier/jobs/{assignment}/failed-delivery', [CourierOperationsController::class, 'failedDelivery'])
+            ->whereNumber('assignment')->middleware('throttle:10,1');
+        Route::post('courier/jobs/{assignment}/deliver', [DeliveryVerificationController::class, 'deliver'])
             ->whereNumber('assignment')->middleware('throttle:10,1');
     });

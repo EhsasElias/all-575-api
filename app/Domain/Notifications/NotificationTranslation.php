@@ -40,6 +40,22 @@ final class NotificationTranslation
                 'en' => ['Your order is confirmed', 'Order %s has been confirmed. You can track it from My Orders.'],
                 'fr' => ['Votre commande est confirmée', 'La commande %s est confirmée. Vous pouvez la suivre dans Mes commandes.'],
             ],
+            'order_delivered' => [
+                'en' => ['Order delivered', 'Order %s has been delivered and verified.'],
+                'fr' => ['Commande livrée', 'La livraison de la commande %s a été vérifiée.'],
+            ],
+            'courier_delivered' => [
+                'en' => ['Order delivered', 'Delivery of order %s was verified.'],
+                'fr' => ['Commande livrée', 'La livraison de la commande %s a été vérifiée.'],
+            ],
+            'courier_picked_up' => [
+                'en' => ['Parcel picked up', 'Order %s was collected from the seller and is on the way.'],
+                'fr' => ['Colis récupéré', 'La commande %s a été récupérée auprès du vendeur et est en route.'],
+            ],
+            'courier_delivery_failed' => [
+                'en' => ['Delivery attempt failed', 'Delivery of order %s could not be completed. An incident was filed.'],
+                'fr' => ['Échec de livraison', 'La livraison de la commande %s a échoué. Un incident a été signalé.'],
+            ],
             'seller_new_order' => [
                 'en' => ['New store order', 'Order %s is confirmed and needs preparation.'],
                 'fr' => ['Nouvelle commande du magasin', 'La commande %s est confirmée et doit être préparée.'],

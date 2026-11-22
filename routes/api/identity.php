@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\BillingProfileController;
 use App\Http\Controllers\Api\V1\CustomerDashboardController;
 use App\Http\Controllers\Api\V1\CustomerNotificationController;
 use App\Http\Controllers\Api\V1\CustomerRequestController;
+use App\Http\Controllers\Api\V1\DeliveryVerificationController;
 use App\Http\Controllers\Api\V1\EmailPasswordAuthController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PasskeyController;
@@ -34,6 +35,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
 });
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(function (): void {
+    Route::post('me/suborders/{suborder}/delivery-code', [DeliveryVerificationController::class, 'issue'])
+        ->middleware('throttle:10,1');
     Route::get('me/dashboard', CustomerDashboardController::class);
     Route::delete('auth/session', [AuthController::class, 'logout']);
 
