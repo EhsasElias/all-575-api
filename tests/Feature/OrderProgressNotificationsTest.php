@@ -69,7 +69,7 @@ final class OrderProgressNotificationsTest extends TestCase
             $arabic = $event === 'courier_picked_up'
                 ? 'تم استلام الطلب 575-123 من البائع وهو في الطريق.'
                 : 'تم تسليم الطلب 575-123 والتحقق من الاستلام.';
-            $translated = \App\Domain\Notifications\NotificationTranslation::render(
+            $translated = NotificationTranslation::render(
                 $event, 'تحديث حالة الطلب', $arabic, 'fr'
             );
 
