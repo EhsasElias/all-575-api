@@ -38,6 +38,20 @@ final class DeliveryVerificationTest extends TestCase
         ])->assertNotFound();
     }
 
+    public function test_repeated_delivery_confirmation_without_a_courier_job_does_not_change_state(): void
+    {
+        Sanctum::actingAs(User::factory()->create(), ['customer']);
+
+        foreach (range(1, 2) as $attempt) {
+            $this->postJson('/api/v1/courier/jobs/1/deliver', [
+                'delivery_code' => '123456',
+            ])->assertNotFound();
+        }
+
+        $this->assertDatabaseCount('courier_assignment_events', 0);
+        $this->assertDatabaseCount('order_events', 0);
+    }
+
     public function test_delivery_proof_requires_six_digit_code(): void
     {
         Sanctum::actingAs(User::factory()->create(), ['customer']);
