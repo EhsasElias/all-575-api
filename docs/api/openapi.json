@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "http://192.168.8.104:8000/api"
+            "url": "http://localhost:8000/api"
         }
     ],
     "paths": {
