@@ -72,6 +72,39 @@ final class RoleApplicationController extends Controller
         return response()->json(['data' => $result], 201);
     }
 
+    public function review(Request $request, int $application): JsonResponse
+    {
+        $owner = DB::table('platform_super_admin_grants')
+            ->where('user_id', $request->user()->id)->where('is_active', true)->exists();
+        abort_unless($request->user()->is_active && $owner, 403);
+
+        $input = $request->validate([
+            'decision' => ['required', Rule::in(['approved', 'rejected'])],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $result = DB::transaction(function () use ($request, $application, $input): object {
+            $row = DB::table('role_applications')->where('id', $application)
+                ->lockForUpdate()->first();
+            abort_if($row === null, 404);
+            abort_if($row->status !== 'pending', 409, 'This application was already reviewed.');
+
+            DB::table('role_applications')->where('id', $application)->update([
+                'status' => $input['decision'],
+                'reviewed_by' => $request->user()->id,
+                'review_note' => trim($input['note'] ?? ''),
+                'reviewed_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return DB::table('role_applications')->where('id', $application)
+                ->first(['id', 'requested_role', 'status', 'reviewed_at']);
+        }, 3);
+
+        // Reviewing a request never grants admin access or activates a courier.
+        return response()->json(['data' => $result]);
+    }
+
     public function reviewQueue(Request $request): JsonResponse
     {
         $owner = DB::table('platform_super_admin_grants')
