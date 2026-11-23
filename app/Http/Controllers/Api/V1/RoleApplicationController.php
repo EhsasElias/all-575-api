@@ -72,11 +72,81 @@ final class RoleApplicationController extends Controller
         return response()->json(['data' => $result], 201);
     }
 
-    public function reviewQueue(Request $request): JsonResponse
+
+    public function serviceZones(Request $request): JsonResponse
+    {
+        $this->authorizeReviewer($request);
+
+        return response()->json(['data' => DB::table('service_zones')
+            ->select('id', 'name_ar', 'name_en')
+            ->orderBy('id')->get()]);
+    }
+
+    public function decide(Request $request, int $application): JsonResponse
+    {
+        $this->authorizeReviewer($request);
+
+        $input = $request->validate([
+            'decision' => ['required', Rule::in(['approved', 'rejected'])],
+            'note' => ['nullable', 'string', 'max:1000'],
+            'service_zone_id' => ['required_if:decision,approved', 'nullable', 'integer', 'exists:service_zones,id'],
+        ]);
+        $note = trim((string) ($input['note'] ?? ''));
+        abort_if($input['decision'] === 'rejected' && $note === '', 422, 'A reason is required when rejecting an application.');
+
+        $result = DB::transaction(function () use ($request, $application, $input, $note): array {
+            $role = DB::table('role_applications')->where('id', $application)->lockForUpdate()->first();
+            abort_unless($role, 404);
+            abort_unless($role->status === 'pending', 409, 'This application has already been reviewed.');
+
+            $applicant = DB::table('users')->where('id', $role->user_id)->first();
+            abort_unless($applicant && $applicant->is_active
+                && ($applicant->email_verified_at !== null || $applicant->phone_verified_at !== null),
+                422, 'Applicant must have a verified, active account.');
+
+            if ($input['decision'] === 'approved' && $role->requested_role === 'courier') {
+                abort_unless(isset($input['service_zone_id']), 422, 'Choose a courier service zone.');
+                abort_unless(in_array($role->vehicle_type, ['car', 'motorcycle', 'van', 'bicycle'], true),
+                    422, 'Courier vehicle type is missing or invalid.');
+                abort_if(DB::table('courier_profiles')->where('user_id', $role->user_id)->exists(),
+                    409, 'A courier profile already exists for this account.');
+
+                DB::table('courier_profiles')->insert([
+                    'user_id' => $role->user_id,
+                    'service_zone_id' => $input['service_zone_id'],
+                    'vehicle_type' => $role->vehicle_type,
+                    'approval_status' => 'pending',
+                    'is_online' => false,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            DB::table('role_applications')->where('id', $role->id)->update([
+                'status' => $input['decision'],
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+                'review_note' => $note !== '' ? $note : null,
+                'updated_at' => now(),
+            ]);
+
+            return ['id' => $role->id, 'requested_role' => $role->requested_role,
+                'status' => $input['decision']];
+        }, 3);
+
+        return response()->json(['data' => $result]);
+    }
+
+    private function authorizeReviewer(Request $request): void
     {
         $owner = DB::table('platform_super_admin_grants')
             ->where('user_id', $request->user()->id)->where('is_active', true)->exists();
         abort_unless($request->user()->is_active && $owner, 403);
+    }
+
+    public function reviewQueue(Request $request): JsonResponse
+    {
+        $this->authorizeReviewer($request);
 
         return response()->json(['data' => DB::table('role_applications as a')
             ->join('users as u', 'u.id', '=', 'a.user_id')
