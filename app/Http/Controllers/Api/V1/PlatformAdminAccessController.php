@@ -12,6 +12,16 @@ use Illuminate\Support\Facades\DB;
 
 final class PlatformAdminAccessController extends Controller
 {
+    /** Keep JSON permission flags boolean across SQLite and MySQL drivers. */
+    private function serializeAccess(object $access): object
+    {
+        foreach (['is_active', 'can_view_orders', 'can_view_inventory', 'can_review_sellers'] as $field) {
+            $access->{$field} = (bool) $access->{$field};
+        }
+
+        return $access;
+    }
+
     private function authorizeOwner(Request $request): void
     {
         abort_unless($request->user()->is_active && DB::table('platform_super_admin_grants')
@@ -39,7 +49,7 @@ final class PlatformAdminAccessController extends Controller
                 'sellers.name_en as seller_name_en', 'access.is_active',
                 'access.can_view_orders', 'access.can_view_inventory',
                 'access.can_review_sellers')
-            ->orderByDesc('access.id')->limit(100)->get()]);
+            ->orderByDesc('access.id')->limit(100)->get()->map($this->serializeAccess(...))]);
     }
 
     public function store(Request $request): JsonResponse
@@ -85,7 +95,7 @@ final class PlatformAdminAccessController extends Controller
             'تم تعيين صلاحية الإدارة', 'تم منحك صلاحية إدارة متجر. افتح لوحة الإدارة لعرض التفاصيل.',
             '/account/admin');
 
-        return response()->json(['data' => $record], 201);
+        return response()->json(['data' => $this->serializeAccess($record)], 201);
     }
 
     public function update(Request $request, int $access): JsonResponse
@@ -110,6 +120,6 @@ final class PlatformAdminAccessController extends Controller
                 '/account');
         }
 
-        return response()->json(['data' => DB::table('platform_admin_access')->where('id', $access)->first()]);
+        return response()->json(['data' => $this->serializeAccess(DB::table('platform_admin_access')->where('id', $access)->first())]);
     }
 }
