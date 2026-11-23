@@ -89,7 +89,7 @@ final class RoleApplicationController extends Controller
         $input = $request->validate([
             'decision' => ['required', Rule::in(['approved', 'rejected'])],
             'note' => ['nullable', 'string', 'max:1000'],
-            'service_zone_id' => ['required_if:decision,approved', 'nullable', 'integer', 'exists:service_zones,id'],
+            'service_zone_id' => ['nullable', 'integer', 'exists:service_zones,id'],
         ]);
         $note = trim((string) ($input['note'] ?? ''));
         abort_if($input['decision'] === 'rejected' && $note === '', 422, 'A reason is required when rejecting an application.');
