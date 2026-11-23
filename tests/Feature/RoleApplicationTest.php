@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Domain\Identity\Models\User;
+use App\Domain\Catalog\Models\Seller;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
@@ -254,4 +255,81 @@ final class RoleApplicationTest extends TestCase
             'contact_phone' => '12345',
         ])->assertUnprocessable()->assertJsonValidationErrors('contact_phone');
     }
+    public function test_super_admin_can_activate_reviewed_admin_only_for_approved_seller(): void
+    {
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        DB::table('platform_super_admin_grants')->insert([
+            'user_id' => $owner->id, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $applicant = User::factory()->create(['email_verified_at' => now()]);
+        $seller = Seller::factory()->create(['status' => 'approved']);
+        Sanctum::actingAs($applicant, ['customer']);
+        $id = $this->postJson('/api/v1/me/role-applications', [
+            'requested_role' => 'admin',
+            'motivation' => 'I can manage orders for this seller.',
+        ])->assertCreated()->json('data.id');
+
+        $endpoint = '/api/v1/platform/super-admin/role-applications/'.$id.'/activate';
+        $this->postJson($endpoint, ['seller_id' => $seller->id])->assertForbidden();
+        Sanctum::actingAs($owner, ['customer']);
+        $this->postJson($endpoint, ['seller_id' => $seller->id])->assertStatus(409);
+        $this->patchJson('/api/v1/platform/super-admin/role-applications/'.$id, [
+            'decision' => 'approved',
+        ])->assertOk();
+        $this->postJson($endpoint, ['seller_id' => $seller->id,
+            'can_view_orders' => true, 'can_view_inventory' => false])
+            ->assertCreated()->assertJsonPath('data.role', 'admin');
+        $this->assertDatabaseHas('platform_admin_access', [
+            'user_id' => $applicant->id, 'seller_id' => $seller->id,
+            'can_view_orders' => true, 'can_view_inventory' => false,
+            'is_active' => true, 'granted_by' => $owner->id,
+        ]);
+        $this->postJson($endpoint, ['seller_id' => $seller->id])->assertStatus(409);
+        $this->getJson('/api/v1/platform/super-admin/role-applications')
+            ->assertOk()->assertJsonPath('data.0.activated', true);
+    }
+
+    public function test_super_admin_can_activate_reviewed_courier_for_an_active_zone(): void
+    {
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        DB::table('platform_super_admin_grants')->insert([
+            'user_id' => $owner->id, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $applicant = User::factory()->create(['email_verified_at' => now()]);
+        $zone = DB::table('service_zones')->insertGetId([
+            'name_ar' => 'اختبار', 'name_en' => 'Test Zone',
+            'center_lat' => 24.7136, 'center_lng' => 46.6753,
+            'radius_meters' => 5000, 'delivery_fee_halalas' => 0,
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        Sanctum::actingAs($applicant, ['customer']);
+        $id = $this->postJson('/api/v1/me/role-applications', [
+            'requested_role' => 'courier',
+            'vehicle_type' => 'car',
+            'motivation' => 'I can deliver parcels across my zone.',
+        ])->assertCreated()->json('data.id');
+        Sanctum::actingAs($owner, ['customer']);
+        $this->patchJson('/api/v1/platform/super-admin/role-applications/'.$id, [
+            'decision' => 'approved',
+        ])->assertOk();
+
+        $endpoint = '/api/v1/platform/super-admin/role-applications/'.$id.'/activate';
+        $this->postJson($endpoint, [])->assertUnprocessable();
+        $this->getJson('/api/v1/platform/super-admin/delivery-zones')
+            ->assertOk()->assertJsonPath('data.0.id', $zone);
+        $this->postJson($endpoint, ['service_zone_id' => $zone])
+            ->assertCreated()->assertJsonPath('data.role', 'courier');
+        $this->assertDatabaseHas('courier_profiles', [
+            'user_id' => $applicant->id, 'service_zone_id' => $zone,
+            'vehicle_type' => 'car', 'approval_status' => 'approved', 'is_online' => false,
+        ]);
+        $this->postJson($endpoint, ['service_zone_id' => $zone])->assertStatus(409);
+
+        Sanctum::actingAs($applicant, ['customer']);
+        $this->getJson('/api/v1/courier/profile')->assertOk()
+            ->assertJsonPath('data.approval_status', 'approved');
+    }
+
 }
