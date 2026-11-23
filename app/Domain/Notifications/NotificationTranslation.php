@@ -29,6 +29,21 @@ final class NotificationTranslation
             ],
         ];
 
+        if ($type === 'role_application_submitted') {
+            if (preg_match('/رقم ([0-9]+)/u', $message, $matches) !== 1) {
+                return compact('title', 'message');
+            }
+
+            $isAdmin = str_contains($message, 'كمسؤول');
+            $role = $isAdmin
+                ? ($locale === 'fr' ? 'administrateur' : 'admin')
+                : ($locale === 'fr' ? 'livreur' : 'courier');
+
+            return $locale === 'fr'
+                ? ['title' => 'Nouvelle candidature', 'message' => sprintf('Une candidature %s n° %s attend votre examen.', $role, $matches[1])]
+                : ['title' => 'New role application', 'message' => sprintf('A new %s application #%s is waiting for your review.', $role, $matches[1])];
+        }
+
         if (isset($static[$type][$locale])) {
             [$translatedTitle, $translatedMessage] = $static[$type][$locale];
 
