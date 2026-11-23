@@ -132,7 +132,10 @@ class PlatformAdminDashboardTest extends TestCase
     public function test_only_explicitly_granted_active_admin_may_review_sellers(): void
     {
         $seller = Seller::factory()->create();
-        $admin = User::factory()->create(['email_verified_at' => now()]);
+        $admin = User::factory()->create([
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+        ]);
         $owner = $this->owner();
         Sanctum::actingAs($owner, ['customer']);
         $response = $this->postJson('/api/v1/platform/super-admin/admins', [
