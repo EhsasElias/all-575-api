@@ -234,6 +234,15 @@ final class RoleApplicationController extends Controller
                 'a.status', 'a.vehicle_type', 'a.motivation', 'a.created_at',
                 'a.contact_phone', 'a.city', 'a.experience_years',
                 'a.qualification', 'a.service_area', 'a.vehicle_plate_number')
-            ->where('a.status', 'pending')->orderByDesc('a.id')->limit(100)->get()]);
+            ->whereIn('a.status', ['pending', 'approved'])->orderByDesc('a.id')->limit(100)->get()
+            ->map(function ($item): object {
+                $item->activated = $item->requested_role === 'admin'
+                    ? DB::table('platform_admin_access')->where('user_id', $item->user_id)
+                        ->where('is_active', true)->exists()
+                    : DB::table('courier_profiles')->where('user_id', $item->user_id)
+                        ->where('approval_status', 'approved')->exists();
+
+                return $item;
+            })]);
     }
 }
