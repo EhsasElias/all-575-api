@@ -254,6 +254,7 @@ final class RoleApplicationTest extends TestCase
             'contact_phone' => '12345',
         ])->assertUnprocessable()->assertJsonValidationErrors('contact_phone');
     }
+
     public function test_super_admin_can_activate_reviewed_admin_only_for_approved_seller(): void
     {
         $owner = User::factory()->create(['email_verified_at' => now()]);
