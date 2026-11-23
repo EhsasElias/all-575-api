@@ -22,7 +22,17 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: cp .env.example .env && php artisan key:generate
-      - run: composer openapi
+      - name: Prepare isolated SQLite schema for contract generation
+        run: |
+          touch database/database.sqlite
+          DB_CONNECTION=sqlite DB_DATABASE="$GITHUB_WORKSPACE/database/database.sqlite" php artisan migrate --force
+      - name: Generate OpenAPI with disposable test DB
+        run: composer openapi
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ${{ github.workspace }}/database/database.sqlite
+          DB_URL: ''
+          APP_URL: http://localhost:8000
       - name: Commit generated API contract only to QA branch
         run: |
           git config user.name "github-actions[bot]"
