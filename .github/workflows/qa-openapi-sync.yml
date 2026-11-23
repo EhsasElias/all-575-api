@@ -1,0 +1,34 @@
+name: One-time QA OpenAPI synchronization
+on:
+  push:
+    branches: [fix/role-application-review-actions-20261123]
+    paths:
+      - '.github/workflows/qa-openapi-sync.yml'
+permissions:
+  contents: write
+jobs:
+  synchronize:
+    if: github.repository == 'EhsasElias/all-575-api'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_sqlite
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - run: composer openapi
+      - name: Commit generated API contract only to QA branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/api/openapi.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Sync generated OpenAPI contract for reviewed roles"
+            git push origin HEAD:fix/role-application-review-actions-20261123
+          fi
