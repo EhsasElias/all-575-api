@@ -71,6 +71,7 @@ final class RoleApplicationTest extends TestCase
 
         $this->getJson('/api/v1/platform/super-admin/role-applications')->assertForbidden();
     }
+
     public function test_super_admin_receives_pending_admin_and_courier_applications(): void
     {
         $admin = User::factory()->create(['email_verified_at' => now()]);
@@ -173,5 +174,4 @@ final class RoleApplicationTest extends TestCase
             'contact_phone' => '12345',
         ])->assertUnprocessable()->assertJsonValidationErrors('contact_phone');
     }
-
 }
