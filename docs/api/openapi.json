@@ -4608,6 +4608,9 @@
                                     },
                                     "can_view_inventory": {
                                         "type": "boolean"
+                                    },
+                                    "can_review_sellers": {
+                                        "type": "boolean"
                                     }
                                 },
                                 "required": [
@@ -4677,6 +4680,9 @@
                                         "type": "boolean"
                                     },
                                     "can_view_inventory": {
+                                        "type": "boolean"
+                                    },
+                                    "can_review_sellers": {
                                         "type": "boolean"
                                     }
                                 }
