@@ -23,11 +23,37 @@ final class NotificationTranslation
         }
 
         $static = [
+            'role_application_approved' => [
+                'en' => ['Application approved', 'Your application was approved. Access is granted separately after account setup.'],
+                'fr' => ['Candidature approuvée', 'Votre demande a été approuvée. Les accès sont attribués séparément.'],
+            ],
+            'role_application_rejected' => [
+                'en' => ['Application rejected', 'Your application was reviewed and rejected. You can review its status in your account.'],
+                'fr' => ['Candidature refusée', 'Votre demande a été examinée et refusée. Consultez son statut dans votre compte.'],
+            ],
+            'courier_approved' => [
+                'en' => ['Courier account approved', 'Your courier profile is approved. Set your availability to receive jobs.'],
+                'fr' => ['Compte livreur approuvé', 'Votre profil livreur est approuvé. Activez votre disponibilité pour recevoir des missions.'],
+            ],
+            'courier_rejected' => [
+                'en' => ['Courier account not approved', 'Your courier profile was not approved. Contact the administration.'],
+                'fr' => ['Compte livreur non approuvé', 'Votre profil livreur n’a pas été approuvé. Contactez l’administration.'],
+            ],
             'order_placed' => [
                 'en' => ['We received your order', 'Your order was placed successfully. You can track it from My Orders.'],
                 'fr' => ['Nous avons reçu votre commande', 'Votre commande a bien été enregistrée. Suivez-la dans Mes commandes.'],
             ],
         ];
+
+        if ($type === 'courier_offer') {
+            if (preg_match('/رقم ([0-9]+)/u', $message, $matches) !== 1) {
+                return compact('title', 'message');
+            }
+
+            return $locale === 'fr'
+                ? ['title' => 'Nouvelle mission proposée', 'message' => sprintf('Une mission de livraison n° %s est disponible. Répondez avant son expiration.', $matches[1])]
+                : ['title' => 'New delivery offer', 'message' => sprintf('Delivery offer #%s is waiting for your response. Reply before it expires.', $matches[1])];
+        }
 
         if ($type === 'role_application_submitted') {
             if (preg_match('/رقم ([0-9]+)/u', $message, $matches) !== 1) {
