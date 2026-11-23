@@ -71,4 +71,43 @@ final class RoleApplicationTest extends TestCase
 
         $this->getJson('/api/v1/platform/super-admin/role-applications')->assertForbidden();
     }
+    public function test_super_admin_receives_pending_admin_and_courier_applications(): void
+    {
+        $admin = User::factory()->create(['email_verified_at' => now()]);
+        DB::table('platform_super_admin_grants')->insert([
+            'user_id' => $admin->id,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $applicant = User::factory()->create(['email_verified_at' => now()]);
+        Sanctum::actingAs($applicant, ['customer']);
+
+        $this->postJson('/api/v1/me/role-applications', [
+            'requested_role' => 'admin',
+            'motivation' => 'I can manage the marketplace support team.',
+        ])->assertCreated();
+
+        $this->postJson('/api/v1/me/role-applications', [
+            'requested_role' => 'courier',
+            'vehicle_type' => 'car',
+            'motivation' => 'I have experience with local deliveries.',
+        ])->assertCreated();
+
+        Sanctum::actingAs($admin, ['customer']);
+
+        $response = $this->getJson('/api/v1/platform/super-admin/role-applications')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $roles = array_column($response->json('data'), 'requested_role');
+        sort($roles);
+        $this->assertSame(['admin', 'courier'], $roles);
+        $response->assertJsonPath('data.0.status', 'pending');
+
+        $this->assertDatabaseCount('platform_admin_access', 0);
+        $this->assertDatabaseCount('courier_profiles', 0);
+    }
+
 }
