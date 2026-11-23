@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\Api\V1\CourierOperationsController;
 use App\Http\Controllers\Api\V1\DeliveryVerificationController;
-use App\Http\Controllers\Api\V1\RoleApplicationController;
 use App\Http\Controllers\Api\V1\PlatformAdminAccessController;
 use App\Http\Controllers\Api\V1\PlatformAdminDashboardController;
+use App\Http\Controllers\Api\V1\RoleApplicationController;
 use App\Http\Controllers\Api\V1\SuperAdminAccountController;
 use App\Http\Controllers\Api\V1\SuperAdminDashboardController;
 use App\Http\Controllers\Api\V1\SuperAdminMetricController;
