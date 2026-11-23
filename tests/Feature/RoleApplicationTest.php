@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Domain\Identity\Models\User;
 use App\Domain\Catalog\Models\Seller;
+use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
@@ -162,7 +162,6 @@ final class RoleApplicationTest extends TestCase
         $this->assertDatabaseCount('platform_admin_access', 0);
         $this->assertDatabaseCount('courier_profiles', 0);
     }
-
 
     public function test_submission_notifies_active_super_admins_only_once_per_application(): void
     {
