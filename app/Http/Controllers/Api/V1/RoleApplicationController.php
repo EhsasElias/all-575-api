@@ -72,7 +72,6 @@ final class RoleApplicationController extends Controller
         return response()->json(['data' => $result], 201);
     }
 
-
     public function serviceZones(Request $request): JsonResponse
     {
         $this->authorizeReviewer($request);
