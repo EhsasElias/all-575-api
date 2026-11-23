@@ -3,7 +3,7 @@ name: Generate API contract for review
 on:
   workflow_dispatch:
   push:
-    branches: [v2, fix/role-application-review-actions-20261123]
+    branches: [v2]
     paths:
       - 'routes/**'
       - 'app/Http/**'
