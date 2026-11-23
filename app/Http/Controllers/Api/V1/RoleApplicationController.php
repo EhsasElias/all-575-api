@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Notifications\RoleNotificationWriter;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -65,6 +66,24 @@ final class RoleApplicationController extends Controller
                 ->where('id', $id)
                 ->first(['id', 'requested_role', 'status', 'vehicle_type', 'created_at']);
         }, 3);
+
+        $roleLabel = $input['requested_role'] === 'admin' ? 'مسؤول' : 'مندوب توصيل';
+        $superAdminIds = DB::table('platform_super_admin_grants as g')
+            ->join('users as u', 'u.id', '=', 'g.user_id')
+            ->where('g.is_active', true)
+            ->where('u.is_active', true)
+            ->distinct()->pluck('g.user_id');
+        $notifier = app(RoleNotificationWriter::class);
+        foreach ($superAdminIds as $superAdminId) {
+            $notifier->send(
+                (int) $superAdminId,
+                'role_application_submitted',
+                'طلب انضمام جديد',
+                "تم تقديم طلب انضمام ك{$roleLabel} رقم {$result->id} ويحتاج إلى مراجعتك.",
+                '/account/super-admin#role-applications',
+                'role_application_submitted:'.$result->id,
+            );
+        }
 
         // Applicants are never granted either permission by submitting this request.
         // Admin grants require a Super Admin and an assigned seller; courier registration
