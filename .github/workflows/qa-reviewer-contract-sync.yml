@@ -1,0 +1,42 @@
+name: QA OpenAPI sync after reviewer-grants changes
+on:
+  push:
+    branches: [fix/role-application-review-actions-20261123]
+    paths: ['.github/workflows/qa-reviewer-contract-sync.yml']
+permissions:
+  contents: write
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_sqlite
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Create isolated test schema
+        run: |
+          touch database/database.sqlite
+          DB_CONNECTION=sqlite DB_DATABASE="$GITHUB_WORKSPACE/database/database.sqlite" php artisan migrate --force
+      - name: Generate API contract
+        run: composer openapi
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ${{ github.workspace }}/database/database.sqlite
+          DB_URL: ''
+          APP_URL: http://localhost:8000
+      - name: Commit only generated API schema to QA
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/api/openapi.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Update OpenAPI for explicit platform reviewer permission"
+            git push origin HEAD:fix/role-application-review-actions-20261123
+          fi
