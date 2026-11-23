@@ -120,6 +120,21 @@ final class RoleApplicationController extends Controller
                 ->first(['id', 'requested_role', 'status', 'reviewed_at']);
         }, 3);
 
+        $applicantId = DB::table('role_applications')->where('id', $application)->value('user_id');
+        if ($applicantId !== null) {
+            $approved = $input['decision'] === 'approved';
+            app(RoleNotificationWriter::class)->send(
+                (int) $applicantId,
+                $approved ? 'role_application_approved' : 'role_application_rejected',
+                $approved ? 'تمت الموافقة على طلب الانضمام' : 'تم رفض طلب الانضمام',
+                $approved
+                    ? 'تمت مراجعة طلب انضمامك والموافقة عليه. لا تُمنح صلاحيات العمل إلا بعد تفعيلها بشكل منفصل.'
+                    : 'تمت مراجعة طلب انضمامك ورفضه. يمكنك متابعة حالة الطلب من حسابك.',
+                $result->requested_role === 'admin' ? '/account/apply/admin' : '/account/apply/courier',
+                'role_application_reviewed:'.$application,
+            );
+        }
+
         // Reviewing a request never grants admin access or activates a courier.
         return response()->json(['data' => $result]);
     }
