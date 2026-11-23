@@ -222,6 +222,18 @@ final class RoleApplicationController extends Controller
         return response()->json(['data' => $result], 201);
     }
 
+    public function deliveryZones(Request $request): JsonResponse
+    {
+        $owner = DB::table('platform_super_admin_grants')
+            ->where('user_id', $request->user()->id)->where('is_active', true)->exists();
+        abort_unless($request->user()->is_active && $owner, 403);
+
+        return response()->json(['data' => DB::table('service_zones')
+            ->where('is_active', true)
+            ->select('id', 'name_ar', 'name_en')
+            ->orderBy('id')->limit(250)->get()]);
+    }
+
     public function reviewQueue(Request $request): JsonResponse
     {
         $owner = DB::table('platform_super_admin_grants')
