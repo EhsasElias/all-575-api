@@ -139,6 +139,89 @@ final class RoleApplicationController extends Controller
         return response()->json(['data' => $result]);
     }
 
+    /**
+     * Provision an explicitly approved application with a concrete seller or zone.
+     * Approval alone does not grant access. Only a Super Admin may activate it.
+     */
+    public function activate(Request $request, int $application): JsonResponse
+    {
+        $owner = DB::table('platform_super_admin_grants')
+            ->where('user_id', $request->user()->id)->where('is_active', true)->exists();
+        abort_unless($request->user()->is_active && $owner, 403);
+
+        $input = $request->validate([
+            'seller_id' => ['required_if:requested_role,admin', 'nullable', 'integer', 'exists:sellers,id'],
+            'service_zone_id' => ['nullable', 'integer', 'exists:service_zones,id'],
+            'can_view_orders' => ['sometimes', 'boolean'],
+            'can_view_inventory' => ['sometimes', 'boolean'],
+        ]);
+
+        $result = DB::transaction(function () use ($request, $application, $input): array {
+            $row = DB::table('role_applications')->where('id', $application)
+                ->lockForUpdate()->first();
+            abort_unless($row, 404);
+            abort_unless($row->status === 'approved', 409, 'Review and approve the request first.');
+            $user = DB::table('users')->where('id', $row->user_id)->first();
+            abort_unless($user && $user->is_active && $user->email_verified_at, 422,
+                'An active, email-verified applicant is required.');
+
+            if ($row->requested_role === 'admin') {
+                abort_unless(isset($input['seller_id']), 422, 'Select a seller for the Admin.');
+                abort_unless(DB::table('sellers')->where('id', $input['seller_id'])
+                    ->where('status', 'approved')->exists(), 422, 'Choose an approved seller.');
+                abort_if(DB::table('platform_super_admin_grants')->where('user_id', $row->user_id)
+                    ->where('is_active', true)->exists(), 422, 'Cannot assign Super Admin using Admin permissions.');
+                abort_if(DB::table('platform_admin_access')->where('user_id', $row->user_id)
+                    ->where('seller_id', $input['seller_id'])->exists(), 409, 'Admin access already assigned.');
+                $orders = $input['can_view_orders'] ?? true;
+                $inventory = $input['can_view_inventory'] ?? false;
+                abort_unless($orders || $inventory, 422, 'Select at least one permission.');
+                $id = DB::table('platform_admin_access')->insertGetId([
+                    'user_id' => $row->user_id,
+                    'seller_id' => $input['seller_id'],
+                    'is_active' => true,
+                    'can_view_orders' => $orders,
+                    'can_view_inventory' => $inventory,
+                    'can_review_sellers' => false,
+                    'granted_by' => $request->user()->id,
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+
+                return ['role' => 'admin', 'access_id' => $id];
+            }
+
+            abort_unless($row->requested_role === 'courier', 422, 'Unsupported role.');
+            abort_unless(isset($input['service_zone_id']), 422, 'Select a delivery zone.');
+            abort_unless(DB::table('service_zones')->where('id', $input['service_zone_id'])
+                ->where('is_active', true)->exists(), 422, 'Choose an active delivery zone.');
+            abort_if(DB::table('courier_profiles')->where('user_id', $row->user_id)->exists(),
+                409, 'Courier profile already exists; use Courier approvals to review it.');
+            $id = DB::table('courier_profiles')->insertGetId([
+                'user_id' => $row->user_id,
+                'service_zone_id' => $input['service_zone_id'],
+                'vehicle_type' => $row->vehicle_type,
+                'approval_status' => 'approved',
+                'is_online' => false,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+
+            return ['role' => 'courier', 'courier_profile_id' => $id];
+        }, 3);
+
+        app(RoleNotificationWriter::class)->send(
+            (int) DB::table('role_applications')->where('id', $application)->value('user_id'),
+            $result['role'] === 'admin' ? 'admin_assigned' : 'courier_approved',
+            'تم تفعيل صلاحية العمل',
+            $result['role'] === 'admin'
+                ? 'تم تفعيل صلاحيات الإدارة للمتجر المحدد.'
+                : 'تم اعتماد ملف المندوب. يمكنك الآن استقبال مهام التوصيل.',
+            $result['role'] === 'admin' ? '/account/admin' : '/account/courier',
+            'role_application_activated:'.$application,
+        );
+
+        return response()->json(['data' => $result], 201);
+    }
+
     public function reviewQueue(Request $request): JsonResponse
     {
         $owner = DB::table('platform_super_admin_grants')
