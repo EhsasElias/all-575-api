@@ -129,6 +129,42 @@ class PlatformAdminDashboardTest extends TestCase
         $this->getJson('/api/v1/platform/admin/orders?branch_id=-1')->assertUnprocessable();
     }
 
+    public function test_only_explicitly_granted_active_admin_may_review_sellers(): void
+    {
+        $seller = Seller::factory()->create();
+        $admin = User::factory()->create([
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+        ]);
+        $owner = $this->owner();
+        Sanctum::actingAs($owner, ['customer']);
+        $response = $this->postJson('/api/v1/platform/super-admin/admins', [
+            'email' => $admin->email, 'seller_id' => $seller->id,
+            'can_view_orders' => true, 'can_view_inventory' => false,
+            'can_review_sellers' => false,
+        ])->assertCreated();
+        $accessId = $response->json('data.id');
+
+        Sanctum::actingAs($admin, ['customer']);
+        $this->getJson('/api/v1/seller-review/applications')->assertForbidden();
+
+        Sanctum::actingAs($owner, ['customer']);
+        $this->patchJson('/api/v1/platform/super-admin/admins/'.$accessId, [
+            'can_review_sellers' => true,
+        ])->assertOk()->assertJsonPath('data.can_review_sellers', true);
+
+        Sanctum::actingAs($admin, ['customer']);
+        $this->getJson('/api/v1/seller-review/applications')->assertOk();
+
+        Sanctum::actingAs($owner, ['customer']);
+        $this->patchJson('/api/v1/platform/super-admin/admins/'.$accessId, [
+            'is_active' => false,
+        ])->assertOk();
+
+        Sanctum::actingAs($admin, ['customer']);
+        $this->getJson('/api/v1/seller-review/applications')->assertForbidden();
+    }
+
     public function test_super_admin_can_access_existing_review_tools(): void
     {
         Sanctum::actingAs($this->owner(), ['customer']);

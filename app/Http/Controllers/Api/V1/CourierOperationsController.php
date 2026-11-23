@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Notifications\OrderProgressNotifier;
+use App\Domain\Notifications\RoleNotificationWriter;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -104,6 +105,21 @@ final class CourierOperationsController extends Controller
         ]);
         abort_unless($changed, 404);
 
+        $courierUserId = DB::table('courier_profiles')->where('id', $courier)->value('user_id');
+        if ($courierUserId !== null) {
+            $approved = $data['approved'];
+            app(RoleNotificationWriter::class)->send(
+                (int) $courierUserId,
+                $approved ? 'courier_approved' : 'courier_rejected',
+                $approved ? 'تم اعتماد حساب المندوب' : 'لم يتم اعتماد حساب المندوب',
+                $approved
+                    ? 'تم اعتماد حسابك كمندوب توصيل. يمكنك الآن ضبط حالة التوفر واستقبال المهام.'
+                    : 'لم يتم اعتماد ملف المندوب الخاص بك. يمكنك مراجعة الإدارة.',
+                '/account/courier',
+                'courier_approval:'.$courier.':'.($approved ? 'approved' : 'rejected'),
+            );
+        }
+
         return response()->json(['data' => ['approval_status' => $data['approved'] ? 'approved' : 'rejected']]);
     }
 
@@ -178,6 +194,21 @@ final class CourierOperationsController extends Controller
 
             return ['assignment_id' => $id, 'status' => 'offered'];
         }, 3);
+
+        $recipientUserId = DB::table('courier_profiles')
+            ->where('id', $input['courier_profile_id'])->value('user_id');
+        if ($recipientUserId !== null) {
+            $assignmentUpdatedAt = DB::table('courier_assignments')
+                ->where('id', $result['assignment_id'])->value('updated_at');
+            app(RoleNotificationWriter::class)->send(
+                (int) $recipientUserId,
+                'courier_offer',
+                'عرض توصيل جديد',
+                'لديك عرض توصيل للمهمة رقم '.$result['assignment_id'].'؛ يرجى الرد قبل انتهاء المهلة.',
+                '/account/courier',
+                'courier_offer:'.$result['assignment_id'].':'.strtotime((string) $assignmentUpdatedAt),
+            );
+        }
 
         return response()->json(['data' => $result]);
     }
