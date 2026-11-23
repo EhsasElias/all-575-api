@@ -5826,6 +5826,49 @@
                                             "bicycle",
                                             null
                                         ]
+                                    },
+                                    "contact_phone": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "pattern": "^05[0-9]{8}$"
+                                    },
+                                    "city": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 120
+                                    },
+                                    "experience_years": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ],
+                                        "minimum": 0,
+                                        "maximum": 60
+                                    },
+                                    "qualification": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 180
+                                    },
+                                    "service_area": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 180
+                                    },
+                                    "vehicle_plate_number": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 32
                                     }
                                 },
                                 "required": [
