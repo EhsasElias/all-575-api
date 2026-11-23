@@ -16,7 +16,9 @@ final class RoleApplicationController extends Controller
     {
         return response()->json(['data' => DB::table('role_applications')
             ->where('user_id', $request->user()->id)
-            ->select('id', 'requested_role', 'status', 'vehicle_type', 'motivation', 'created_at')
+            ->select('id', 'requested_role', 'status', 'vehicle_type', 'motivation',
+                'contact_phone', 'city', 'experience_years', 'qualification',
+                'service_area', 'vehicle_plate_number', 'created_at')
             ->orderByDesc('id')->get()]);
     }
 
@@ -27,6 +29,12 @@ final class RoleApplicationController extends Controller
             'motivation' => ['required', 'string', 'min:10', 'max:1000'],
             'vehicle_type' => ['required_if:requested_role,courier', 'nullable',
                 Rule::in(['motorcycle', 'car', 'van', 'bicycle'])],
+            'contact_phone' => ['sometimes', 'nullable', 'regex:/^05[0-9]{8}$/'],
+            'city' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'experience_years' => ['sometimes', 'nullable', 'integer', 'between:0,60'],
+            'qualification' => ['sometimes', 'nullable', 'string', 'max:180'],
+            'service_area' => ['sometimes', 'nullable', 'string', 'max:180'],
+            'vehicle_plate_number' => ['sometimes', 'nullable', 'string', 'max:32'],
         ]);
 
         abort_unless($request->user()->is_active && $request->user()->isVerified(), 403);
@@ -44,6 +52,12 @@ final class RoleApplicationController extends Controller
                 'status' => 'pending',
                 'vehicle_type' => $input['requested_role'] === 'courier' ? $input['vehicle_type'] : null,
                 'motivation' => trim($input['motivation']),
+                'contact_phone' => $input['contact_phone'] ?? null,
+                'city' => $input['city'] ?? null,
+                'experience_years' => $input['experience_years'] ?? null,
+                'qualification' => $input['requested_role'] === 'admin' ? ($input['qualification'] ?? null) : null,
+                'service_area' => $input['requested_role'] === 'courier' ? ($input['service_area'] ?? null) : null,
+                'vehicle_plate_number' => $input['requested_role'] === 'courier' ? ($input['vehicle_plate_number'] ?? null) : null,
                 'created_at' => now(), 'updated_at' => now(),
             ]);
 
@@ -67,7 +81,9 @@ final class RoleApplicationController extends Controller
         return response()->json(['data' => DB::table('role_applications as a')
             ->join('users as u', 'u.id', '=', 'a.user_id')
             ->select('a.id', 'a.user_id', 'u.name', 'u.email', 'a.requested_role',
-                'a.status', 'a.vehicle_type', 'a.motivation', 'a.created_at')
+                'a.status', 'a.vehicle_type', 'a.motivation', 'a.created_at',
+                'a.contact_phone', 'a.city', 'a.experience_years',
+                'a.qualification', 'a.service_area', 'a.vehicle_plate_number')
             ->where('a.status', 'pending')->orderByDesc('a.id')->limit(100)->get()]);
     }
 }
