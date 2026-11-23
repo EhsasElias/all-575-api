@@ -50,6 +50,7 @@ final class PlatformAdminAccessController extends Controller
             'seller_id' => ['required', 'integer', 'exists:sellers,id'],
             'can_view_orders' => ['required', 'boolean'],
             'can_view_inventory' => ['required', 'boolean'],
+            'can_review_sellers' => ['sometimes', 'boolean'],
         ]);
 
         $user = DB::table('users')->where('email', $input['email'])
@@ -71,7 +72,7 @@ final class PlatformAdminAccessController extends Controller
                 'is_active' => true,
                 'can_view_orders' => $input['can_view_orders'],
                 'can_view_inventory' => $input['can_view_inventory'],
-                'can_review_sellers' => false,
+                'can_review_sellers' => $input['can_review_sellers'] ?? false,
                 'granted_by' => $request->user()->id,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -94,6 +95,7 @@ final class PlatformAdminAccessController extends Controller
             'is_active' => ['sometimes', 'boolean'],
             'can_view_orders' => ['sometimes', 'boolean'],
             'can_view_inventory' => ['sometimes', 'boolean'],
+            'can_review_sellers' => ['sometimes', 'boolean'],
         ]);
         abort_if($input === [], 422, 'No changes provided.');
         $existing = DB::table('platform_admin_access')->where('id', $access)->first();
