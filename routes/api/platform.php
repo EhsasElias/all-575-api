@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\CourierOperationsController;
 use App\Http\Controllers\Api\V1\DeliveryVerificationController;
+use App\Http\Controllers\Api\V1\RoleApplicationController;
 use App\Http\Controllers\Api\V1\PlatformAdminAccessController;
 use App\Http\Controllers\Api\V1\PlatformAdminDashboardController;
 use App\Http\Controllers\Api\V1\SuperAdminAccountController;
@@ -20,6 +21,7 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
         Route::get('platform/super-admin/metrics/{metric}/export/{format}', [SuperAdminMetricController::class, 'export']);
         Route::get('platform/super-admin/sellers', [PlatformAdminAccessController::class, 'sellers']);
         Route::get('platform/super-admin/admins', [PlatformAdminAccessController::class, 'index']);
+        Route::get('platform/super-admin/role-applications', [RoleApplicationController::class, 'reviewQueue']);
         Route::post('platform/super-admin/admins', [PlatformAdminAccessController::class, 'store'])
             ->middleware('throttle:10,1');
         Route::patch('platform/super-admin/admins/{access}', [PlatformAdminAccessController::class, 'update'])
