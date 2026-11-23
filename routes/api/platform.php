@@ -22,6 +22,9 @@ Route::middleware(['auth:sanctum', 'abilities:customer', 'active', 'throttle:30,
         Route::get('platform/super-admin/sellers', [PlatformAdminAccessController::class, 'sellers']);
         Route::get('platform/super-admin/admins', [PlatformAdminAccessController::class, 'index']);
         Route::get('platform/super-admin/role-applications', [RoleApplicationController::class, 'reviewQueue']);
+        Route::get('platform/super-admin/service-zones', [RoleApplicationController::class, 'serviceZones']);
+        Route::patch('platform/super-admin/role-applications/{application}', [RoleApplicationController::class, 'decide'])
+            ->whereNumber('application')->middleware('throttle:10,1');
         Route::post('platform/super-admin/admins', [PlatformAdminAccessController::class, 'store'])
             ->middleware('throttle:10,1');
         Route::patch('platform/super-admin/admins/{access}', [PlatformAdminAccessController::class, 'update'])
