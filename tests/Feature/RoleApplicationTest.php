@@ -162,6 +162,86 @@ final class RoleApplicationTest extends TestCase
         $this->assertDatabaseCount('courier_profiles', 0);
     }
 
+
+    public function test_submission_notifies_active_super_admins_only_once_per_application(): void
+    {
+        $superAdmin = User::factory()->create(['email_verified_at' => now()]);
+        $inactiveSuperAdmin = User::factory()->create(['email_verified_at' => now()]);
+        DB::table('platform_super_admin_grants')->insert([
+            [
+                'user_id' => $superAdmin->id, 'is_active' => true,
+                'created_at' => now(), 'updated_at' => now(),
+            ],
+            [
+                'user_id' => $inactiveSuperAdmin->id, 'is_active' => false,
+                'created_at' => now(), 'updated_at' => now(),
+            ],
+        ]);
+
+        $applicant = User::factory()->create(['email_verified_at' => now()]);
+        Sanctum::actingAs($applicant, ['customer']);
+        $response = $this->postJson('/api/v1/me/role-applications', [
+            'requested_role' => 'courier',
+            'vehicle_type' => 'car',
+            'motivation' => 'I have courier driving experience.',
+        ])->assertCreated();
+        $applicationId = $response->json('data.id');
+
+        $this->assertDatabaseHas('customer_notifications', [
+            'user_id' => $superAdmin->id,
+            'type' => 'role_application_submitted',
+            'target_path' => '/account/super-admin#role-applications',
+            'event_key' => 'role_application_submitted:'.$applicationId,
+            'read_at' => null,
+        ]);
+        $this->assertDatabaseMissing('customer_notifications', [
+            'user_id' => $inactiveSuperAdmin->id,
+            'type' => 'role_application_submitted',
+        ]);
+        $this->assertDatabaseCount('customer_notifications', 1);
+        $this->postJson('/api/v1/me/role-applications', [
+            'requested_role' => 'courier',
+            'vehicle_type' => 'car',
+            'motivation' => 'I have courier driving experience.',
+        ])->assertStatus(409);
+        $this->assertDatabaseCount('customer_notifications', 1);
+    }
+
+    public function test_only_super_admin_can_review_and_review_does_not_grant_permissions(): void
+    {
+        $superAdmin = User::factory()->create(['email_verified_at' => now()]);
+        DB::table('platform_super_admin_grants')->insert([
+            'user_id' => $superAdmin->id, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $applicant = User::factory()->create(['email_verified_at' => now()]);
+        Sanctum::actingAs($applicant, ['customer']);
+        $id = $this->postJson('/api/v1/me/role-applications', [
+            'requested_role' => 'admin',
+            'motivation' => 'Experienced admin seeking to help.',
+        ])->assertCreated()->json('data.id');
+
+        $this->patchJson('/api/v1/platform/super-admin/role-applications/'.$id, [
+            'decision' => 'approved',
+        ])->assertForbidden();
+
+        Sanctum::actingAs($superAdmin, ['customer']);
+        $this->patchJson('/api/v1/platform/super-admin/role-applications/'.$id, [
+            'decision' => 'approved',
+            'note' => 'Reviewed qualifications',
+        ])->assertOk()->assertJsonPath('data.status', 'approved');
+
+        $this->assertDatabaseHas('role_applications', [
+            'id' => $id, 'status' => 'approved',
+            'reviewed_by' => $superAdmin->id, 'review_note' => 'Reviewed qualifications',
+        ]);
+        $this->assertDatabaseCount('platform_admin_access', 0);
+        $this->assertDatabaseCount('courier_profiles', 0);
+        $this->patchJson('/api/v1/platform/super-admin/role-applications/'.$id, [
+            'decision' => 'rejected',
+        ])->assertStatus(409);
+    }
+
     public function test_role_application_rejects_invalid_saudi_phone(): void
     {
         $applicant = User::factory()->create(['email_verified_at' => now()]);
