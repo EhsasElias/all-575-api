@@ -329,5 +329,5 @@ final class RoleApplicationTest extends TestCase
 
         Sanctum::actingAs($applicant, ['customer']);
         $this->getJson('/api/v1/courier/profile')->assertOk()
-            ->assertJsonPath('data.approval_status', 'approved');
-  }
+            ->assertJsonPath('data.approval_status', 'approved');    }
+}
