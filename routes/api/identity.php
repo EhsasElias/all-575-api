@@ -5,9 +5,11 @@ use App\Http\Controllers\Api\V1\BillingProfileController;
 use App\Http\Controllers\Api\V1\CustomerDashboardController;
 use App\Http\Controllers\Api\V1\CustomerNotificationController;
 use App\Http\Controllers\Api\V1\CustomerRequestController;
+use App\Http\Controllers\Api\V1\DeliveryVerificationController;
 use App\Http\Controllers\Api\V1\EmailPasswordAuthController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PasskeyController;
+use App\Http\Controllers\Api\V1\RoleApplicationController;
 use App\Http\Controllers\Api\V1\SavedProductController;
 use App\Http\Controllers\Api\V1\SessionController;
 use Illuminate\Support\Facades\Route;
@@ -34,7 +36,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
 });
 
 Route::middleware(['auth:sanctum', 'abilities:customer', 'active'])->group(function (): void {
+    Route::post('me/suborders/{suborder}/delivery-code', [DeliveryVerificationController::class, 'issue'])
+        ->middleware('throttle:10,1');
     Route::get('me/dashboard', CustomerDashboardController::class);
+    Route::get('me/role-applications', [RoleApplicationController::class, 'mine']);
+    Route::post('me/role-applications', [RoleApplicationController::class, 'submit'])->middleware('throttle:5,1');
     Route::delete('auth/session', [AuthController::class, 'logout']);
 
     Route::get('me/requests', [CustomerRequestController::class, 'index']);

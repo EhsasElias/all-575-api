@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Notifications\OrderProgressNotifier;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -159,7 +160,10 @@ final class CourierOperationsController extends Controller
                 'expires_at' => now()->addMinutes(15), 'accepted_at' => null,
                 'pickup_code_hash' => null, 'pickup_code_encrypted' => null,
                 'pickup_code_expires_at' => null, 'pickup_attempts' => 0,
-                'parcel_count' => null, 'picked_up_at' => null, 'updated_at' => now(),
+                'parcel_count' => null, 'picked_up_at' => null,
+                'delivery_code_hash' => null, 'delivery_code_expires_at' => null,
+                'delivery_attempts' => 0, 'delivered_at' => null,
+                'updated_at' => now(),
             ];
             if ($existing) {
                 DB::table('courier_assignments')->where('id', $existing->id)->update($attributes);
@@ -188,7 +192,7 @@ final class CourierOperationsController extends Controller
             ->join('branches as b', 'b.id', '=', 's.branch_id')
             ->where('a.courier_profile_id', $courier->id)
             ->select('a.id', 'a.suborder_id', 'a.status', 'a.expires_at',
-                'a.accepted_at', 'a.picked_up_at', 'a.parcel_count',
+                'a.accepted_at', 'a.picked_up_at', 'a.delivered_at', 'a.parcel_count',
                 'o.number as order_number', 's.branch_id', 'b.lat as pickup_lat',
                 'b.lng as pickup_lng', 's.status as suborder_status')
             ->orderByDesc('a.id')->limit(100)->get();
@@ -289,12 +293,69 @@ final class CourierOperationsController extends Controller
                 'note' => 'Seller pickup verified', 'meta' => json_encode(['parcel_count' => $input['parcel_count']]),
                 'created_at' => now(),
             ]);
+            $orderRecord = DB::table('orders')->where('id', $order->order_id)->first();
+            app(OrderProgressNotifier::class)->record($orderRecord, $order, 'courier_picked_up', $request->user()->id);
 
             return 'picked_up';
         }, 3);
         abort_if($status === 'invalid_code', 422, 'Incorrect pickup code.');
 
         return response()->json(['data' => ['status' => $status]]);
+    }
+
+    /**
+     * Record a failed handover without falsely marking the parcel as delivered.
+     * An unresolved incident blocks repeated reporting of the same failure.
+     */
+    public function failedDelivery(Request $request, int $assignment): JsonResponse
+    {
+        $courier = $this->courier($request);
+        abort_unless($courier->approval_status === 'approved', 403);
+        $data = $request->validate([
+            'reason' => ['required', Rule::in(['customer_absent', 'address_issue', 'customer_refused', 'other'])],
+            'description' => ['required', 'string', 'between:10,1000'],
+        ]);
+
+        $incidentId = DB::transaction(function () use ($request, $assignment, $courier, $data): int {
+            $job = DB::table('courier_assignments')
+                ->where('id', $assignment)->lockForUpdate()->first();
+            abort_unless($job && (int) $job->courier_profile_id === (int) $courier->id, 404);
+            abort_unless($job->status === 'picked_up', 409, 'Only picked-up jobs can report failed delivery.');
+
+            $suborder = DB::table('suborders')->where('id', $job->suborder_id)->lockForUpdate()->first();
+            abort_unless($suborder && $suborder->status === 'on_the_way', 409);
+
+            $alreadyOpen = DB::table('delivery_incidents')
+                ->where('suborder_id', $job->suborder_id)
+                ->where('type', 'delivery_issue')
+                ->where('status', '!=', 'resolved')->exists();
+            abort_if($alreadyOpen, 409, 'An unresolved delivery incident already exists.');
+
+            $id = DB::table('delivery_incidents')->insertGetId([
+                'suborder_id' => $job->suborder_id,
+                'reported_by' => $request->user()->id,
+                'assigned_to' => null,
+                'type' => 'delivery_issue',
+                'status' => 'open',
+                'description' => $data['reason'].': '.$data['description'],
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+
+            $this->record($job->id, $request->user()->id, $courier->id, 'delivery_failed', $data['reason']);
+            DB::table('order_events')->insert([
+                'order_id' => $suborder->order_id, 'suborder_id' => $suborder->id,
+                'type' => 'courier_delivery_failed', 'actor' => 'courier',
+                'note' => 'Delivery attempt failed: '.$data['reason'],
+                'meta' => json_encode(['incident_id' => $id]),
+                'created_at' => now(),
+            ]);
+            $orderRecord = DB::table('orders')->where('id', $suborder->order_id)->first();
+            app(OrderProgressNotifier::class)->record($orderRecord, $suborder, 'courier_delivery_failed', $request->user()->id);
+
+            return $id;
+        }, 3);
+
+        return response()->json(['data' => ['incident_id' => $incidentId, 'status' => 'open']], 201);
     }
 
     public function history(Request $request, string $suborder): JsonResponse
