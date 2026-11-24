@@ -112,6 +112,20 @@ final class StagingPhotoCatalogSeeder extends Seeder
         $manifestPath = "{$directory}/ATTRIBUTION.json";
         File::put($manifestPath, json_encode($attributions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
+        // A safe image-only preview: downloads pictures and attribution but NEVER writes to the database.
+        // Run with ALL575_PHOTO_PREVIEW_ONLY=1 before reviewing each picture and licence.
+        if (getenv('ALL575_PHOTO_PREVIEW_ONLY') === '1') {
+            $this->command?->info('Preview complete: photos and attribution saved; NO database changes made.');
+            $this->command?->info("Review each image and its licence: {$manifestPath}");
+
+            return;
+        }
+
+        // Publication is a separate, opt-in operation after human photo review.
+        if (getenv('ALL575_PHOTOS_REVIEWED') !== 'YES') {
+            throw new RuntimeException('Refusing to publish: review all downloaded product photos and licences first. Set ALL575_PHOTOS_REVIEWED=YES only after review.');
+        }
+
         // Keep a reversible publication-status snapshot, not a destructive truncation.
         $snapshot = Product::query()->where('status', ProductStatus::Published->value)
             ->get(['id', 'slug', 'status'])->map(fn (Product $product) => [
