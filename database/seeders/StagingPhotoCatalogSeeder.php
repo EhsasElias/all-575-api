@@ -90,13 +90,25 @@ final class StagingPhotoCatalogSeeder extends Seeder
 
         $attributions = [];
         $products = [];
+        $failures = [];
 
         // Fetch and verify ALL 18 image files BEFORE modifying the database.
         foreach (self::GROUPS as [$categorySlug, $categoryAr, $categoryEn, $categoryImage, $entries]) {
             foreach ($entries as [$slug, $nameAr, $nameEn, $term, $price]) {
                 $fileName = "{$slug}.jpg";
                 $localPath = "{$directory}/{$fileName}";
-                $image = $this->photoFromCommons($term, $localPath);
+                try {
+                    $image = $this->photoFromCommons($term, $localPath);
+                } catch (RuntimeException $exception) {
+                    if (getenv('ALL575_PHOTO_PREVIEW_ONLY') !== '1') {
+                        throw $exception;
+                    }
+
+                    $failures[] = ['product' => $slug, 'keyword' => $term, 'error' => $exception->getMessage()];
+                    $this->command?->warn("Photo unavailable for {$nameEn}: {$exception->getMessage()}");
+
+                    continue;
+                }
                 $attributions[] = [
                     'product' => $slug,
                     'title' => $image['title'],
@@ -111,14 +123,19 @@ final class StagingPhotoCatalogSeeder extends Seeder
 
         $manifestPath = "{$directory}/ATTRIBUTION.json";
         File::put($manifestPath, json_encode($attributions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        File::put("{$directory}/MISSING.json", json_encode($failures, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
         // A safe image-only preview: downloads pictures and attribution but NEVER writes to the database.
         // Run with ALL575_PHOTO_PREVIEW_ONLY=1 before reviewing each picture and licence.
         if (getenv('ALL575_PHOTO_PREVIEW_ONLY') === '1') {
-            $this->command?->info('Preview complete: photos and attribution saved; NO database changes made.');
+            $this->command?->info('Preview complete: '.count($products).' of 18 photos saved; '.count($failures).' missing. NO database changes made.');
             $this->command?->info("Review each image and its licence: {$manifestPath}");
 
             return;
+        }
+
+        if (count($products) !== 18 || count($failures) !== 0) {
+            throw new RuntimeException('Refusing publication: all 18 validated photos are required.');
         }
 
         // Publication is a separate, opt-in operation after human photo review.
@@ -216,39 +233,49 @@ final class StagingPhotoCatalogSeeder extends Seeder
         }
 
         $pages = array_values($response->json('query.pages', []));
+        $rejectionCounts = ['name' => 0, 'mime' => 0, 'license' => 0, 'url' => 0, 'download' => 0, 'size' => 0];
+        $sampleLicenses = [];
         foreach ($pages as $page) {
             $title = (string) ($page['title'] ?? '');
             $name = strtolower($title);
             $needle = strtolower(explode(' ', $term)[0]);
             if (! str_contains($name, $needle) || preg_match('/logo|icon|drawing|illustration|diagram|clipart|cartoon|poster/', $name)) {
+                $rejectionCounts['name']++;
                 continue;
             }
 
             $info = $page['imageinfo'][0] ?? null;
             if (! is_array($info) || ($info['mime'] ?? '') !== 'image/jpeg') {
+                $rejectionCounts['mime']++;
                 continue;
             }
             $metadata = $info['extmetadata'] ?? [];
             $license = trim(strip_tags((string) ($metadata['LicenseShortName']['value'] ?? '')));
+            $sampleLicenses[$license === '' ? '(missing)' : $license] = true;
             if (! preg_match('/^(?:CC0(?: [0-9.]+)?|CC BY(?:-SA)?(?: [0-9.]+)?|Public domain|PD(?:-[A-Za-z0-9]+)?)$/i', $license)) {
+                $rejectionCounts['license']++;
                 continue;
             }
             $url = (string) ($info['thumburl'] ?? $info['url'] ?? '');
             if (! str_starts_with($url, 'https://upload.wikimedia.org/')) {
+                $rejectionCounts['url']++;
                 continue;
             }
             $download = Http::withHeaders([
                 'User-Agent' => 'ALL575StagingPhotoCatalog/1.0 (github.com/EhsasElias/all-575-api)',
             ])->timeout(25)->get($url);
             if (! $download->successful()) {
+                $rejectionCounts['download']++;
                 continue;
             }
             $bytes = $download->body();
             if (strlen($bytes) < 10000) {
+                $rejectionCounts['size']++;
                 continue;
             }
             $imageSize = getimagesizefromstring($bytes);
             if (! is_array($imageSize) || $imageSize[2] !== IMAGETYPE_JPEG || $imageSize[0] < 240 || $imageSize[1] < 240) {
+                $rejectionCounts['size']++;
                 continue;
             }
             if (File::put($path, $bytes) === false) {
@@ -263,6 +290,8 @@ final class StagingPhotoCatalogSeeder extends Seeder
             ];
         }
 
-        throw new RuntimeException("No verified CC-licensed JPEG photo found for {$term}. Database unchanged; choose a different keyword.");
+        $reasons = json_encode($rejectionCounts, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $licenses = implode(', ', array_keys($sampleLicenses));
+        throw new RuntimeException("No suitable JPEG for {$term}; results=".count($pages)."; rejected={$reasons}; observed_licenses={$licenses}. Database unchanged.");
     }
 }
