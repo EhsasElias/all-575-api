@@ -32,3 +32,32 @@ The other 12 products should use verified genuine commercial-use product photos 
 6. Do **not** set `ALL575_PHOTOS_REVIEWED=YES` or publish unless all 18 images have been individually reviewed, and a fresh recoverable backup and functional tests exist.
 
 `StagingPhotoCatalogSeeder` archives old published listings to drafts rather than deleting them. It must never run against production.
+
+
+## Additional 12 demo product mockups (2026-11-24)
+
+The 12 additional JPEG files complete the 9-category / 18-product staging demo catalogue:
+
+`ballpoint-pen.jpg`, `notebook.jpg`, `backpack.jpg`, `colored-pencils.jpg`,
+`laundry-detergent.jpg`, `dishwashing-liquid.jpg`, `broom.jpg`, `mop.jpg`,
+`frying-pan.jpg`, `cutlery.jpg`, `red-apples.jpg`, `tomatoes.jpg`.
+
+All 18 records are now declared in `GENERATED_ASSETS.json`, but the twelve image binaries
+must be uploaded separately into this branch. The archive
+`ALL575-staging-product-images-remaining-12.zip` provides them under
+`public/images/staging-photo-products/`.
+
+To complete staging preview without querying Wikimedia, merge the latest branch into
+the staging asset worktree, extract the twelve images there, commit/push them,
+then copy the 18 JPEGs and the latest manifest to the staging API public directory.
+Do not overwrite the working API's `.env`, database, or vendor files.
+
+Run `ALL575_PHOTO_PREVIEW_ONLY=1 php artisan db:seed --class=StagingPhotoCatalogSeeder --force`
+ONLY after all 18 files and matching manifest are present. The seeder validates
+the preview assets and does not modify the database in preview mode. A `429` should
+not appear when all assets are cached locally.
+
+These are AI-generated **illustrative** demo cards, not photos of actual goods.
+The seeder forces the demonstration stock count to zero to prevent presenting
+fictional inventory as available. Approve visuals and licences explicitly before
+any staging-only publication; do not publish this catalogue to production.
