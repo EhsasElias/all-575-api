@@ -126,7 +126,12 @@ final class StagingPhotoCatalogSeeder extends Seeder
                     $failures[] = ['product' => $slug, 'keyword' => $term, 'error' => $exception->getMessage()];
                     $this->savePreview($directory, $attributions, $failures);
                     if (str_contains($exception->getMessage(), '429')) {
-                        $this->command?->warn('Wikimedia rate limit reached; saved available progress. No DB changes made.');
+                        $this->command?->warn('Wikimedia rate limit reached; '.count($products).' reviewed candidates saved so far.');
+                        if (getenv('ALL575_PHOTO_PREVIEW_ONLY') === '1') {
+                            $this->command?->warn('Preview stopped without database changes. Do not retry while rate-limited.');
+                            return;
+                        }
+
                         throw $exception;
                     }
                     if (getenv('ALL575_PHOTO_PREVIEW_ONLY') !== '1') {
