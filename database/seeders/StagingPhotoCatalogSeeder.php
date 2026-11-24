@@ -78,8 +78,8 @@ final class StagingPhotoCatalogSeeder extends Seeder
         $connection = DB::connection();
         $database = $connection->getDatabaseName();
 
-        if (! app()->environment('staging') || config('database.default') !== 'mysql' || $database !== 'market575_staging') {
-            throw new RuntimeException('This photo catalogue can ONLY run in APP_ENV=staging on market575_staging MySQL.');
+        if (! app()->environment('staging') || config('database.default') !== 'mysql' || $database !== 'market575_staging_clone') {
+            throw new RuntimeException('This photo catalogue can ONLY run in APP_ENV=staging on market575_staging_clone MySQL.');
         }
 
         $directory = public_path(self::IMAGE_DIR);
