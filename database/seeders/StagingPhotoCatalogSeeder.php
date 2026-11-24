@@ -216,7 +216,7 @@ final class StagingPhotoCatalogSeeder extends Seeder
             }
             $metadata = $info['extmetadata'] ?? [];
             $license = trim(strip_tags((string) ($metadata['LicenseShortName']['value'] ?? '')));
-            if (! preg_match('/^(CC0|CC BY(?:-SA)?(?: [0-9.]+)?|Public domain|PD)/i', $license)) {
+            if (! preg_match('/^(?:CC0(?: [0-9.]+)?|CC BY(?:-SA)?(?: [0-9.]+)?|Public domain|PD(?:-[A-Za-z0-9]+)?)$/i', $license)) {
                 continue;
             }
             $url = (string) ($info['thumburl'] ?? $info['url'] ?? '');
