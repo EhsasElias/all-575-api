@@ -160,7 +160,9 @@ final class StagingPhotoCatalogSeeder extends Seeder
                     'source' => $image['page'],
                     'license' => $image['license'],
                     'artist' => $image['artist'],
-                    'review_status' => $canReuse ? ($cached['review_status'] ?? 'pending') : 'pending',
+                    'review_status' => $canReuse
+                        ? ($existingBySlug[$slug]['review_status'] ?? $cached['review_status'] ?? 'pending')
+                        : 'pending',
                     'illustrative_only' => is_array($mockup) && ($mockup['illustrative_only'] ?? false) === true,
                 ];
                 $this->savePreview($directory, $attributions, $failures);
@@ -253,7 +255,8 @@ final class StagingPhotoCatalogSeeder extends Seeder
                 );
                 BranchStock::query()->updateOrCreate(
                     ['branch_id' => $branch->id, 'variant_id' => $variant->id],
-                    ['on_hand' => 30, 'reserved' => 0],
+                    // Display-only mockups: never declare inventory available for real checkout.
+                    ['on_hand' => 0, 'reserved' => 0],
                 );
             }
         });
