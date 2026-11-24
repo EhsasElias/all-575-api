@@ -262,11 +262,11 @@ final class StagingPhotoCatalogSeeder extends Seeder
                 $rejectionCounts['license']++;
                 continue;
             }
-            // Commons occasionally omits thumburl or returns alternate CDN URL forms.
-            // Never use a different host; fall back to the original canonical upload URL.
+            // Commons thumbnails use thumb.wikimedia.org and original files use upload.wikimedia.org.
+            // Allow only these exact HTTPS hosts; prefer the 640px thumbnail to avoid huge originals.
             $allowedUrl = static fn (string $candidate): bool =>
                 parse_url($candidate, PHP_URL_SCHEME) === 'https'
-                && parse_url($candidate, PHP_URL_HOST) === 'upload.wikimedia.org';
+                && in_array(parse_url($candidate, PHP_URL_HOST), ['upload.wikimedia.org', 'thumb.wikimedia.org'], true);
             $thumb = (string) ($info['thumburl'] ?? '');
             $original = (string) ($info['url'] ?? '');
             $url = $allowedUrl($thumb) ? $thumb : ($allowedUrl($original) ? $original : '');
