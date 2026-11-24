@@ -2,61 +2,55 @@
   {
     "product": "shampoo-bottle",
     "title": "AI-generated illustrative studio render",
-    "source": "OpenAI-generated demo asset, 2026-11-24",
-    "license": "Generated visual for demo use; not a photograph of a real item",
+    "source": "OpenAI image generation in this chat on 2026-11-24",
+    "license": "Original AI-generated illustration (not a photo of a real item)",
     "artist": "AI-generated",
     "review_status": "pending",
-    "illustrative_only": true,
-    "reference_asset": "green_bubble_shampoo_bottle.png"
+    "illustrative_only": true
   },
   {
     "product": "toothbrush",
     "title": "AI-generated illustrative studio render",
-    "source": "OpenAI-generated demo asset, 2026-11-24",
-    "license": "Generated visual for demo use; not a photograph of a real item",
+    "source": "OpenAI image generation in this chat on 2026-11-24",
+    "license": "Original AI-generated illustration (not a photo of a real item)",
     "artist": "AI-generated",
     "review_status": "pending",
-    "illustrative_only": true,
-    "reference_asset": "three_colorful_unbranded_toothbrushes.png"
+    "illustrative_only": true
   },
   {
     "product": "lipstick",
     "title": "AI-generated illustrative studio render",
-    "source": "OpenAI-generated demo asset, 2026-11-24",
-    "license": "Generated visual for demo use; not a photograph of a real item",
+    "source": "OpenAI image generation in this chat on 2026-11-24",
+    "license": "Original AI-generated illustration (not a photo of a real item)",
     "artist": "AI-generated",
     "review_status": "pending",
-    "illustrative_only": true,
-    "reference_asset": "elegant_gold_mosaic_lipstick.png"
+    "illustrative_only": true
   },
   {
     "product": "mascara",
     "title": "AI-generated illustrative studio render",
-    "source": "OpenAI-generated demo asset, 2026-11-24",
-    "license": "Generated visual for demo use; not a photograph of a real item",
+    "source": "OpenAI image generation in this chat on 2026-11-24",
+    "license": "Original AI-generated illustration (not a photo of a real item)",
     "artist": "AI-generated",
     "review_status": "pending",
-    "illustrative_only": true,
-    "reference_asset": "glossy_black_mascara_set.png"
+    "illustrative_only": true
   },
   {
     "product": "perfume-bottle",
     "title": "AI-generated illustrative studio render",
-    "source": "OpenAI-generated demo asset, 2026-11-24",
-    "license": "Generated visual for demo use; not a photograph of a real item",
+    "source": "OpenAI image generation in this chat on 2026-11-24",
+    "license": "Original AI-generated illustration (not a photo of a real item)",
     "artist": "AI-generated",
     "review_status": "pending",
-    "illustrative_only": true,
-    "reference_asset": "peach_amber_winged_perfume_bottle.png"
+    "illustrative_only": true
   },
   {
     "product": "cologne-bottle",
     "title": "AI-generated illustrative studio render",
-    "source": "OpenAI-generated demo asset, 2026-11-24",
-    "license": "Generated visual for demo use; not a photograph of a real item",
+    "source": "OpenAI image generation in this chat on 2026-11-24",
+    "license": "Original AI-generated illustration (not a photo of a real item)",
     "artist": "AI-generated",
     "review_status": "pending",
-    "illustrative_only": true,
-    "reference_asset": "golden_amber_perfume_bottle.png"
+    "illustrative_only": true
   }
 ]
