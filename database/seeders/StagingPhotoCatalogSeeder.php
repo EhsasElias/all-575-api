@@ -98,6 +98,17 @@ final class StagingPhotoCatalogSeeder extends Seeder
             }
         }
 
+        // Optional original AI-generated studio mockups from the approved staging asset package.
+        // These are illustrations, not Commons photographs and must never be attributed as CC photos.
+        $generatedPath = "{$directory}/GENERATED_ASSETS.json";
+        $generated = File::exists($generatedPath) ? json_decode(File::get($generatedPath), true) : [];
+        $generatedBySlug = [];
+        foreach (is_array($generated) ? $generated : [] as $entry) {
+            if (is_array($entry) && isset($entry['product']) && ($entry['illustrative_only'] ?? false) === true) {
+                $generatedBySlug[$entry['product']] = $entry;
+            }
+        }
+
         $attributions = [];
         $products = [];
         $failures = [];
@@ -107,13 +118,15 @@ final class StagingPhotoCatalogSeeder extends Seeder
             foreach ($entries as [$slug, $nameAr, $nameEn, $term, $price]) {
                 $fileName = "{$slug}.jpg";
                 $localPath = "{$directory}/{$fileName}";
-                $cached = $existingBySlug[$slug] ?? null;
+                $mockup = $generatedBySlug[$slug] ?? null;
+                $cached = is_array($mockup) ? $mockup : ($existingBySlug[$slug] ?? null);
                 $canReuse = is_array($cached) && File::exists($localPath)
                     && filesize($localPath) >= 10000
                     && is_array(@getimagesize($localPath))
                     && ($cached['review_status'] ?? '') !== 'rejected'
-                    && ! $this->isInappropriateTitle((string) ($cached['title'] ?? ''))
-                    && $this->matchesProductContext((string) ($cached['title'] ?? ''), $slug);
+                    && ((is_array($mockup) && ($mockup['illustrative_only'] ?? false) === true)
+                        || (! $this->isInappropriateTitle((string) ($cached['title'] ?? ''))
+                            && $this->matchesProductContext((string) ($cached['title'] ?? ''), $slug)));
 
                 try {
                     $image = $canReuse ? [
@@ -148,6 +161,7 @@ final class StagingPhotoCatalogSeeder extends Seeder
                     'license' => $image['license'],
                     'artist' => $image['artist'],
                     'review_status' => $canReuse ? ($cached['review_status'] ?? 'pending') : 'pending',
+                    'illustrative_only' => is_array($mockup) && ($mockup['illustrative_only'] ?? false) === true,
                 ];
                 $this->savePreview($directory, $attributions, $failures);
                 $products[] = [$categorySlug, $categoryAr, $categoryEn, $categoryImage, $slug, $nameAr, $nameEn, $price, $fileName];
