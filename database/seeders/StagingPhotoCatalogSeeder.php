@@ -112,7 +112,8 @@ final class StagingPhotoCatalogSeeder extends Seeder
                     && filesize($localPath) >= 10000
                     && is_array(@getimagesize($localPath))
                     && ($cached['review_status'] ?? '') !== 'rejected'
-                    && ! $this->isInappropriateTitle((string) ($cached['title'] ?? ''));
+                    && ! $this->isInappropriateTitle((string) ($cached['title'] ?? ''))
+                    && $this->matchesProductContext((string) ($cached['title'] ?? ''), $slug);
 
                 try {
                     $image = $canReuse ? [
@@ -258,6 +259,20 @@ final class StagingPhotoCatalogSeeder extends Seeder
         return (bool) preg_match('/burning man|antique|circa|wrecking ball|flea market|museum|historic|vintage|advertisement|poster|drawing|cartoon|icon|logo|illustration/i', $title);
     }
 
+    /**
+     * Some Commons matches are places/events, not retail products. Most notably
+     * Mascara is also the name of a city; do not treat its city photography as makeup.
+     */
+    private function matchesProductContext(string $title, string $slug): bool
+    {
+        if ($slug !== 'mascara') {
+            return true;
+        }
+
+        return (bool) preg_match('/cosmetic|makeup|eyelash|beauty|mascara (?:wand|tube|brush|bottle|product)|mascara\\.(?:jpg|jpeg)/i', $title)
+            && ! preg_match('/\\bpanoramio\\b|biblioth[eè]que|المكتبة|معسكر|algeria|city|mosque|road|street/i', $title);
+    }
+
     /** @return array{title: string, page: string, license: string, artist: string} */
     private function photoFromCommons(string $term, string $path): array
     {
@@ -281,7 +296,8 @@ final class StagingPhotoCatalogSeeder extends Seeder
             $title = (string) ($page['title'] ?? '');
             $name = strtolower($title);
             $needle = strtolower(explode(' ', $term)[0]);
-            if (! str_contains($name, $needle) || $this->isInappropriateTitle($title)) {
+            if (! str_contains($name, $needle) || $this->isInappropriateTitle($title)
+                || ! $this->matchesProductContext($title, basename($path, '.jpg'))) {
                 $rejectionCounts['name']++;
                 continue;
             }
