@@ -88,6 +88,16 @@ final class StagingPhotoCatalogSeeder extends Seeder
             throw new RuntimeException("Photo directory is not writable: {$directory}");
         }
 
+        // Keep successful review candidates across rate-limited preview runs.
+        $manifestPath = "{$directory}/ATTRIBUTION.json";
+        $existing = File::exists($manifestPath) ? json_decode(File::get($manifestPath), true) : [];
+        $existingBySlug = [];
+        foreach (is_array($existing) ? $existing : [] as $entry) {
+            if (is_array($entry) && isset($entry['product'], $entry['source'], $entry['license'])) {
+                $existingBySlug[$entry['product']] = $entry;
+            }
+        }
+
         $attributions = [];
         $products = [];
         $failures = [];
@@ -97,21 +107,32 @@ final class StagingPhotoCatalogSeeder extends Seeder
             foreach ($entries as [$slug, $nameAr, $nameEn, $term, $price]) {
                 $fileName = "{$slug}.jpg";
                 $localPath = "{$directory}/{$fileName}";
+                $cached = $existingBySlug[$slug] ?? null;
+                $canReuse = is_array($cached) && File::exists($localPath)
+                    && filesize($localPath) >= 10000
+                    && is_array(@getimagesize($localPath))
+                    && ($cached['review_status'] ?? '') !== 'rejected'
+                    && ! $this->isInappropriateTitle((string) ($cached['title'] ?? ''));
+
                 try {
-                    $image = $this->photoFromCommons($term, $localPath);
+                    $image = $canReuse ? [
+                        'title' => (string) $cached['title'],
+                        'page' => (string) $cached['source'],
+                        'license' => (string) $cached['license'],
+                        'artist' => (string) ($cached['artist'] ?? ''),
+                    ] : $this->photoFromCommons($term, $localPath);
                 } catch (RuntimeException $exception) {
-                    // A 429 is a provider-wide rate limit. Never send the remaining requests.
+                    $failures[] = ['product' => $slug, 'keyword' => $term, 'error' => $exception->getMessage()];
+                    $this->savePreview($directory, $attributions, $failures);
                     if (str_contains($exception->getMessage(), '429')) {
-                        $this->command?->warn('Wikimedia rate limit reached; stop this preview now. No DB changes made.');
+                        $this->command?->warn('Wikimedia rate limit reached; saved available progress. No DB changes made.');
                         throw $exception;
                     }
                     if (getenv('ALL575_PHOTO_PREVIEW_ONLY') !== '1') {
                         throw $exception;
                     }
 
-                    $failures[] = ['product' => $slug, 'keyword' => $term, 'error' => $exception->getMessage()];
                     $this->command?->warn("Photo unavailable for {$nameEn}: {$exception->getMessage()}");
-
                     continue;
                 }
                 $attributions[] = [
@@ -120,15 +141,15 @@ final class StagingPhotoCatalogSeeder extends Seeder
                     'source' => $image['page'],
                     'license' => $image['license'],
                     'artist' => $image['artist'],
+                    'review_status' => $canReuse ? ($cached['review_status'] ?? 'pending') : 'pending',
                 ];
+                $this->savePreview($directory, $attributions, $failures);
                 $products[] = [$categorySlug, $categoryAr, $categoryEn, $categoryImage, $slug, $nameAr, $nameEn, $price, $fileName];
                 $this->command?->line("Photo ready: {$nameEn} / {$image['title']}");
             }
         }
 
-        $manifestPath = "{$directory}/ATTRIBUTION.json";
-        File::put($manifestPath, json_encode($attributions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
-        File::put("{$directory}/MISSING.json", json_encode($failures, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        $this->savePreview($directory, $attributions, $failures);
 
         // A safe image-only preview: downloads pictures and attribution but NEVER writes to the database.
         // Run with ALL575_PHOTO_PREVIEW_ONLY=1 before reviewing each picture and licence.
@@ -144,8 +165,9 @@ final class StagingPhotoCatalogSeeder extends Seeder
         }
 
         // Publication is a separate, opt-in operation after human photo review.
-        if (getenv('ALL575_PHOTOS_REVIEWED') !== 'YES') {
-            throw new RuntimeException('Refusing to publish: review all downloaded product photos and licences first. Set ALL575_PHOTOS_REVIEWED=YES only after review.');
+        if (getenv('ALL575_PHOTOS_REVIEWED') !== 'YES'
+            || count(array_filter($attributions, static fn (array $item): bool => ($item['review_status'] ?? '') === 'approved')) !== 18) {
+            throw new RuntimeException('Refusing to publish: mark every photo review_status=approved in ATTRIBUTION.json after visual and licence review; then set ALL575_PHOTOS_REVIEWED=YES.');
         }
 
         // Keep a reversible publication-status snapshot, not a destructive truncation.
@@ -222,6 +244,20 @@ final class StagingPhotoCatalogSeeder extends Seeder
         $this->command?->warn('Review all photos and Commons license/attribution before public use. Staging only.');
     }
 
+    /** @param array<int, array<string, mixed>> $attributions
+     *  @param array<int, array<string, string>> $failures
+     */
+    private function savePreview(string $directory, array $attributions, array $failures): void
+    {
+        File::put("{$directory}/ATTRIBUTION.json", json_encode($attributions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        File::put("{$directory}/MISSING.json", json_encode($failures, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+    }
+
+    private function isInappropriateTitle(string $title): bool
+    {
+        return (bool) preg_match('/burning man|antique|circa|wrecking ball|flea market|museum|historic|vintage|advertisement|poster|drawing|cartoon|icon|logo|illustration/i', $title);
+    }
+
     /** @return array{title: string, page: string, license: string, artist: string} */
     private function photoFromCommons(string $term, string $path): array
     {
@@ -245,7 +281,7 @@ final class StagingPhotoCatalogSeeder extends Seeder
             $title = (string) ($page['title'] ?? '');
             $name = strtolower($title);
             $needle = strtolower(explode(' ', $term)[0]);
-            if (! str_contains($name, $needle) || preg_match('/logo|icon|drawing|illustration|diagram|clipart|cartoon|poster/', $name)) {
+            if (! str_contains($name, $needle) || $this->isInappropriateTitle($title)) {
                 $rejectionCounts['name']++;
                 continue;
             }
