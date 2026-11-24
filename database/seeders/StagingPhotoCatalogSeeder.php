@@ -229,12 +229,13 @@ final class StagingPhotoCatalogSeeder extends Seeder
             'prop' => 'imageinfo', 'iiprop' => 'url|size|mime|extmetadata', 'iiurlwidth' => 640,
         ]);
         if (! $response->successful()) {
-            throw new RuntimeException("Wikimedia Commons search unavailable for {$term} ({$response->status()}).");
+            throw new RuntimeException("Wikimedia Commons search unavailable for {$term} ({$response->status()}). Stop requesting until rate limit clears.");
         }
 
         $pages = array_values($response->json('query.pages', []));
         $rejectionCounts = ['name' => 0, 'mime' => 0, 'license' => 0, 'url' => 0, 'download' => 0, 'size' => 0];
         $sampleLicenses = [];
+        $sampleUrls = [];
         foreach ($pages as $page) {
             $title = (string) ($page['title'] ?? '');
             $name = strtolower($title);
@@ -256,15 +257,34 @@ final class StagingPhotoCatalogSeeder extends Seeder
                 $rejectionCounts['license']++;
                 continue;
             }
-            $url = (string) ($info['thumburl'] ?? $info['url'] ?? '');
-            if (! str_starts_with($url, 'https://upload.wikimedia.org/')) {
+            // Commons occasionally omits thumburl or returns alternate CDN URL forms.
+            // Never use a different host; fall back to the original canonical upload URL.
+            $allowedUrl = static fn (string $candidate): bool =>
+                parse_url($candidate, PHP_URL_SCHEME) === 'https'
+                && parse_url($candidate, PHP_URL_HOST) === 'upload.wikimedia.org';
+            $thumb = (string) ($info['thumburl'] ?? '');
+            $original = (string) ($info['url'] ?? '');
+            $url = $allowedUrl($thumb) ? $thumb : ($allowedUrl($original) ? $original : '');
+            if ($url === '') {
                 $rejectionCounts['url']++;
+                if (count($sampleUrls) < 3) {
+                    $sampleUrls[] = [
+                        'file' => $title,
+                        'thumb_host' => parse_url($thumb, PHP_URL_HOST),
+                        'url_host' => parse_url($original, PHP_URL_HOST),
+                        'thumb_present' => $thumb !== '',
+                        'url_present' => $original !== '',
+                    ];
+                }
                 continue;
             }
             $download = Http::withHeaders([
                 'User-Agent' => 'ALL575StagingPhotoCatalog/1.0 (github.com/EhsasElias/all-575-api)',
             ])->timeout(25)->get($url);
             if (! $download->successful()) {
+                if ($download->status() === 429) {
+                    throw new RuntimeException("Wikimedia upload CDN returned HTTP 429. Stop and retry later; database unchanged.");
+                }
                 $rejectionCounts['download']++;
                 continue;
             }
@@ -292,6 +312,7 @@ final class StagingPhotoCatalogSeeder extends Seeder
 
         $reasons = json_encode($rejectionCounts, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         $licenses = implode(', ', array_keys($sampleLicenses));
-        throw new RuntimeException("No suitable JPEG for {$term}; results=".count($pages)."; rejected={$reasons}; observed_licenses={$licenses}. Database unchanged.");
+        $urls = json_encode($sampleUrls, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        throw new RuntimeException("No suitable JPEG for {$term}; results=".count($pages)."; rejected={$reasons}; observed_licenses={$licenses}; sampled_url_shapes={$urls}. Database unchanged.");
     }
 }
