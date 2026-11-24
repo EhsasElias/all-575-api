@@ -100,6 +100,11 @@ final class StagingPhotoCatalogSeeder extends Seeder
                 try {
                     $image = $this->photoFromCommons($term, $localPath);
                 } catch (RuntimeException $exception) {
+                    // A 429 is a provider-wide rate limit. Never send the remaining requests.
+                    if (str_contains($exception->getMessage(), '429')) {
+                        $this->command?->warn('Wikimedia rate limit reached; stop this preview now. No DB changes made.');
+                        throw $exception;
+                    }
                     if (getenv('ALL575_PHOTO_PREVIEW_ONLY') !== '1') {
                         throw $exception;
                     }
