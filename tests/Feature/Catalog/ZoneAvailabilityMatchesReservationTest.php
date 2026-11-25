@@ -67,4 +67,30 @@ final class ZoneAvailabilityMatchesReservationTest extends TestCase
 
         $this->assertSame(8, app(Availability::class)->forProducts([$product->id], $zone->id)[$product->id]);
     }
+    public function test_it_does_not_count_inventory_registered_under_another_seller(): void
+    {
+        $zone = ServiceZone::factory()->create();
+        $product = Product::factory()->create(['price_halalas' => 300]);
+        $variant = ProductVariant::factory()->create(['product_id' => $product->id]);
+        $ownBranch = Branch::factory()->create([
+            'seller_id' => $product->seller_id,
+            'service_zone_id' => $zone->id,
+        ]);
+        // Another seller must not fulfil or advertise this seller's SKU.
+        $foreignBranch = Branch::factory()->create(['service_zone_id' => $zone->id]);
+
+        BranchStock::factory()->create([
+            'branch_id' => $ownBranch->id, 'variant_id' => $variant->id,
+            'on_hand' => 4, 'reserved' => 1,
+        ]);
+        BranchStock::factory()->create([
+            'branch_id' => $foreignBranch->id, 'variant_id' => $variant->id,
+            'on_hand' => 100, 'reserved' => 0,
+        ]);
+
+        $availability = app(Availability::class);
+        $this->assertSame(3, $availability->forVariants([$variant->id])[$variant->id]);
+        $this->assertSame(3, $availability->forProducts([$product->id])[$product->id]);
+    }
+
 }
