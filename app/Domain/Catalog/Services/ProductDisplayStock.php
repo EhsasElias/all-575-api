@@ -17,7 +17,7 @@ final class ProductDisplayStock
 {
     /**
      * @param list<int> $productIds
-     * @return array<int, array{ar: string, en: string}>
+     * @return array<int, array{branch: array{ar: string, en: string}, variant_id: int}>
      */
     public function branchesForProducts(array $productIds): array
     {
@@ -36,6 +36,7 @@ final class ProductDisplayStock
             ->whereColumn('branch_stock.on_hand', '>', 'branch_stock.reserved')
             ->select(
                 'products.id as product_id',
+                'product_variants.id as variant_id',
                 'branches.name_ar as name_ar',
                 'branches.name_en as name_en'
             )
@@ -48,7 +49,10 @@ final class ProductDisplayStock
         foreach ($stock as $row) {
             $id = (int) $row->product_id;
             if (! isset($names[$id])) {
-                $names[$id] = ['ar' => (string) $row->name_ar, 'en' => (string) $row->name_en];
+                $names[$id] = [
+                    'branch' => ['ar' => (string) $row->name_ar, 'en' => (string) $row->name_en],
+                    'variant_id' => (int) $row->variant_id,
+                ];
             }
         }
 
