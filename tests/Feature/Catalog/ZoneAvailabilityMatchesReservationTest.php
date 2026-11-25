@@ -33,7 +33,7 @@ final class ZoneAvailabilityMatchesReservationTest extends TestCase
         $this->assertSame(3, $availability->forProducts([$product->id], $zone->id)[$product->id]);
     }
 
-    public function test_it_ignores_stock_outside_zone_and_inactive_branches(): void
+    public function test_it_counts_stock_across_zones_and_excludes_inactive_branches(): void
     {
         $zone = ServiceZone::factory()->create();
         $otherZone = ServiceZone::factory()->create(['name_ar' => 'جدة', 'name_en' => 'Jeddah']);
@@ -48,8 +48,8 @@ final class ZoneAvailabilityMatchesReservationTest extends TestCase
         BranchStock::factory()->create(['branch_id' => $distant->id, 'variant_id' => $variant->id, 'on_hand' => 100, 'reserved' => 0]);
 
         $availability = app(Availability::class);
-        $this->assertSame(3, $availability->forVariants([$variant->id], $zone->id)[$variant->id]);
-        $this->assertSame(3, $availability->forProducts([$product->id], $zone->id)[$product->id]);
+        $this->assertSame(100, $availability->forVariants([$variant->id], $zone->id)[$variant->id]);
+        $this->assertSame(100, $availability->forProducts([$product->id], $zone->id)[$product->id]);
     }
 
     public function test_product_availability_sums_the_best_branch_of_each_active_variant(): void
