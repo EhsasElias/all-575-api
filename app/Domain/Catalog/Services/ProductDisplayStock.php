@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 final class ProductDisplayStock
 {
     /**
-     * @param list<int> $productIds
+     * @param  list<int>  $productIds
      * @return array<int, array{branch: array{ar: string, en: string}, variant_id: int}>
      */
     public function branchesForProducts(array $productIds): array

@@ -42,9 +42,9 @@ final class Availability
     }
 
     /**
-     * @param list<int> $productIds
+     * @param  list<int>  $productIds
      * @return array<int, int> product id => total independently purchasable units
-     *         across active variants, using the best active branch per variant.
+     *                         across active variants, using the best active branch per variant.
      */
     // The optional zoneId is kept only for backwards-compatible callers.
     public function forProducts(array $productIds, ?int $zoneId = null): array
