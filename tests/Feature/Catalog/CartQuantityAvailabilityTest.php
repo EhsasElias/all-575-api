@@ -32,6 +32,11 @@ final class CartQuantityAvailabilityTest extends TestCase
         ]);
         Cart::forUser($user)->items()->create(['variant_id' => $variant->id, 'quantity' => 3]);
 
+        // The address is no longer required to determine sellable stock.
+        $this->getJson('/api/v1/cart')
+            ->assertOk()
+            ->assertJsonPath('data.lines.0.availability', 'out_of_stock');
+
         $this->getJson('/api/v1/cart?address_id='.$address->id)
             ->assertOk()
             ->assertJsonPath('data.lines.0.availability', 'out_of_stock');
