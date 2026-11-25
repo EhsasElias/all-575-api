@@ -36,7 +36,7 @@ final class ZoneAvailabilityMatchesReservationTest extends TestCase
     public function test_it_ignores_stock_outside_zone_and_inactive_branches(): void
     {
         $zone = ServiceZone::factory()->create();
-        $otherZone = ServiceZone::factory()->create();
+        $otherZone = ServiceZone::factory()->create(['name_ar' => 'جدة', 'name_en' => 'Jeddah']);
         $product = Product::factory()->create(['price_halalas' => 300]);
         $variant = ProductVariant::factory()->create(['product_id' => $product->id]);
         $local = Branch::factory()->create(['seller_id' => $product->seller_id, 'service_zone_id' => $zone->id]);
