@@ -20,7 +20,7 @@ class ProductController extends Controller
     public function index(ProductIndexRequest $request, Availability $availability, ProductDisplayStock $displayStock): AnonymousResourceCollection
     {
         $products = Product::query()->visible()
-            ->with(['seller', 'category'])
+            ->with(['seller', 'category'])->withCount('variants')
             ->when($request->filled('category'), fn (Builder $query) => $query->whereIn(
                 'category_id',
                 $this->categoryIds($request->string('category')->toString()),
@@ -55,7 +55,8 @@ class ProductController extends Controller
         $page->getCollection()->each(function (Product $product) use ($units, $branches): void {
             $product->setAttribute('available_units', $units[$product->id] ?? 0);
             $product->setAttribute('stock_branch', $branches[$product->id]['branch'] ?? null);
-            $product->setAttribute('purchase_variant_id', $branches[$product->id]['variant_id'] ?? null);
+            $product->setAttribute('purchase_variant_id', $product->variants_count === 1
+                ? ($branches[$product->id]['variant_id'] ?? null) : null);
         });
 
         return ProductListResource::collection($page);
@@ -63,14 +64,15 @@ class ProductController extends Controller
 
     public function show(Request $request, string $slug, Availability $availability, ProductDisplayStock $displayStock): ProductDetailResource
     {
-        $product = Product::query()->visible()->where('slug', $slug)->with(['seller', 'category', 'variants'])->firstOrFail();
+        $product = Product::query()->visible()->where('slug', $slug)->with(['seller', 'category', 'variants'])->withCount('variants')->firstOrFail();
 
         $variantUnits = $availability->forVariants($product->variants->pluck('id')->all());
         $total = array_sum($variantUnits);
         $product->setAttribute('available_units', $total);
         $display = $displayStock->branchesForProducts([$product->id])[$product->id] ?? null;
         $product->setAttribute('stock_branch', $display['branch'] ?? null);
-        $product->setAttribute('purchase_variant_id', $display['variant_id'] ?? null);
+        $product->setAttribute('purchase_variant_id', $product->variants_count === 1
+            ? ($display['variant_id'] ?? null) : null);
 
         return new ProductDetailResource($product, $variantUnits);
     }
