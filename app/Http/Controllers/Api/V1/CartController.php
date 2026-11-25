@@ -46,7 +46,7 @@ class CartController extends Controller
     private function present(Request $request, Availability $availability): CartResource
     {
         $cart = Cart::forUser($request->user());
-        $cart->load('items.variant.product');
+        $cart->load('items.variant.product.seller', 'items.variant.product.category');
 
         $units = null;
 
