@@ -34,8 +34,8 @@ class ProductDetailResource extends ProductListResource
             'name' => ['ar' => $this->name_ar, 'en' => $this->name_en],
             'image_url' => $this->assetUrl($this->image_path),
             'seller' => new SellerResource($this->seller),
-            'stock_branch' => $this->stock_branch,
-            'purchase_variant_id' => $this->purchase_variant_id,
+            'stock_branch' => $this->resource->getAttributes()['stock_branch'] ?? null,
+            'purchase_variant_id' => $this->resource->getAttributes()['purchase_variant_id'] ?? null,
             'category' => ['slug' => $this->category->slug, 'name' => ['ar' => $this->category->name_ar, 'en' => $this->category->name_en]],
             'price' => [
                 'gross' => (int) $split->gross->toInt(),
