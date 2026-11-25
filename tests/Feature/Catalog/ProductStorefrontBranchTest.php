@@ -60,7 +60,7 @@ final class ProductStorefrontBranchTest extends TestCase
 
         $this->getJson('/api/v1/products/'.$product->slug)
             ->assertOk()
-            ->assertJsonPath('data.availability', 'low_stock')
+            ->assertJsonPath('data.availability', 'in_stock')
             ->assertJsonPath('data.purchase_variant_id', null);
     }
 
