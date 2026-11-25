@@ -36,7 +36,9 @@ class ProductController extends Controller
                 $q->whereHas('variants', function (Builder $variant): void {
                     $variant->where('is_active', true)->whereHas('stock', function (Builder $stock): void {
                         $stock->whereColumn('on_hand', '>', 'reserved')
-                            ->whereHas('branch', fn (Builder $branch) => $branch->where('is_active', true));
+                            ->whereHas('branch', fn (Builder $branch) => $branch
+                                ->where('is_active', true)
+                                ->whereColumn('branches.seller_id', 'products.seller_id'));
                     });
                 });
             });
