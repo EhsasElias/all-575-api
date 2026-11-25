@@ -48,12 +48,7 @@ class CartController extends Controller
         $cart = Cart::forUser($request->user());
         $cart->load('items.variant.product.seller', 'items.variant.product.category');
 
-        $units = null;
-
-        if ($request->filled('address_id')) {
-            $zoneId = $request->user()->addresses()->findOrFail($request->integer('address_id'))->service_zone_id;
-            $units = $zoneId === null ? null : $availability->forVariants($cart->items->pluck('variant_id')->all(), $zoneId);
-        }
+        $units = $availability->forVariants($cart->items->pluck('variant_id')->all());
 
         return new CartResource($cart, $units);
     }
