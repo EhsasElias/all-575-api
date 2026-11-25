@@ -20,7 +20,7 @@ class ProductController extends Controller
     public function index(ProductIndexRequest $request, Availability $availability, ProductDisplayStock $displayStock): AnonymousResourceCollection
     {
         $products = Product::query()->visible()
-            ->with(['seller', 'category'])->withCount('variants')
+            ->with(['seller', 'category'])
             ->when($request->filled('category'), fn (Builder $query) => $query->whereIn(
                 'category_id',
                 $this->categoryIds($request->string('category')->toString()),
@@ -46,6 +46,9 @@ class ProductController extends Controller
         CatalogSort::apply($products, $request->input('sort', 'featured'));
 
         $page = $products->cursorPaginate($request->integer('per_page', 20))->withQueryString();
+        // Some sort modes replace SELECT columns, so load active variant counts
+        // after pagination rather than relying on an earlier withCount().
+        $page->getCollection()->loadCount('variants');
 
         // Availability is always known from active warehouse stock, even without a delivery address.
         $productIds = $page->pluck('id')->all();
