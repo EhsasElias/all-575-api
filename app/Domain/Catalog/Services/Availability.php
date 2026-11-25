@@ -13,8 +13,9 @@ final class Availability
 
     /**
      * @param  list<int>  $variantIds
-     * @return array<int, int> variant id => units available in the zone
+     * @return array<int, int> variant id => units available at the best active branch
      */
+    // The optional zoneId is kept only for backwards-compatible callers.
     public function forVariants(array $variantIds, ?int $zoneId = null): array
     {
         if ($variantIds === []) {
@@ -40,8 +41,9 @@ final class Availability
     /**
      * @param list<int> $productIds
      * @return array<int, int> product id => total independently purchasable units
-     *         across active variants, using only the best eligible branch per variant.
+     *         across active variants, using the best active branch per variant.
      */
+    // The optional zoneId is kept only for backwards-compatible callers.
     public function forProducts(array $productIds, ?int $zoneId = null): array
     {
         if ($productIds === []) {
