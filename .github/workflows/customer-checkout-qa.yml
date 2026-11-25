@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test-suite: [stock, checkout, all, lint]
+        suite: [stock, checkout, all, lint]
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -44,7 +44,7 @@ jobs:
           MAIL_MAILER: array
         shell: bash
         run: |
-          case "${{ matrix.test-suite }}" in
+          case "${{ matrix.suite }}" in
             stock) php artisan test --filter='(CustomerCatalogStockFlowTest|CartQuantityAvailabilityTest|ZoneAvailabilityMatchesReservationTest|ProductStorefrontBranchTest)' ;;
             checkout) php artisan test --filter='(Checkout|Quote|PlaceOrder|OrderConfirmation|Payment)' ;;
             all) php artisan test ;;
