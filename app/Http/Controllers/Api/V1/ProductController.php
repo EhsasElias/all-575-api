@@ -31,18 +31,11 @@ class ProductController extends Controller
             ->when($request->filled('q'), fn (Builder $query) => $this->search($query, $request->string('q')->toString()))
             ->when($request->filled('min_price'), fn (Builder $q) => $q->where('products.price_halalas', '>=', $request->integer('min_price')))
             ->when($request->filled('max_price'), fn (Builder $q) => $q->where('products.price_halalas', '<=', $request->integer('max_price')))
-            ->when($request->boolean('in_stock') && $request->filled('zone_id'), function (Builder $q) use ($request): void {
-                $zoneId = $request->integer('zone_id');
-                $q->whereHas('variants', function (Builder $variant) use ($zoneId): void {
-                    $variant->where('is_active', true)->whereHas('stock', function (Builder $stock) use ($zoneId): void {
+            ->when($request->boolean('in_stock'), function (Builder $q): void {
+                $q->whereHas('variants', function (Builder $variant): void {
+                    $variant->where('is_active', true)->whereHas('stock', function (Builder $stock): void {
                         $stock->whereColumn('on_hand', '>', 'reserved')
-                            ->whereHas('branch', function (Builder $branch) use ($zoneId): void {
-                                $branch->where('is_active', true)
-                                    ->where(function (Builder $zones) use ($zoneId): void {
-                                        $zones->where('service_zone_id', $zoneId)
-                                            ->orWhereHas('coverageZones', fn (Builder $coverage) => $coverage->whereKey($zoneId));
-                                    });
-                            });
+                            ->whereHas('branch', fn (Builder $branch) => $branch->where('is_active', true));
                     });
                 });
             });
@@ -51,12 +44,12 @@ class ProductController extends Controller
 
         $page = $products->cursorPaginate($request->integer('per_page', 20))->withQueryString();
 
-        $zoneId = $request->filled('zone_id') ? $request->integer('zone_id') : null;
-        $units = $zoneId === null ? null : $availability->forProducts($page->pluck('id')->all(), $zoneId);
+        // Availability is always known from active warehouse stock, even without a delivery address.
+        $units = $availability->forProducts($page->pluck('id')->all());
 
         $page->getCollection()->each(fn (Product $product) => $product->setAttribute(
             'available_units',
-            $units === null ? null : ($units[$product->id] ?? 0),
+            $units[$product->id] ?? 0,
         ));
 
         return ProductListResource::collection($page);
@@ -66,9 +59,8 @@ class ProductController extends Controller
     {
         $product = Product::query()->visible()->where('slug', $slug)->with(['seller', 'category', 'variants'])->firstOrFail();
 
-        $zoneId = $request->integer('zone_id') ?: null;
-        $variantUnits = $zoneId === null ? null : $availability->forVariants($product->variants->pluck('id')->all(), $zoneId);
-        $total = $variantUnits === null ? null : array_sum($variantUnits);
+        $variantUnits = $availability->forVariants($product->variants->pluck('id')->all());
+        $total = array_sum($variantUnits);
         $product->setAttribute('available_units', $total);
 
         return new ProductDetailResource($product, $variantUnits);
