@@ -21,13 +21,16 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: cp .env.example .env && php artisan key:generate
-      - name: Regenerate contract from source, not by manual JSON editing
+      - name: Regenerate contract with the same isolated migration setup as the contract test
         env:
-          APP_ENV: testing
+          APP_ENV: local
           APP_URL: http://localhost:8000
           DB_CONNECTION: sqlite
-          DB_DATABASE: ':memory:'
+          DB_URL: ''
         run: |
+          export DB_DATABASE="$(mktemp /tmp/all575-openapi-XXXXXX.sqlite)"
+          trap 'rm -f "$DB_DATABASE"' EXIT
+          php artisan migrate --force
           composer openapi
           php artisan test --filter=OpenApiContractTest
           git diff --check
