@@ -27,6 +27,9 @@ final class Availability
         // cannot actually reserve.
         return DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
+            ->join('product_variants', 'product_variants.id', '=', 'branch_stock.variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->whereColumn('branches.seller_id', 'products.seller_id')
             ->where('branches.is_active', true)
             ->whereIn('branch_stock.variant_id', $variantIds)
             ->groupBy('branch_stock.variant_id')
@@ -53,6 +56,8 @@ final class Availability
         $perVariant = DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
             ->join('product_variants', 'product_variants.id', '=', 'branch_stock.variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->whereColumn('branches.seller_id', 'products.seller_id')
             ->where('branches.is_active', true)
             ->where('product_variants.is_active', true)
             ->whereIn('product_variants.product_id', $productIds)
