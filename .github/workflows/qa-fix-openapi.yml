@@ -1,0 +1,42 @@
+name: Refresh canonical API contract on QA branch
+
+on:
+  push:
+    branches: [fix/qa-zone-stock-checkout-20261125]
+
+permissions:
+  contents: write
+
+jobs:
+  openapi:
+    if: contains(github.event.head_commit.message, '[openapi-fix]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_sqlite
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Regenerate contract from source, not by manual JSON editing
+        env:
+          APP_ENV: testing
+          APP_URL: http://localhost:8000
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+        run: |
+          composer openapi
+          php artisan test --filter=OpenApiContractTest
+          git diff --check
+      - name: Commit canonical contract only to QA branch
+        run: |
+          git config user.name 'ALL 5.75 QA Bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/api/openapi.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Regenerate canonical OpenAPI from patched customer endpoints'
+            git push origin HEAD:fix/qa-zone-stock-checkout-20261125
+          fi
