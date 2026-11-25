@@ -4,6 +4,8 @@ namespace App\Http\Resources;
 
 use App\Domain\Cart\Models\Cart;
 use App\Domain\Cart\Models\CartItem;
+use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Catalog\Enums\SellerStatus;
 use App\Domain\Catalog\Services\Availability;
 use App\Domain\Catalog\Services\ProductPricing;
 use Illuminate\Http\JsonResponse;
@@ -44,18 +46,36 @@ class CartResource extends JsonResource
                 'quantity' => $item->quantity,
                 'unit_price' => (int) $pricing->unitPriceHalalas($item->variant->product),
                 'line_price' => $pricing->unitPriceHalalas($item->variant->product) * $item->quantity,
-                // A line needing five units is unavailable if only two remain.
-                // Showing "low stock" here would incorrectly enable checkout in the UI.
-                'availability' => $this->units === null
-                    ? 'unknown'
-                    : (($this->units[$item->variant->id] ?? 0) < $item->quantity
-                        ? 'out_of_stock'
-                        : Availability::status($this->units[$item->variant->id] ?? 0)),
+                'availability' => $this->lineAvailability($item),
             ])->all(),
             'items_count' => $quantity,
             'subtotal' => (int) $this->items->sum(fn (CartItem $item): int => $pricing->unitPriceHalalas($item->variant->product) * $item->quantity),
             'currency' => config('store.currency'),
         ];
+    }
+
+    /** Check listing status and line quantity before the customer reaches checkout. */
+    private function lineAvailability(CartItem $item): string
+    {
+        $variant = $item->variant;
+        $product = $variant->product;
+
+        if (! $variant->is_active
+            || $product->status !== ProductStatus::Published
+            || ! $product->category->is_active
+            || $product->seller->status !== SellerStatus::Approved) {
+            return 'out_of_stock';
+        }
+
+        if ($this->units === null) {
+            return 'unknown';
+        }
+
+        $available = $this->units[$variant->id] ?? 0;
+
+        return $available < $item->quantity
+            ? 'out_of_stock'
+            : Availability::status($available);
     }
 
     /** The cart row is created lazily on first use; that must not turn a normal read or update into a 201. */
