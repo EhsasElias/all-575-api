@@ -124,37 +124,37 @@ class ProductBrowsingTest extends TestCase
         ));
     }
 
-    public function test_availability_is_unknown_until_a_zone_is_chosen_then_reflects_unreserved_stock(): void
+    public function test_availability_is_known_without_an_address_and_reflects_unreserved_stock(): void
     {
         $this->catalog->stockedProduct(onHand: 50, product: ['slug' => 'plenty']);
         $low = $this->catalog->stockedProduct(onHand: 5, product: ['slug' => 'few']);
         $gone = $this->catalog->stockedProduct(onHand: 3, product: ['slug' => 'held']);
         $gone['stock']->update(['reserved' => 3]);
 
-        $this->assertSame('unknown', $this->getJson('/api/v1/products')->json('data.0.availability'));
-
-        $byslug = collect($this->getJson('/api/v1/products?zone_id='.$this->catalog->zone->id)->json('data'))->pluck('availability', 'slug');
+        $byslug = collect($this->getJson('/api/v1/products')->assertOk()->json('data'))->pluck('availability', 'slug');
+        $zoneView = collect($this->getJson('/api/v1/products?zone_id='.$this->catalog->zone->id)->assertOk()->json('data'))->pluck('availability', 'slug');
+        $this->assertSame($byslug->all(), $zoneView->all());
         $this->assertSame('in_stock', $byslug['plenty']);
         $this->assertSame('low_stock', $byslug['few']);
         $this->assertSame('out_of_stock', $byslug['held']);
         $this->assertSame(5, $low['stock']->refresh()->available());
     }
 
-    public function test_stock_in_another_zone_does_not_count(): void
+    public function test_stock_in_another_zone_is_available_for_courier_fulfilment(): void
     {
         $this->catalog->stockedProduct(onHand: 50, product: ['slug' => 'riyadh-only']);
         $otherZone = ServiceZone::factory()->create(['name_en' => 'Jeddah']);
 
-        $this->assertSame('out_of_stock', $this->getJson('/api/v1/products?zone_id='.$otherZone->id)->json('data.0.availability'));
+        $this->assertSame('in_stock', $this->getJson('/api/v1/products?zone_id='.$otherZone->id)->json('data.0.availability'));
     }
 
-    public function test_in_stock_filter_includes_additional_branch_coverage_and_excludes_inactive_branches(): void
+    public function test_in_stock_filter_ignores_coverage_but_excludes_inactive_branches(): void
     {
         $built = $this->catalog->stockedProduct(onHand: 20, product: ['slug' => 'covered-product']);
         $additionalZone = ServiceZone::factory()->create(['name_en' => 'Additional coverage']);
         $branch = $built['branch'];
 
-        $this->assertSame([], $this->slugs('?zone_id='.$additionalZone->id.'&in_stock=1'));
+        $this->assertSame(['covered-product'], $this->slugs('?zone_id='.$additionalZone->id.'&in_stock=1'));
 
         DB::table('branch_service_zones')->insert([
             'branch_id' => $branch->id,
