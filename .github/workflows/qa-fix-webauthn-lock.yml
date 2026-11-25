@@ -1,0 +1,49 @@
+name: Update vulnerable WebAuthn dependency (QA only)
+
+on:
+  push:
+    branches: [fix/qa-zone-stock-checkout-20261125]
+
+permissions:
+  contents: write
+
+jobs:
+  secure-dependency-update:
+    if: contains(github.event.head_commit.message, '[deps-fix]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_sqlite
+          coverage: none
+      - name: Resolve fixed dependency and lock
+        run: |
+          composer update web-auth/webauthn-lib --with-all-dependencies --no-interaction --prefer-dist
+          composer audit
+      - name: Isolated verification
+        env:
+          APP_ENV: testing
+          APP_URL: http://localhost:8000
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          PAYMENT_DRIVER: fake
+          MAIL_MAILER: array
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          composer lint
+          php artisan test
+      - name: Commit verified lockfile to the QA branch only
+        run: |
+          git config user.name 'ALL 5.75 QA Bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add composer.lock
+          if ! git diff --cached --quiet; then
+            git commit -m 'Lock patched WebAuthn dependencies after full QA [skip ci]'
+            git push origin HEAD:fix/qa-zone-stock-checkout-20261125
+          fi
