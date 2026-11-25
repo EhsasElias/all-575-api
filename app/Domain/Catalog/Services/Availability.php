@@ -6,7 +6,7 @@ namespace App\Domain\Catalog\Services;
 
 use Illuminate\Support\Facades\DB;
 
-/** How many units can be bought right now in a delivery zone: on hand minus held for unpaid orders. */
+/** How many units can be bought right now across active branches: on hand minus held for unpaid orders. */
 final class Availability
 {
     public const LOW_STOCK_AT_OR_BELOW = 5;
@@ -15,7 +15,7 @@ final class Availability
      * @param  list<int>  $variantIds
      * @return array<int, int> variant id => units available in the zone
      */
-    public function forVariants(array $variantIds, int $zoneId): array
+    public function forVariants(array $variantIds, ?int $zoneId = null): array
     {
         if ($variantIds === []) {
             return [];
@@ -26,14 +26,6 @@ final class Availability
         // cannot actually reserve.
         return DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
-            ->where(function ($query) use ($zoneId): void {
-                $query->where('branches.service_zone_id', $zoneId)
-                    ->orWhereExists(function ($coverage) use ($zoneId): void {
-                        $coverage->selectRaw('1')->from('branch_service_zones')
-                            ->whereColumn('branch_service_zones.branch_id', 'branches.id')
-                            ->where('branch_service_zones.service_zone_id', $zoneId);
-                    });
-            })
             ->where('branches.is_active', true)
             ->whereIn('branch_stock.variant_id', $variantIds)
             ->groupBy('branch_stock.variant_id')
@@ -50,7 +42,7 @@ final class Availability
      * @return array<int, int> product id => total independently purchasable units
      *         across active variants, using only the best eligible branch per variant.
      */
-    public function forProducts(array $productIds, int $zoneId): array
+    public function forProducts(array $productIds, ?int $zoneId = null): array
     {
         if ($productIds === []) {
             return [];
@@ -59,14 +51,6 @@ final class Availability
         $perVariant = DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
             ->join('product_variants', 'product_variants.id', '=', 'branch_stock.variant_id')
-            ->where(function ($query) use ($zoneId): void {
-                $query->where('branches.service_zone_id', $zoneId)
-                    ->orWhereExists(function ($coverage) use ($zoneId): void {
-                        $coverage->selectRaw('1')->from('branch_service_zones')
-                            ->whereColumn('branch_service_zones.branch_id', 'branches.id')
-                            ->where('branch_service_zones.service_zone_id', $zoneId);
-                    });
-            })
             ->where('branches.is_active', true)
             ->where('product_variants.is_active', true)
             ->whereIn('product_variants.product_id', $productIds)
