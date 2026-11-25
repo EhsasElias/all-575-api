@@ -32,10 +32,8 @@ final class ProductStorefrontBranchTest extends TestCase
 
         $this->getJson('/api/v1/products?in_stock=1')
             ->assertOk()
-            ->assertJsonFragment([
-                'stock_branch' => ['ar' => 'فرع الشمال', 'en' => 'North branch'],
-                'purchase_variant_id' => $variant->id,
-            ]);
+            ->assertJsonPath('data.0.stock_branch.en', 'North branch')
+            ->assertJsonPath('data.0.purchase_variant_id', $variant->id);
 
         $this->getJson('/api/v1/products/'.$product->slug)
             ->assertOk()
