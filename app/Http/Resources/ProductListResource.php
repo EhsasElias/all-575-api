@@ -20,7 +20,7 @@ class ProductListResource extends JsonResource
     use PublicAssets;
 
     /**
-     * @return array{id: int, slug: string, name: array{ar: string, en: string}, image_url: ?string, seller: SellerResource, category: array{slug: string, name: array{ar: string, en: string}}, price: array{gross: int, net: int, vat: int, currency: string}, rating: array{average: float, count: int}, availability: 'unknown'|'in_stock'|'low_stock'|'out_of_stock'}
+     * @return array{id: int, slug: string, name: array{ar: string, en: string}, image_url: ?string, seller: SellerResource, stock_branch: ?array{ar: string, en: string}, category: array{slug: string, name: array{ar: string, en: string}}, price: array{gross: int, net: int, vat: int, currency: string}, rating: array{average: float, count: int}, availability: 'unknown'|'in_stock'|'low_stock'|'out_of_stock'}
      */
     public function toArray(Request $request): array
     {
@@ -32,6 +32,7 @@ class ProductListResource extends JsonResource
             'name' => ['ar' => $this->name_ar, 'en' => $this->name_en],
             'image_url' => $this->assetUrl($this->image_path),
             'seller' => new SellerResource($this->seller),
+            'stock_branch' => $this->stock_branch,
             'category' => ['slug' => $this->category->slug, 'name' => ['ar' => $this->category->name_ar, 'en' => $this->category->name_en]],
             'price' => [
                 'gross' => (int) $split->gross->toInt(),
