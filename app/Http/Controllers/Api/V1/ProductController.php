@@ -52,7 +52,8 @@ class ProductController extends Controller
 
         $page->getCollection()->each(function (Product $product) use ($units, $branches): void {
             $product->setAttribute('available_units', $units[$product->id] ?? 0);
-            $product->setAttribute('stock_branch', $branches[$product->id] ?? null);
+            $product->setAttribute('stock_branch', $branches[$product->id]['branch'] ?? null);
+            $product->setAttribute('purchase_variant_id', $branches[$product->id]['variant_id'] ?? null);
         });
 
         return ProductListResource::collection($page);
@@ -65,7 +66,9 @@ class ProductController extends Controller
         $variantUnits = $availability->forVariants($product->variants->pluck('id')->all());
         $total = array_sum($variantUnits);
         $product->setAttribute('available_units', $total);
-        $product->setAttribute('stock_branch', $displayStock->branchesForProducts([$product->id])[$product->id] ?? null);
+        $display = $displayStock->branchesForProducts([$product->id])[$product->id] ?? null;
+        $product->setAttribute('stock_branch', $display['branch'] ?? null);
+        $product->setAttribute('purchase_variant_id', $display['variant_id'] ?? null);
 
         return new ProductDetailResource($product, $variantUnits);
     }
