@@ -95,14 +95,14 @@ class CartTest extends TestCase
             ->assertJsonPath('data.lines.1.quantity', 2);
     }
 
-    public function test_the_cart_shows_per_line_availability_for_an_address_zone(): void
+    public function test_the_cart_shows_real_stock_before_and_after_selecting_a_delivery_address(): void
     {
         $user = $this->actingAsCustomer();
         $few = $this->catalog->stockedProduct(onHand: 1);
         $address = Address::factory()->create(['user_id' => $user->id, 'service_zone_id' => $this->catalog->zone->id]);
         $this->putJson('/api/v1/cart/items/'.$few['variant']->id, ['quantity' => 1])->assertOk();
 
-        $this->getJson('/api/v1/cart')->assertJsonPath('data.lines.0.availability', 'unknown');
+        $this->getJson('/api/v1/cart')->assertJsonPath('data.lines.0.availability', 'low_stock');
         $this->getJson('/api/v1/cart?address_id='.$address->id)->assertJsonPath('data.lines.0.availability', 'low_stock');
     }
 
