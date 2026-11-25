@@ -44,7 +44,13 @@ class CartResource extends JsonResource
                 'quantity' => $item->quantity,
                 'unit_price' => (int) $pricing->unitPriceHalalas($item->variant->product),
                 'line_price' => $pricing->unitPriceHalalas($item->variant->product) * $item->quantity,
-                'availability' => Availability::status($this->units === null ? null : ($this->units[$item->variant->id] ?? 0)),
+                // A line needing five units is unavailable if only two remain.
+                // Showing "low stock" here would incorrectly enable checkout in the UI.
+                'availability' => $this->units === null
+                    ? 'unknown'
+                    : (($this->units[$item->variant->id] ?? 0) < $item->quantity
+                        ? 'out_of_stock'
+                        : Availability::status($this->units[$item->variant->id] ?? 0)),
             ])->all(),
             'items_count' => $quantity,
             'subtotal' => (int) $this->items->sum(fn (CartItem $item): int => $pricing->unitPriceHalalas($item->variant->product) * $item->quantity),
