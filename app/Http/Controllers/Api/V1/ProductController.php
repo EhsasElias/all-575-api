@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Services\Availability;
+use App\Domain\Catalog\Services\ProductDisplayStock;
 use App\Domain\Catalog\Services\CatalogSort;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ProductIndexRequest;
@@ -16,7 +17,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ProductController extends Controller
 {
-    public function index(ProductIndexRequest $request, Availability $availability): AnonymousResourceCollection
+    public function index(ProductIndexRequest $request, Availability $availability, ProductDisplayStock $displayStock): AnonymousResourceCollection
     {
         $products = Product::query()->visible()
             ->with(['seller', 'category'])
@@ -45,23 +46,26 @@ class ProductController extends Controller
         $page = $products->cursorPaginate($request->integer('per_page', 20))->withQueryString();
 
         // Availability is always known from active warehouse stock, even without a delivery address.
-        $units = $availability->forProducts($page->pluck('id')->all());
+        $productIds = $page->pluck('id')->all();
+        $units = $availability->forProducts($productIds);
+        $branches = $displayStock->branchesForProducts($productIds);
 
-        $page->getCollection()->each(fn (Product $product) => $product->setAttribute(
-            'available_units',
-            $units[$product->id] ?? 0,
-        ));
+        $page->getCollection()->each(function (Product $product) use ($units, $branches): void {
+            $product->setAttribute('available_units', $units[$product->id] ?? 0);
+            $product->setAttribute('stock_branch', $branches[$product->id] ?? null);
+        });
 
         return ProductListResource::collection($page);
     }
 
-    public function show(Request $request, string $slug, Availability $availability): ProductDetailResource
+    public function show(Request $request, string $slug, Availability $availability, ProductDisplayStock $displayStock): ProductDetailResource
     {
         $product = Product::query()->visible()->where('slug', $slug)->with(['seller', 'category', 'variants'])->firstOrFail();
 
         $variantUnits = $availability->forVariants($product->variants->pluck('id')->all());
         $total = array_sum($variantUnits);
         $product->setAttribute('available_units', $total);
+        $product->setAttribute('stock_branch', $displayStock->branchesForProducts([$product->id])[$product->id] ?? null);
 
         return new ProductDetailResource($product, $variantUnits);
     }
