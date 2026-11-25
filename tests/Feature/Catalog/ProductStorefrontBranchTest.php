@@ -41,6 +41,29 @@ final class ProductStorefrontBranchTest extends TestCase
             ->assertJsonPath('data.purchase_variant_id', $variant->id);
     }
 
+    public function test_product_with_multiple_options_requires_selection_in_product_page(): void
+    {
+        $zone = ServiceZone::factory()->create();
+        $product = Product::factory()->create(['price_halalas' => 500]);
+        $first = ProductVariant::factory()->create(['product_id' => $product->id]);
+        $second = ProductVariant::factory()->create(['product_id' => $product->id]);
+        $branch = Branch::factory()->create([
+            'seller_id' => $product->seller_id, 'service_zone_id' => $zone->id,
+        ]);
+
+        foreach ([$first, $second] as $variant) {
+            BranchStock::factory()->create([
+                'branch_id' => $branch->id, 'variant_id' => $variant->id,
+                'on_hand' => 4, 'reserved' => 0,
+            ]);
+        }
+
+        $this->getJson('/api/v1/products/'.$product->slug)
+            ->assertOk()
+            ->assertJsonPath('data.availability', 'low_stock')
+            ->assertJsonPath('data.purchase_variant_id', null);
+    }
+
     public function test_unavailable_product_has_no_quick_purchase_variant(): void
     {
         $zone = ServiceZone::factory()->create();
