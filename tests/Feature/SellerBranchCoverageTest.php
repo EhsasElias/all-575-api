@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Domain\Catalog\Models\BranchStock;
+use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductVariant;
 use App\Domain\Catalog\Models\Seller;
 use App\Domain\Catalog\Models\ServiceZone;
@@ -65,7 +66,8 @@ final class SellerBranchCoverageTest extends TestCase
 
         // Seller proposals are inactive until reviewed; activate for availability assertions.
         DB::table('branches')->where('id', $branchId)->update(['is_active' => true]);
-        $variant = ProductVariant::factory()->create();
+        $product = Product::factory()->create(['seller_id' => $seller->id]);
+        $variant = ProductVariant::factory()->create(['product_id' => $product->id]);
         BranchStock::factory()->create([
             'branch_id' => $branchId, 'variant_id' => $variant->id,
             'on_hand' => 12, 'reserved' => 0,
@@ -82,8 +84,9 @@ final class SellerBranchCoverageTest extends TestCase
         $this->assertDatabaseMissing('branch_service_zones', [
             'branch_id' => $branchId, 'service_zone_id' => $additional->id,
         ]);
-        $this->assertArrayNotHasKey($variant->id,
-            $availability->forVariants([$variant->id], $additional->id));
+        // Removing delivery coverage cannot make owned, active branch stock
+        // unavailable: a courier may deliver from any location.
+        $this->assertSame(12, $availability->forVariants([$variant->id], $additional->id)[$variant->id]);
     }
 
     public function test_additional_zone_must_be_active_and_primary_must_be_included(): void

@@ -1,0 +1,52 @@
+name: Customer checkout & stock QA (isolated)
+
+on:
+  push:
+    branches:
+      - fix/qa-zone-stock-checkout-20261125
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [stock, checkout, all, lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_sqlite
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Confirm disposable test database only
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+        run: |
+          php -r '$x = simplexml_load_file("phpunit.xml"); if ((string) $x->php->env[4]["value"] !== "sqlite") { fwrite(STDERR, "Unsafe PHPUnit DB!"); exit(1); }'
+          echo 'Running with PHPUnit testing profile; SQLite memory, fake payment gateway'
+      - name: Run independent checkout tests
+        env:
+          APP_ENV: testing
+          APP_URL: http://localhost:8000
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          PAYMENT_DRIVER: fake
+          MAIL_MAILER: array
+        shell: bash
+        run: |
+          case "${{ matrix.suite }}" in
+            stock) php artisan test --filter='(CustomerCatalogStockFlowTest|CartQuantityAvailabilityTest|ZoneAvailabilityMatchesReservationTest|ProductStorefrontBranchTest)' ;;
+            checkout) php artisan test --filter='(Checkout|Quote|PlaceOrder|OrderConfirmation|Payment)' ;;
+            all) php artisan test ;;
+            lint) composer lint ;;
+          esac

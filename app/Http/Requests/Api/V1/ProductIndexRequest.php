@@ -14,7 +14,7 @@ class ProductIndexRequest extends FormRequest
             'category' => ['nullable', 'string', 'max:100'],
             'seller' => ['nullable', 'string', 'max:100'],
             'q' => ['nullable', 'string', 'min:2', 'max:100'],
-            'zone_id' => ['nullable', 'integer', 'exists:service_zones,id'],
+            'zone_id' => ['nullable', 'integer'], // Legacy clients may pass it; availability ignores zones.
             'sort' => ['nullable', 'in:featured,newest,rating,best_selling,price_asc,price_desc'],
             'min_price' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'max_price' => ['nullable', 'integer', 'min:0', 'max:100000000', Rule::when($this->filled('min_price'), 'gte:min_price')],

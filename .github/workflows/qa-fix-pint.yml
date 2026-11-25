@@ -1,0 +1,38 @@
+name: Apply Pint formatting (QA only)
+
+on:
+  push:
+    branches: [fix/qa-zone-stock-checkout-20261125]
+
+permissions:
+  contents: write
+
+jobs:
+  pint:
+    if: contains(github.event.head_commit.message, '[pint-fix]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_sqlite
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Apply project's Laravel Pint rules
+        run: |
+          vendor/bin/pint
+          composer lint
+          git diff --check
+      - name: Commit formatting to QA branch only
+        run: |
+          git config user.name 'ALL 5.75 QA Bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -u
+          if ! git diff --cached --quiet; then
+            git commit -m 'Apply Laravel Pint to customer checkout QA fixes'
+            git push origin HEAD:fix/qa-zone-stock-checkout-20261125
+          fi

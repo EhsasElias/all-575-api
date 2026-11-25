@@ -4858,6 +4858,7 @@
                     {
                         "name": "sort",
                         "in": "query",
+                        "description": "Legacy clients may pass it; availability ignores zones.",
                         "schema": {
                             "type": [
                                 "string",
@@ -12863,8 +12864,8 @@
                                 "availability": {
                                     "type": "string",
                                     "enum": [
-                                        "unknown",
                                         "out_of_stock",
+                                        "unknown",
                                         "low_stock",
                                         "in_stock"
                                     ]
@@ -14370,6 +14371,8 @@
                     "seller": {
                         "$ref": "#/components/schemas/SellerResource"
                     },
+                    "stock_branch": {},
+                    "purchase_variant_id": {},
                     "category": {
                         "type": "object",
                         "properties": {
@@ -14481,6 +14484,8 @@
                     "name",
                     "image_url",
                     "seller",
+                    "stock_branch",
+                    "purchase_variant_id",
                     "category",
                     "price",
                     "rating",
@@ -14524,6 +14529,8 @@
                     "seller": {
                         "$ref": "#/components/schemas/SellerResource"
                     },
+                    "stock_branch": {},
+                    "purchase_variant_id": {},
                     "category": {
                         "type": "object",
                         "properties": {
@@ -14605,6 +14612,8 @@
                     "name",
                     "image_url",
                     "seller",
+                    "stock_branch",
+                    "purchase_variant_id",
                     "category",
                     "price",
                     "rating",

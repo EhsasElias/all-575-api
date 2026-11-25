@@ -6,36 +6,36 @@ namespace App\Domain\Catalog\Services;
 
 use Illuminate\Support\Facades\DB;
 
-/** How many units can be bought right now in a delivery zone: on hand minus held for unpaid orders. */
+/** How many units can be bought right now across active branches: on hand minus held for unpaid orders. */
 final class Availability
 {
     public const LOW_STOCK_AT_OR_BELOW = 5;
 
     /**
      * @param  list<int>  $variantIds
-     * @return array<int, int> variant id => units available in the zone
+     * @return array<int, int> variant id => units available at the best active branch
      */
-    public function forVariants(array $variantIds, int $zoneId): array
+    // The optional zoneId is kept only for backwards-compatible callers.
+    public function forVariants(array $variantIds, ?int $zoneId = null): array
     {
         if ($variantIds === []) {
             return [];
         }
 
+        // The reservation service fulfils a line from ONE branch. Summing
+        // several branches here would advertise quantities that checkout
+        // cannot actually reserve.
         return DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
-            ->where(function ($query) use ($zoneId): void {
-                // Primary zone remains the compatibility fallback for older branches and test fixtures.
-                $query->where('branches.service_zone_id', $zoneId)
-                    ->orWhereExists(function ($coverage) use ($zoneId): void {
-                        $coverage->selectRaw('1')->from('branch_service_zones')
-                            ->whereColumn('branch_service_zones.branch_id', 'branches.id')
-                            ->where('branch_service_zones.service_zone_id', $zoneId);
-                    });
-            })
+            ->join('product_variants', 'product_variants.id', '=', 'branch_stock.variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->whereColumn('branches.seller_id', 'products.seller_id')
             ->where('branches.is_active', true)
             ->whereIn('branch_stock.variant_id', $variantIds)
             ->groupBy('branch_stock.variant_id')
-            ->selectRaw('branch_stock.variant_id as variant_id, SUM(branch_stock.on_hand - branch_stock.reserved) as available')
+            ->selectRaw('branch_stock.variant_id as variant_id,
+                MAX(CASE WHEN branch_stock.on_hand > branch_stock.reserved
+                    THEN branch_stock.on_hand - branch_stock.reserved ELSE 0 END) as available')
             ->pluck('available', 'variant_id')
             ->map(fn (mixed $units): int => max(0, (int) $units))
             ->all();
@@ -43,31 +43,32 @@ final class Availability
 
     /**
      * @param  list<int>  $productIds
-     * @return array<int, int> product id => units available across all its variants
+     * @return array<int, int> product id => total independently purchasable units
+     *                         across active variants, using the best active branch per variant.
      */
-    public function forProducts(array $productIds, int $zoneId): array
+    // The optional zoneId is kept only for backwards-compatible callers.
+    public function forProducts(array $productIds, ?int $zoneId = null): array
     {
         if ($productIds === []) {
             return [];
         }
 
-        return DB::table('branch_stock')
+        $perVariant = DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
             ->join('product_variants', 'product_variants.id', '=', 'branch_stock.variant_id')
-            ->where(function ($query) use ($zoneId): void {
-                // Primary zone remains the compatibility fallback for older branches and test fixtures.
-                $query->where('branches.service_zone_id', $zoneId)
-                    ->orWhereExists(function ($coverage) use ($zoneId): void {
-                        $coverage->selectRaw('1')->from('branch_service_zones')
-                            ->whereColumn('branch_service_zones.branch_id', 'branches.id')
-                            ->where('branch_service_zones.service_zone_id', $zoneId);
-                    });
-            })
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->whereColumn('branches.seller_id', 'products.seller_id')
             ->where('branches.is_active', true)
             ->where('product_variants.is_active', true)
             ->whereIn('product_variants.product_id', $productIds)
-            ->groupBy('product_variants.product_id')
-            ->selectRaw('product_variants.product_id as product_id, SUM(branch_stock.on_hand - branch_stock.reserved) as available')
+            ->groupBy('product_variants.product_id', 'branch_stock.variant_id')
+            ->selectRaw('product_variants.product_id as product_id, branch_stock.variant_id as variant_id,
+                MAX(CASE WHEN branch_stock.on_hand > branch_stock.reserved
+                    THEN branch_stock.on_hand - branch_stock.reserved ELSE 0 END) as available');
+
+        return DB::query()->fromSub($perVariant, 'variant_stock')
+            ->groupBy('product_id')
+            ->selectRaw('product_id, SUM(available) as available')
             ->pluck('available', 'product_id')
             ->map(fn (mixed $units): int => max(0, (int) $units))
             ->all();
