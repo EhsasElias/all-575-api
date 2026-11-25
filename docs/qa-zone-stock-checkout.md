@@ -33,3 +33,24 @@ The new tests cover multiple branches with insufficient unsplittable quantities,
 3. Stage in `test.market575.com` / `api-test.market575.com` and verify real product+branch coverage per Riyadh delivery zone, stock reservations, low-stock quantities, and account/guest flows.
 4. Confirm an unavailable item cannot be added or purchased, and mixed available/unavailable carts cannot proceed to checkout.
 5. Deploy production only by the user's explicit approval after QA and rollback plan.
+
+
+## Revised requirement — stock is not delivery-area constrained (2026-11-25)
+
+Per owner decision, a courier may collect a product from any active branch and
+deliver it outside that branch's configured service-zone coverage. Availability,
+search `in_stock` filtering, cart stock badges, and final stock reservations now
+look across **all active branches**, regardless of the shopper's selected area.
+Available units remain `max(0, on_hand - reserved)`, and a single cart line
+must fit in one branch; order reservation remains atomic.
+
+**Separate remaining limitation:** checkout's address validation, price calculation,
+and delivery-slot selection still require a configured service zone. This is not a
+stock requirement. Supporting deliveries outside *all* configured zones needs a
+safe courier dispatch/fee/slot policy and must not silently pick an unrelated
+region's fee or delivery slot. Do not claim nationwide delivery until that policy
+is implemented and tested.
+
+**Validation:** Run the stock-related integration tests from disposable SQLite
+and the wider checkout/cart suites, as previous zone-filter assumptions may need
+updating. No production data has been changed.
