@@ -87,10 +87,12 @@ final class Availability
 
         return DB::table('branch_stock')
             ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
+            ->join('product_variants', 'product_variants.id', '=', 'branch_stock.variant_id')
             ->where('branches.is_active', true)
+            ->where('product_variants.is_active', true)
             ->whereIn('branch_stock.variant_id', $variantIds)
             ->groupBy('branch_stock.variant_id')
-            ->selectRaw('branch_stock.variant_id, SUM(GREATEST(0, branch_stock.on_hand - branch_stock.reserved)) as available')
+            ->selectRaw('branch_stock.variant_id, SUM(CASE WHEN branch_stock.on_hand > branch_stock.reserved THEN branch_stock.on_hand - branch_stock.reserved ELSE 0 END) as available')
             ->pluck('available', 'variant_id')
             ->map(fn (mixed $units): int => max(0, (int) $units))
             ->all();
@@ -115,7 +117,7 @@ final class Availability
             ->where('product_variants.is_active', true)
             ->whereIn('product_variants.product_id', $productIds)
             ->groupBy('product_variants.product_id')
-            ->selectRaw('product_variants.product_id, SUM(GREATEST(0, branch_stock.on_hand - branch_stock.reserved)) as available')
+            ->selectRaw('product_variants.product_id, SUM(CASE WHEN branch_stock.on_hand > branch_stock.reserved THEN branch_stock.on_hand - branch_stock.reserved ELSE 0 END) as available')
             ->pluck('available', 'product_id')
             ->map(fn (mixed $units): int => max(0, (int) $units))
             ->all();
