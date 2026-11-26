@@ -103,20 +103,40 @@ final class SellerCatalogExcelTemplateController extends Controller
             }
         }
 
+        $errorTitle = match ($language) {
+            'en' => 'Invalid value',
+            'fr' => 'Valeur incorrecte',
+            default => 'اختيار غير صالح',
+        };
+        $listError = match ($language) {
+            'en' => 'Choose from the list',
+            'fr' => 'Choisissez dans la liste',
+            default => 'اختر قيمة من القائمة',
+        };
+        $priceError = match ($language) {
+            'en' => 'Enter a price from 1 to 100 SAR',
+            'fr' => 'Prix de 1 à 100 SAR',
+            default => 'السعر من 1 إلى 100 ريال',
+        };
+        $quantityError = match ($language) {
+            'en' => 'Enter a whole number from 0 to 100000000',
+            'fr' => 'Entrez un nombre entier de 0 à 100000000',
+            default => 'أدخل كمية صحيحة من 0 إلى 100000000',
+        };
         $validations = '';
         foreach (['C' => 'S', 'D' => 'R', 'J' => 'T', 'P' => 'U'] as $target => $source) {
             $last = max(2, count($lists[$source]) + 1);
             $validations .= '<dataValidation type="list" allowBlank="1" showDropDown="0" '.
-                'showErrorMessage="1" errorTitle="اختيار غير صالح" error="اختر قيمة من القائمة" '.
+                'showErrorMessage="1" errorTitle="'.self::xml($errorTitle).'" error="'.self::xml($listError).'" '.
                 'sqref="'.$target.'2:'.$target.'201"><formula1>$'.$source.'$2:$'.$source.'$'.$last.'</formula1></dataValidation>';
         }
         // Price is entered in SAR and must match the importer price rules.
         $validations .= '<dataValidation type="decimal" operator="between" allowBlank="0" '.
-            'showErrorMessage="1" error="السعر من 1 إلى 100 ريال" sqref="I2:I201">'.
+            'showErrorMessage="1" error="'.self::xml($priceError).'" sqref="I2:I201">'.
             '<formula1>1</formula1><formula2>100</formula2></dataValidation>';
 
         $validations .= '<dataValidation type="whole" operator="between" allowBlank="1" '.
-            'showErrorMessage="1" error="أدخل كمية صحيحة من 0 إلى 100000000" sqref="Q2:Q201">'.
+            'showErrorMessage="1" error="'.self::xml($quantityError).'" sqref="Q2:Q201">'.
             '<formula1>0</formula1><formula2>100000000</formula2></dataValidation>';
 
         $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'.
