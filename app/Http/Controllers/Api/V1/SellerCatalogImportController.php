@@ -367,6 +367,7 @@ final class SellerCatalogImportController extends Controller
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
             $stockForm = in_array($header, [
+                self::STOCK_FORM_HEADERS, self::STOCK_ENGLISH_HEADERS,
                 SellerImportTemplateLabels::headers('ar'),
                 SellerImportTemplateLabels::headers('en'),
                 SellerImportTemplateLabels::headers('fr'),
