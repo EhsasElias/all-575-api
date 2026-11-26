@@ -133,14 +133,14 @@ final class SellerInsightsController extends Controller
                                 ->orWhereColumn('seller_staff_access.branch_id', 'branches.id');
                         });
                 })
-                ->select('branches.'.$branchColumn.' as branch', 'product_variants.sku', 'products.name_ar',
+                ->select('branches.'.$branchColumn.' as branch', 'product_variants.sku', 'products.'.$branchColumn.' as product_name',
                     'branch_stock.on_hand', 'branch_stock.reserved')
                 ->orderBy('branch_stock.id')->limit($limit)->get();
 
             return [
                 ['Branch', 'SKU', 'Product', 'On hand', 'Reserved', 'Available'],
                 $records->map(static fn ($row) => [
-                    $row->branch, $row->sku, $row->name_ar,
+                    $row->branch, $row->sku, $row->product_name,
                     (int) $row->on_hand, (int) $row->reserved,
                     (int) $row->on_hand - (int) $row->reserved,
                 ])->all(),
