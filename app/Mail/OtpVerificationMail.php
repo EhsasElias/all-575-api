@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Mail\Mailable;
 
 final class OtpVerificationMail extends Mailable
 {
     public function __construct(
         public readonly string $code,
         public readonly string $requestedLocale,
-    ) {}
+    ) {
+    }
 
     private function language(): string
     {
