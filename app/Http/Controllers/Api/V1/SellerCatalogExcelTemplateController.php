@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Support\SellerImportTemplateLabels;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -16,17 +17,6 @@ use ZipArchive;
  */
 final class SellerCatalogExcelTemplateController extends Controller
 {
-    private const HEADERS = [
-        'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
-        'التصنيف (إجباري)', 'اسم المنتج بالعربية (إجباري)',
-        'اسم المنتج بالإنجليزية (إجباري)', 'الوصف بالعربية (اختياري)',
-        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–100) (إجباري)',
-        'فئة الضريبة (إجباري)',
-        'اسم وحدة البيع بالعربية (اختياري)', 'اسم وحدة البيع بالإنجليزية (اختياري)',
-        'رابط صورة المنتج HTTPS (اختياري)', 'صورة داخل Excel (اختياري)',
-        'السبب النظامي للضريبة (إجباري للصفرية والمعفاة)',
-    ];
-
     private static function xml(string $value): string
     {
         return htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
@@ -41,6 +31,8 @@ final class SellerCatalogExcelTemplateController extends Controller
     public function __invoke(Request $request): BinaryFileResponse
     {
         $userId = $request->user()->id;
+        $language = SellerImportTemplateLabels::language($request->query('lang', $request->header('Accept-Language')));
+        $headers = SellerImportTemplateLabels::headers($language);
         $sellers = DB::table('sellers')
             ->where('status', 'approved')
             ->whereExists(function ($query) use ($userId): void {
@@ -50,7 +42,7 @@ final class SellerCatalogExcelTemplateController extends Controller
                     ->where('seller_staff_access.is_active', true)
                     ->whereIn('seller_staff_access.role', ['owner', 'branch_manager']);
             })
-            ->orderBy('id')->limit(100)->get(['id', 'name_ar']);
+            ->orderBy('id')->limit(100)->get(['id', 'name_ar', 'name_en']);
         abort_if($sellers->isEmpty(), 403);
 
         $categoryRecords = DB::table('categories')->where('is_active', true)
@@ -63,19 +55,40 @@ final class SellerCatalogExcelTemplateController extends Controller
                 }
             }
         }
-        $categories = $categoryRecords->map(static function ($category) use ($counts): string {
-            $name = trim((string) $category->name_ar);
+        $categories = $categoryRecords->map(static function ($category) use ($counts, $language): string {
+            $name = trim((string) ($language === 'ar' ? $category->name_ar : $category->name_en));
 
             return $name !== '' && ($counts[$name] ?? 0) === 1 ? $name : (string) $category->id;
         })->all();
-        $storeOptions = $sellers->map(fn ($seller): string => trim((string) $seller->name_ar) !== '' ? $seller->name_ar : (string) $seller->id
+        $storeOptions = $sellers->map(fn ($seller): string => trim((string) ($language === 'ar' ? $seller->name_ar : $seller->name_en)) !== '' ? ($language === 'ar' ? $seller->name_ar : $seller->name_en) : (string) $seller->id
         )->all();
         // Zero-rated/exempt selections must have a legal basis in column O;
         // the importer enforces this before creating reviewable drafts.
-        $vatOptions = ['قياسية (15%)', 'صفرية (0%)', 'معفى من الضريبة'];
-        $lists = ['P' => $categories, 'Q' => $storeOptions, 'R' => $vatOptions];
+        $vatOptions = SellerImportTemplateLabels::vatOptions($language);
+        // Use branch IDs in the dropdown so equal branch names cannot assign stock to the wrong location.
+        $branches = DB::table('branches')
+            ->whereIn('seller_id', $sellers->pluck('id')->all())
+            ->where('is_active', true)
+            ->whereExists(function ($query) use ($userId): void {
+                $query->selectRaw('1')->from('seller_staff_access')
+                    ->whereColumn('seller_staff_access.seller_id', 'branches.seller_id')
+                    ->where('seller_staff_access.user_id', $userId)
+                    ->where('seller_staff_access.is_active', true)
+                    ->whereIn('seller_staff_access.role', ['owner', 'branch_manager'])
+                    ->where(function ($scope): void {
+                        $scope->whereNull('seller_staff_access.branch_id')
+                            ->orWhereColumn('seller_staff_access.branch_id', 'branches.id');
+                    });
+            })
+            ->orderBy('id')->limit(1000)->get(['id', 'name_ar', 'name_en'])
+            ->map(static function ($branch) use ($language): string {
+                $name = trim((string) ($language === 'ar' ? $branch->name_ar : $branch->name_en));
+
+                return ($name !== '' ? $name : ($language === 'ar' ? 'فرع' : ($language === 'fr' ? 'Succursale' : 'Branch'))).' (#'.$branch->id.')';
+            })->all();
+        $lists = ['R' => $categories, 'S' => $storeOptions, 'T' => $vatOptions, 'U' => $branches];
         $rows = '<row r="1" ht="34" customHeight="1">';
-        foreach (self::HEADERS as $index => $header) {
+        foreach ($headers as $index => $header) {
             $rows .= self::cell(chr(65 + $index).'1', $header, 1);
         }
         $rows .= '</row>';
@@ -95,22 +108,46 @@ final class SellerCatalogExcelTemplateController extends Controller
             }
         }
 
+        $errorTitle = match ($language) {
+            'en' => 'Invalid value',
+            'fr' => 'Valeur incorrecte',
+            default => 'اختيار غير صالح',
+        };
+        $listError = match ($language) {
+            'en' => 'Choose from the list',
+            'fr' => 'Choisissez dans la liste',
+            default => 'اختر قيمة من القائمة',
+        };
+        $priceError = match ($language) {
+            'en' => 'Enter a price from 1 to 100 SAR',
+            'fr' => 'Prix de 1 à 100 SAR',
+            default => 'السعر من 1 إلى 100 ريال',
+        };
+        $quantityError = match ($language) {
+            'en' => 'Enter a whole number from 0 to 100000000',
+            'fr' => 'Entrez un nombre entier de 0 à 100000000',
+            default => 'أدخل كمية صحيحة من 0 إلى 100000000',
+        };
         $validations = '';
-        foreach (['C' => 'Q', 'D' => 'P', 'J' => 'R'] as $target => $source) {
+        foreach (['C' => 'S', 'D' => 'R', 'J' => 'T', 'P' => 'U'] as $target => $source) {
             $last = max(2, count($lists[$source]) + 1);
             $validations .= '<dataValidation type="list" allowBlank="1" showDropDown="0" '.
-                'showErrorMessage="1" errorTitle="اختيار غير صالح" error="اختر قيمة من القائمة" '.
+                'showErrorMessage="1" errorTitle="'.self::xml($errorTitle).'" error="'.self::xml($listError).'" '.
                 'sqref="'.$target.'2:'.$target.'201"><formula1>$'.$source.'$2:$'.$source.'$'.$last.'</formula1></dataValidation>';
         }
         // Price is entered in SAR and must match the importer price rules.
         $validations .= '<dataValidation type="decimal" operator="between" allowBlank="0" '.
-            'showErrorMessage="1" error="السعر من 1 إلى 100 ريال" sqref="I2:I201">'.
+            'showErrorMessage="1" error="'.self::xml($priceError).'" sqref="I2:I201">'.
             '<formula1>1</formula1><formula2>100</formula2></dataValidation>';
+
+        $validations .= '<dataValidation type="whole" operator="between" allowBlank="1" '.
+            'showErrorMessage="1" error="'.self::xml($quantityError).'" sqref="Q2:Q201">'.
+            '<formula1>0</formula1><formula2>100000000</formula2></dataValidation>';
 
         $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'.
             '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'.
-            '<dimension ref="A1:R'.($count + 1).'"/>'.
-            '<sheetViews><sheetView workbookViewId="0" rightToLeft="1"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'.
+            '<dimension ref="A1:U'.($count + 1).'"/>'.
+            '<sheetViews><sheetView workbookViewId="0" rightToLeft="'.($language === 'ar' ? '1' : '0').'"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'.
             '<sheetFormatPr defaultRowHeight="23"/><cols>'.
             '<col min="1" max="2" width="24" customWidth="1"/>'.
             '<col min="3" max="4" width="22" customWidth="1"/>'.
@@ -119,9 +156,11 @@ final class SellerCatalogExcelTemplateController extends Controller
             '<col min="13" max="13" width="45" customWidth="1"/>'.
             '<col min="14" max="14" width="28" customWidth="1"/>'.
             '<col min="15" max="15" width="58" customWidth="1"/>'.
-            '<col min="16" max="18" hidden="1"/>'.
+            '<col min="16" max="16" width="34" customWidth="1"/>'.
+            '<col min="17" max="17" width="28" customWidth="1"/>'.
+            '<col min="18" max="21" hidden="1"/>'.
             '</cols><sheetData>'.$rows.'</sheetData>'.
-            '<dataValidations count="4">'.$validations.'</dataValidations>'.
+            '<dataValidations count="6">'.$validations.'</dataValidations>'.
             '</worksheet>';
 
         $styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'.
@@ -160,7 +199,7 @@ final class SellerCatalogExcelTemplateController extends Controller
             $zip->addFromString('xl/workbook.xml', '<?xml version="1.0"?>'.
                 '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '.
                 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'.
-                '<sheets><sheet name="المنتجات" sheetId="1" r:id="rId1"/></sheets></workbook>');
+                '<sheets><sheet name="'.($language === 'ar' ? 'المنتجات' : ($language === 'fr' ? 'Produits' : 'Products')).'" sheetId="1" r:id="rId1"/></sheets></workbook>');
             $zip->addFromString('xl/_rels/workbook.xml.rels', '<?xml version="1.0"?>'.
                 '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'.
                 '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'.
@@ -172,7 +211,7 @@ final class SellerCatalogExcelTemplateController extends Controller
             $zip->close();
         }
 
-        return response()->download($file, 'seller-products-template.xlsx', [
+        return response()->download($file, 'seller-products-template-'.$language.'.xlsx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Cache-Control' => 'no-store',
         ])->deleteFileAfterSend(true);

@@ -52,6 +52,31 @@ final class SellerInsightsTest extends TestCase
             ->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
     }
 
+    public function test_french_report_csv_export_uses_french_columns(): void
+    {
+        $seller = Seller::factory()->create(['status' => 'approved']);
+        $branch = Branch::factory()->for($seller)->create();
+        $user = User::factory()->create();
+        DB::table('seller_staff_access')->insert([
+            'seller_id' => $seller->id,
+            'user_id' => $user->id,
+            'branch_id' => $branch->id,
+            'role' => 'branch_manager',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        Sanctum::actingAs($user, ['seller']);
+
+        $response = $this->withHeader('Accept-Language', 'fr-FR')
+            ->get('/api/v1/seller/insights/export/csv'.self::QUERY)->assertOk();
+
+        $csv = $response->streamedContent();
+        $this->assertStringContainsString('Numéro de commande', $csv);
+        $this->assertStringContainsString('Succursale', $csv);
+        $this->assertStringNotContainsString('Subtotal SAR', $csv);
+    }
+
     public function test_drilldown_validates_metric_and_date_range(): void
     {
         Sanctum::actingAs(User::factory()->create(), ['seller']);
