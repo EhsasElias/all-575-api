@@ -13,12 +13,12 @@ final class OtpVerificationMail extends Mailable
 {
     public function __construct(
         public readonly string $code,
-        public readonly string $locale,
+        public readonly string $requestedLocale,
     ) {}
 
     private function language(): string
     {
-        return match (substr(strtolower(str_replace('_', '-', $this->locale)), 0, 2)) {
+        return match (substr(strtolower(str_replace('_', '-', $this->requestedLocale)), 0, 2)) {
             'ar' => 'ar',
             'fr' => 'fr',
             default => 'en',
