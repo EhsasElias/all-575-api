@@ -26,6 +26,30 @@ class ProductListResource extends JsonResource
     {
         $split = app(ProductPricing::class)->split($this->vatClass(), $this->resource);
 
+        $stockedVariant = null;
+        $stockedBranch = null;
+        // Home cards need a real stocked variant and a branch label, never an invented one.
+        // Controller eager-loads these relations to keep the public listing bounded.
+        if ($this->resource->relationLoaded('variants')) {
+            foreach ($this->resource->variants as $variant) {
+                if (! $variant->is_active || ! $variant->relationLoaded('stock')) {
+                    continue;
+                }
+                foreach ($variant->stock as $stock) {
+                    if ($stock->available() <= 0 || ! $stock->relationLoaded('branch')) {
+                        continue;
+                    }
+                    $branch = $stock->branch;
+                    if ($branch === null || ! $branch->is_active || (int) $branch->seller_id !== (int) $this->seller_id) {
+                        continue;
+                    }
+                    $stockedVariant = $variant->id;
+                    $stockedBranch = ['ar' => $branch->name_ar, 'en' => $branch->name_en];
+                    break 2;
+                }
+            }
+        }
+
         return [
             'id' => $this->id,
             'slug' => $this->slug,
@@ -41,6 +65,8 @@ class ProductListResource extends JsonResource
             ],
             'rating' => ['average' => $this->rating_average, 'count' => $this->rating_count],
             'availability' => Availability::status($this->available_units),
+            'stock_branch' => $stockedBranch,
+            'purchase_variant_id' => $stockedVariant,
         ];
     }
 }
