@@ -96,6 +96,25 @@ class SuperAdminMetricTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_csv_exports_use_the_selected_language_for_column_names(): void
+    {
+        $user = User::factory()->create();
+        $this->grantSuperAdmin($user);
+
+        foreach ([
+            'ar' => 'البريد الإلكتروني',
+            'en' => 'Email',
+            'fr' => 'E-mail',
+        ] as $language => $heading) {
+            $response = $this->withHeader('Accept-Language', $language)
+                ->get('/api/v1/platform/super-admin/metrics/customers/export/csv')->assertOk();
+
+            $csv = $response->streamedContent();
+            $this->assertStringContainsString($heading, $csv);
+            $this->assertStringNotContainsString('is_active', $csv);
+        }
+    }
+
     public function test_super_admin_downloads_real_xlsx_instead_of_xml_disguised_as_xls(): void
     {
         if (! class_exists(ZipArchive::class)) {
