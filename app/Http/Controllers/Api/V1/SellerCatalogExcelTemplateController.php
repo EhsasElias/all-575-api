@@ -25,6 +25,7 @@ final class SellerCatalogExcelTemplateController extends Controller
         'اسم وحدة البيع بالعربية (اختياري)', 'اسم وحدة البيع بالإنجليزية (اختياري)',
         'رابط صورة المنتج HTTPS (اختياري)', 'صورة داخل Excel (اختياري)',
         'السبب النظامي للضريبة (إجباري للصفرية والمعفاة)',
+        'الفرع للمخزون (إجباري عند إدخال كمية)', 'الكمية في المخزون (اختياري)',
     ];
 
     private static function xml(string $value): string
@@ -73,7 +74,23 @@ final class SellerCatalogExcelTemplateController extends Controller
         // Zero-rated/exempt selections must have a legal basis in column O;
         // the importer enforces this before creating reviewable drafts.
         $vatOptions = ['قياسية (15%)', 'صفرية (0%)', 'معفى من الضريبة'];
-        $lists = ['P' => $categories, 'Q' => $storeOptions, 'R' => $vatOptions];
+        // Use branch IDs in the dropdown so equal branch names cannot assign stock to the wrong location.
+        $branches = DB::table('branches')
+            ->whereIn('seller_id', $sellers->pluck('id')->all())
+            ->where('is_active', true)
+            ->whereExists(function ($query) use ($userId): void {
+                $query->selectRaw('1')->from('seller_staff_access')
+                    ->whereColumn('seller_staff_access.seller_id', 'branches.seller_id')
+                    ->where('seller_staff_access.user_id', $userId)
+                    ->where('seller_staff_access.is_active', true)
+                    ->whereIn('seller_staff_access.role', ['owner', 'branch_manager'])
+                    ->where(function ($scope): void {
+                        $scope->whereNull('seller_staff_access.branch_id')
+                            ->orWhereColumn('seller_staff_access.branch_id', 'branches.id');
+                    });
+            })
+            ->orderBy('id')->limit(1000)->pluck('id')->map(fn ($id): string => (string) $id)->all();
+        $lists = ['R' => $categories, 'S' => $storeOptions, 'T' => $vatOptions, 'U' => $branches];
         $rows = '<row r="1" ht="34" customHeight="1">';
         foreach (self::HEADERS as $index => $header) {
             $rows .= self::cell(chr(65 + $index).'1', $header, 1);
@@ -96,7 +113,7 @@ final class SellerCatalogExcelTemplateController extends Controller
         }
 
         $validations = '';
-        foreach (['C' => 'Q', 'D' => 'P', 'J' => 'R'] as $target => $source) {
+        foreach (['C' => 'S', 'D' => 'R', 'J' => 'T', 'P' => 'U'] as $target => $source) {
             $last = max(2, count($lists[$source]) + 1);
             $validations .= '<dataValidation type="list" allowBlank="1" showDropDown="0" '.
                 'showErrorMessage="1" errorTitle="اختيار غير صالح" error="اختر قيمة من القائمة" '.
@@ -107,9 +124,13 @@ final class SellerCatalogExcelTemplateController extends Controller
             'showErrorMessage="1" error="السعر من 1 إلى 100 ريال" sqref="I2:I201">'.
             '<formula1>1</formula1><formula2>100</formula2></dataValidation>';
 
+        $validations .= '<dataValidation type="whole" operator="between" allowBlank="1" '.
+            'showErrorMessage="1" error="أدخل كمية صحيحة من 0 إلى 100000000" sqref="Q2:Q201">'.
+            '<formula1>0</formula1><formula2>100000000</formula2></dataValidation>';
+
         $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'.
             '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'.
-            '<dimension ref="A1:R'.($count + 1).'"/>'.
+            '<dimension ref="A1:U'.($count + 1).'"/>'.
             '<sheetViews><sheetView workbookViewId="0" rightToLeft="1"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'.
             '<sheetFormatPr defaultRowHeight="23"/><cols>'.
             '<col min="1" max="2" width="24" customWidth="1"/>'.
@@ -119,9 +140,11 @@ final class SellerCatalogExcelTemplateController extends Controller
             '<col min="13" max="13" width="45" customWidth="1"/>'.
             '<col min="14" max="14" width="28" customWidth="1"/>'.
             '<col min="15" max="15" width="58" customWidth="1"/>'.
-            '<col min="16" max="18" hidden="1"/>'.
+            '<col min="16" max="16" width="34" customWidth="1"/>'.
+            '<col min="17" max="17" width="28" customWidth="1"/>'.
+            '<col min="18" max="21" hidden="1"/>'.
             '</cols><sheetData>'.$rows.'</sheetData>'.
-            '<dataValidations count="4">'.$validations.'</dataValidations>'.
+            '<dataValidations count="6">'.$validations.'</dataValidations>'.
             '</worksheet>';
 
         $styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'.
