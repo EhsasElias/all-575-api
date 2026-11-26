@@ -450,6 +450,10 @@ final class SellerCatalogImportController extends Controller
                     $embeddedHint = $imageForm ? $values[13] : '';
                     $vatJustification = $vatImageForm ? $values[14] : '';
                     $inventoryBranch = $stockForm ? $values[15] : '';
+                    // Excel displays the branch name while retaining its unique ID for safe stock assignment.
+                    if (preg_match('/\\(#([1-9][0-9]*)\\)$/D', $inventoryBranch, $branchMatch)) {
+                        $inventoryBranch = $branchMatch[1];
+                    }
                     $inventoryQuantity = $stockForm ? $values[16] : '';
                     if ($embeddedHint !== '' && ! $isExcel) {
                         $errors[] = "الصف {$line} - صورة داخل Excel: لا يمكن تضمين الصور في CSV؛ استخدم رابط HTTPS في عمود رابط الصورة أو ملف Excel.";
