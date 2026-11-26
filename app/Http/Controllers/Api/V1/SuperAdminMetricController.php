@@ -131,12 +131,52 @@ final class SuperAdminMetricController extends Controller
             'total' => $page->total(), 'page' => $page->currentPage(), 'last_page' => $page->lastPage()]);
     }
 
+    /** @param list<string> $columns
+     *  @return list<string>
+     */
+    private function exportHeaders(array $columns, Request $request): array
+    {
+        $locale = substr(strtolower((string) $request->input('lang', $request->header('Accept-Language', 'ar'))), 0, 2);
+        $labels = match ($locale) {
+            'ar' => [
+                'id' => 'الرقم', 'name' => 'الاسم', 'email' => 'البريد الإلكتروني',
+                'is_active' => 'الحساب نشط', 'created_at' => 'تاريخ الإنشاء',
+                'name_ar' => 'الاسم بالعربية', 'name_en' => 'الاسم بالإنجليزية',
+                'status' => 'الحالة', 'seller_id' => 'رقم المتجر',
+                'number' => 'رقم الطلب', 'total_halalas' => 'إجمالي الطلب (هللة)',
+                'paid_at' => 'تاريخ الدفع', 'order_id' => 'رقم الطلب الداخلي',
+                'branch_id' => 'رقم الفرع',
+            ],
+            'fr' => [
+                'id' => 'Identifiant', 'name' => 'Nom', 'email' => 'E-mail',
+                'is_active' => 'Compte actif', 'created_at' => 'Date de création',
+                'name_ar' => 'Nom arabe', 'name_en' => 'Nom anglais',
+                'status' => 'Statut', 'seller_id' => 'ID boutique',
+                'number' => 'Numéro de commande', 'total_halalas' => 'Total de commande (halalas)',
+                'paid_at' => 'Date de paiement', 'order_id' => 'ID commande',
+                'branch_id' => 'ID succursale',
+            ],
+            default => [
+                'id' => 'ID', 'name' => 'Name', 'email' => 'Email',
+                'is_active' => 'Active', 'created_at' => 'Created at',
+                'name_ar' => 'Arabic name', 'name_en' => 'English name',
+                'status' => 'Status', 'seller_id' => 'Store ID',
+                'number' => 'Order number', 'total_halalas' => 'Order total (halalas)',
+                'paid_at' => 'Paid at', 'order_id' => 'Order ID',
+                'branch_id' => 'Branch ID',
+            ],
+        };
+
+        return array_map(static fn (string $column): string => $labels[$column] ?? $column, $columns);
+    }
+
     public function export(Request $request, string $metric, string $format, XlsxWriter $xlsx, CsvWriter $csv): StreamedResponse|BinaryFileResponse
     {
         $this->authorizeOwner($request);
         // Legacy /xls requests are still accepted, but return a genuine .xlsx file.
         abort_unless(in_array($format, ['csv', 'xlsx', 'xls'], true), 404);
         [$query, $columns] = $this->metricQuery($metric, $this->validatedFilters($request));
+        $headers = $this->exportHeaders($columns, $request);
         $name = 'all575-'.$metric.'-'.now()->format('Ymd-His');
 
         if ($format !== 'csv') {
@@ -146,17 +186,17 @@ final class SuperAdminMetricController extends Controller
                 }
             })();
 
-            return $xlsx->download($columns, $rows, $name.'.xlsx');
+            return $xlsx->download($headers, $rows, $name.'.xlsx');
         }
 
-        return response()->streamDownload(function () use ($query, $columns, $csv): void {
+        return response()->streamDownload(function () use ($query, $columns, $headers, $csv): void {
             $out = fopen('php://output', 'wb');
             if ($out === false) {
                 throw new \RuntimeException('Unable to open CSV export stream.');
             }
             try {
                 fwrite($out, "\xEF\xBB\xBF");
-                fputcsv($out, array_map($csv->safe(...), $columns), ',', '"', '');
+                fputcsv($out, array_map($csv->safe(...), $headers), ',', '"', '');
                 foreach ($query->orderBy('id')->cursor() as $row) {
                     fputcsv($out, array_map(
                         static fn (string $column) => $csv->safe($row->$column ?? ''),
