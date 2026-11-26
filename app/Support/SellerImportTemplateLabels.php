@@ -40,7 +40,7 @@ final class SellerImportTemplateLabels
                 'Unité de vente en anglais (facultatif)', 'Lien image HTTPS (facultatif)',
                 'Image dans Excel (facultatif)',
                 'Justification TVA (obligatoire si taux zéro/exonéré)',
-                'Agence pour le stock (obligatoire si quantité saisie)', 'Quantité en stock (facultatif)',
+                'Succursale (obligatoire si quantité saisie)', 'Quantité en stock (facultatif)',
             ],
             default => [
                 'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
