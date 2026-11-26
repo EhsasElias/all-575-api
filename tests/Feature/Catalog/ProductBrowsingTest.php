@@ -124,14 +124,18 @@ class ProductBrowsingTest extends TestCase
         ));
     }
 
-    public function test_availability_is_unknown_until_a_zone_is_chosen_then_reflects_unreserved_stock(): void
+    public function test_availability_reflects_real_stock_with_or_without_a_zone(): void
     {
         $this->catalog->stockedProduct(onHand: 50, product: ['slug' => 'plenty']);
         $low = $this->catalog->stockedProduct(onHand: 5, product: ['slug' => 'few']);
         $gone = $this->catalog->stockedProduct(onHand: 3, product: ['slug' => 'held']);
         $gone['stock']->update(['reserved' => 3]);
 
-        $this->assertSame('unknown', $this->getJson('/api/v1/products')->json('data.0.availability'));
+        // Without a chosen delivery zone, available stock in any active branch must still be visible.
+        $global = collect($this->getJson('/api/v1/products')->json('data'))->pluck('availability', 'slug');
+        $this->assertSame('in_stock', $global['plenty']);
+        $this->assertSame('low_stock', $global['few']);
+        $this->assertSame('out_of_stock', $global['held']);
 
         $byslug = collect($this->getJson('/api/v1/products?zone_id='.$this->catalog->zone->id)->json('data'))->pluck('availability', 'slug');
         $this->assertSame('in_stock', $byslug['plenty']);
