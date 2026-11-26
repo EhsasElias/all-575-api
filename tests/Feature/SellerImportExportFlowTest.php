@@ -124,6 +124,68 @@ final class SellerImportExportFlowTest extends TestCase
         ]);
     }
 
+    public function test_downloaded_excel_template_can_be_uploaded_with_inventory(): void
+    {
+        if (! class_exists(ZipArchive::class)) {
+            $this->markTestSkipped('ZIP extension unavailable');
+        }
+
+        [$seller, $branch, $category] = $this->sellerAccess();
+        $response = $this->get('/api/v1/seller/products/import/template.xlsx?lang=en')->assertOk();
+        $source = $response->baseResponse->getFile()->getPathname();
+        $temp = tempnam(sys_get_temp_dir(), 'import-qa-');
+        $this->assertNotFalse($temp);
+        try {
+            $this->assertTrue(copy($source, $temp));
+            $zip = new ZipArchive;
+            $this->assertTrue($zip->open($temp) === true);
+            try {
+                $sheet = $zip->getFromName('xl/worksheets/sheet1.xml');
+                $this->assertIsString($sheet);
+                $values = [
+                    'EXCEL-SKU-1', '', '', (string) $category->id,
+                    'منتج تجريبي', 'Excel product', '', '', '5.75',
+                    SellerImportTemplateLabels::vatOptions('en')[0],
+                    '', '', '', '', '', (string) $branch->id, '12',
+                ];
+                $cells = '';
+                foreach ($values as $index => $value) {
+                    $column = chr(65 + $index);
+                    $cells .= '<c r="'.$column.'2" t="inlineStr"><is><t>'.
+                        htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8').
+                        '</t></is></c>';
+                }
+                $this->assertStringContainsString('<row r="2">', $sheet);
+                $sheet = str_replace('<row r="2">', '<row r="2">'.$cells, $sheet);
+                $this->assertTrue($zip->addFromString('xl/worksheets/sheet1.xml', $sheet));
+            } finally {
+                $zip->close();
+            }
+
+            $file = new UploadedFile(
+                $temp, 'products.xlsx',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                null, true,
+            );
+            $this->post('/api/v1/seller/products/import', [
+                'seller_id' => $seller->id,
+                'file' => $file,
+            ])->assertCreated()->assertJsonPath('data.stock_records_created', 1);
+
+            $variantId = DB::table('product_variants')->where('sku', 'EXCEL-SKU-1')->value('id');
+            $this->assertNotNull($variantId);
+            $this->assertDatabaseHas('branch_stock', [
+                'branch_id' => $branch->id,
+                'variant_id' => $variantId,
+                'on_hand' => 12,
+                'reserved' => 0,
+            ]);
+        } finally {
+            @unlink($temp);
+            @unlink($source);
+        }
+    }
+
     public function test_invalid_quantity_does_not_create_product_or_stock(): void
     {
         [$seller, $branch, $category] = $this->sellerAccess();
