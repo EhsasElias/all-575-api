@@ -19,7 +19,7 @@ class ProductController extends Controller
     public function index(ProductIndexRequest $request, Availability $availability): AnonymousResourceCollection
     {
         $products = Product::query()->visible()
-            ->with(['seller', 'category'])
+            ->with(['seller', 'category', 'variants.stock.branch'])
             ->when($request->filled('category'), fn (Builder $query) => $query->whereIn(
                 'category_id',
                 $this->categoryIds($request->string('category')->toString()),
