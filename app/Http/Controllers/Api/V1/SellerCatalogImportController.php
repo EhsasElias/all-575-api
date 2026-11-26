@@ -72,6 +72,16 @@ final class SellerCatalogImportController extends Controller
         ...self::IMAGE_FORM_HEADERS, 'السبب النظامي للضريبة (إجباري للصفرية والمعفاة)',
     ];
 
+    private const STOCK_FORM_HEADERS = [
+        ...self::VAT_IMAGE_FORM_HEADERS,
+        'الفرع للمخزون (إجباري عند إدخال كمية)', 'الكمية في المخزون (اختياري)',
+    ];
+
+    private const STOCK_ENGLISH_HEADERS = [
+        ...self::VAT_IMAGE_ENGLISH_HEADERS,
+        'Inventory branch (required when quantity entered)', 'Inventory quantity (optional)',
+    ];
+
     private const VAT_IMAGE_ENGLISH_HEADERS = [
         ...self::IMAGE_ENGLISH_HEADERS, 'Legal VAT justification (required for zero-rated/exempt)',
     ];
@@ -253,7 +263,7 @@ final class SellerCatalogImportController extends Controller
                     if ($number < 1) {
                         continue;
                     }
-                    $cells = array_fill(0, 15, '');
+                    $cells = array_fill(0, 17, '');
                     $hasProductCell = false;
                     foreach ($xp->query('./*[local-name()="c"]', $row) as $cell) {
                         $reference = (string) $cell->attributes?->getNamedItem('r')?->nodeValue;
@@ -261,7 +271,7 @@ final class SellerCatalogImportController extends Controller
                             continue;
                         }
                         $column = $m[1];
-                        if (strlen($column) !== 1 || $column < 'A' || $column > 'O') {
+                        if (strlen($column) !== 1 || $column < 'A' || $column > 'Q') {
                             continue;
                         }
                         $index = ord($column) - 65;
@@ -287,7 +297,7 @@ final class SellerCatalogImportController extends Controller
                         continue;
                     }
                     if ($number === 1) {
-                        $columnCount = $cells[14] !== '' ? 15 : 14;
+                        $columnCount = $cells[16] !== '' ? 17 : ($cells[14] !== '' ? 15 : 14);
                     }
                     if ($number > 201 || ++$seen > 201) {
                         throw ValidationException::withMessages(['file' => ['Maximum 200 product rows per upload.']]);
@@ -355,7 +365,10 @@ final class SellerCatalogImportController extends Controller
             }
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
-            $vatImageForm = in_array($header, [
+            $stockForm = in_array($header, [
+                self::STOCK_FORM_HEADERS, self::STOCK_ENGLISH_HEADERS,
+            ], true);
+            $vatImageForm = $stockForm || in_array($header, [
                 self::VAT_IMAGE_FORM_HEADERS, self::VAT_IMAGE_ENGLISH_HEADERS,
             ], true);
             $imageForm = $vatImageForm || in_array($header, [
@@ -412,10 +425,11 @@ final class SellerCatalogImportController extends Controller
                     $errors[] = 'Maximum 200 rows per upload.';
                     break;
                 }
-                $expectedColumns = $vatImageForm ? count(self::VAT_IMAGE_FORM_HEADERS)
+                $expectedColumns = $stockForm ? count(self::STOCK_FORM_HEADERS)
+                    : ($vatImageForm ? count(self::VAT_IMAGE_FORM_HEADERS)
                         : ($imageForm ? count(self::IMAGE_FORM_HEADERS)
                         : ($extendedForm ? count(self::EXTENDED_FORM_HEADERS)
-                        : ($formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS))));
+                        : ($formTemplate ? count(self::FORM_HEADERS) : count(self::HEADERS)))));
                 if (count($cells) !== $expectedColumns) {
                     $actual = count($cells);
                     $errors[] = "الصف {$line} - الأعمدة: الملف يحتوي على {$actual} أعمدة، والمطلوب {$expectedColumns}. احتفظ بترتيب الأعمدة ولا تحذف أعمدة القالب.";
@@ -431,6 +445,8 @@ final class SellerCatalogImportController extends Controller
                     $imageUrl = $imageForm ? $values[12] : '';
                     $embeddedHint = $imageForm ? $values[13] : '';
                     $vatJustification = $vatImageForm ? $values[14] : '';
+                    $inventoryBranch = $stockForm ? $values[15] : '';
+                    $inventoryQuantity = $stockForm ? $values[16] : '';
                     if ($embeddedHint !== '' && ! $isExcel) {
                         $errors[] = "الصف {$line} - صورة داخل Excel: لا يمكن تضمين الصور في CSV؛ استخدم رابط HTTPS في عمود رابط الصورة أو ملف Excel.";
 
@@ -486,6 +502,8 @@ final class SellerCatalogImportController extends Controller
                         'variant_name_en' => $variantNameEn,
                         'image_url' => $imageUrl,
                         'image_bytes' => $isExcel ? ($this->embeddedImages[$line] ?? null) : null,
+                        'inventory_branch_id' => $inventoryBranch,
+                        'inventory_quantity' => $inventoryQuantity,
                     ];
                 } else {
                     $row = array_combine(self::HEADERS, $values);
@@ -496,6 +514,8 @@ final class SellerCatalogImportController extends Controller
                     $row['variant_name_en'] = '';
                     $row['image_url'] = '';
                     $row['image_bytes'] = null;
+                    $row['inventory_branch_id'] = '';
+                    $row['inventory_quantity'] = '';
                 }
                 $sku = $row['sku'];
                 $barcode = $row['barcode'];
@@ -511,6 +531,19 @@ final class SellerCatalogImportController extends Controller
                 }
                 if (mb_strlen($row['variant_name_en']) > 180) {
                     $rowErrors[] = 'اسم وحدة البيع بالإنجليزية: الحد الأقصى 180 حرفًا';
+                }
+                if ($row['inventory_quantity'] !== '') {
+                    if (! ctype_digit($row['inventory_quantity']) ||
+                        (int) $row['inventory_quantity'] > 100000000) {
+                        $rowErrors[] = 'الكمية في المخزون: أدخل عددًا صحيحًا من 0 إلى 100000000';
+                    }
+                    if ($row['inventory_branch_id'] === '' || ! ctype_digit($row['inventory_branch_id']) ||
+                        (int) $row['inventory_branch_id'] < 1) {
+                        $rowErrors[] = 'الفرع للمخزون: اختر رقم فرع صحيحًا عند إدخال كمية';
+                    }
+                } elseif ($row['inventory_branch_id'] !== '' &&
+                    (! ctype_digit($row['inventory_branch_id']) || (int) $row['inventory_branch_id'] < 1)) {
+                    $rowErrors[] = 'الفرع للمخزون: رقم الفرع غير صحيح';
                 }
                 if ($sku === '') {
                     $rowErrors[] = 'رمز SKU: مطلوب؛ أدخل رمزًا فريدًا للمنتج';
@@ -591,6 +624,36 @@ final class SellerCatalogImportController extends Controller
             }
         }
 
+        // Stock can only be inserted for an active branch of this seller that this user manages.
+        $branchIds = array_values(array_unique(array_map(
+            static fn (array $row): int => (int) $row['inventory_branch_id'],
+            array_filter($rows, static fn (array $row): bool => $row['inventory_quantity'] !== ''),
+        )));
+        if ($branchIds !== []) {
+            $authorized = DB::table('branches')
+                ->whereIn('id', $branchIds)
+                ->where('seller_id', $sellerId)
+                ->where('is_active', true)
+                ->whereExists(function ($query) use ($request): void {
+                    $query->selectRaw('1')->from('seller_staff_access')
+                        ->whereColumn('seller_staff_access.seller_id', 'branches.seller_id')
+                        ->where('seller_staff_access.user_id', $request->user()->id)
+                        ->where('seller_staff_access.is_active', true)
+                        ->whereIn('seller_staff_access.role', ['owner', 'branch_manager'])
+                        ->where(function ($scope): void {
+                            $scope->whereNull('seller_staff_access.branch_id')
+                                ->orWhereColumn('seller_staff_access.branch_id', 'branches.id');
+                        });
+                })
+                ->pluck('id')->map(fn ($id): int => (int) $id)->all();
+            foreach ($rows as $index => $row) {
+                if ($row['inventory_quantity'] !== '' &&
+                    ! in_array((int) $row['inventory_branch_id'], $authorized, true)) {
+                    $errors[] = 'الصف '.($index + 2).' - الفرع للمخزون: الفرع غير نشط أو لا يتبع المتجر أو ليس لديك صلاحية عليه.';
+                }
+            }
+        }
+
         if ($errors !== []) {
             throw ValidationException::withMessages(['file' => array_slice($errors, 0, 20)]);
         }
@@ -619,6 +682,8 @@ final class SellerCatalogImportController extends Controller
                     'description_en' => $row['description_en'] ?: null,
                     'price_halalas' => (int) $row['price_halalas'],
                     'sku' => $row['sku'],
+                    'inventory_branch_id' => $row['inventory_branch_id'] !== '' ? (int) $row['inventory_branch_id'] : null,
+                    'inventory_quantity' => $row['inventory_quantity'] !== '' ? (int) $row['inventory_quantity'] : null,
                 ], array_slice($rows, 0, 10)),
                 'created_drafts' => 0,
             ]]);
@@ -665,6 +730,7 @@ final class SellerCatalogImportController extends Controller
 
                 $published = 0;
                 $submitted = 0;
+                $stockRecordsCreated = 0;
                 foreach ($rows as $index => $row) {
                     $directPublish = $directPublishEnabled;
                     $status = ! $submitAfterImport ? ProductStatus::Draft
@@ -691,7 +757,7 @@ final class SellerCatalogImportController extends Controller
                         'rating_average' => 0,
                         'rating_count' => 0,
                     ]);
-                    $product->variants()->create([
+                    $variant = $product->variants()->create([
                         'sku' => $row['sku'],
                         'barcode' => $row['barcode'] ?: null,
                         'name_ar' => $row['variant_name_ar'] ?: null,
@@ -699,12 +765,24 @@ final class SellerCatalogImportController extends Controller
                         'is_active' => true,
                         'sort_order' => 0,
                     ]);
+                    if ($row['inventory_quantity'] !== '') {
+                        DB::table('branch_stock')->insert([
+                            'branch_id' => (int) $row['inventory_branch_id'],
+                            'variant_id' => $variant->id,
+                            'on_hand' => (int) $row['inventory_quantity'],
+                            'reserved' => 0,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $stockRecordsCreated++;
+                    }
                 }
 
                 return [
                     'created_drafts' => $submitAfterImport ? 0 : count($rows),
                     'published' => $published,
                     'submitted_for_review' => $submitted,
+                    'stock_records_created' => $stockRecordsCreated,
                 ];
             }, 3);
         } catch (\Throwable $exception) {
