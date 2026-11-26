@@ -9,6 +9,7 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\Pricing\VatClass;
 use App\Http\Controllers\Controller;
 use App\Support\SellerDemoMode;
+use App\Support\SellerImportTemplateLabels;
 use App\Support\SellerProductImageSource;
 use DOMDocument;
 use DOMXPath;
@@ -366,7 +367,9 @@ final class SellerCatalogImportController extends Controller
             // Friendly localized headers are converted to the internal schema by position.
             // Existing CSV files with technical headers remain fully supported.
             $stockForm = in_array($header, [
-                self::STOCK_FORM_HEADERS, self::STOCK_ENGLISH_HEADERS,
+                SellerImportTemplateLabels::headers('ar'),
+                SellerImportTemplateLabels::headers('en'),
+                SellerImportTemplateLabels::headers('fr'),
             ], true);
             $vatImageForm = $stockForm || in_array($header, [
                 self::VAT_IMAGE_FORM_HEADERS, self::VAT_IMAGE_ENGLISH_HEADERS,
@@ -474,9 +477,12 @@ final class SellerCatalogImportController extends Controller
                     $priceHalalas = (int) $priceParts[0] * 100
                         + (int) str_pad($priceParts[1] ?? '0', 2, '0', STR_PAD_RIGHT);
                     $vatClass = match ($vatLabel) {
-                        'قياسية', 'قياسية (15%)', 'Standard', 'Standard VAT (15%)', 'standard' => 'standard',
-                        'صفرية', 'صفرية (0%)', 'Zero-rated', 'Zero-rated VAT (0%)', 'zero' => 'zero',
-                        'معفاة', 'معفى من الضريبة', 'Exempt', 'VAT exempt', 'exempt' => 'exempt',
+                        'قياسية', 'قياسية (15%)', 'Standard', 'Standard VAT (15%)',
+                        'TVA normale (15 %)', 'standard' => 'standard',
+                        'صفرية', 'صفرية (0%)', 'Zero-rated', 'Zero-rated VAT (0%)',
+                        'TVA à taux zéro (0 %)', 'zero' => 'zero',
+                        'معفاة', 'معفى من الضريبة', 'Exempt', 'VAT exempt',
+                        'Exonéré de TVA', 'exempt' => 'exempt',
                         default => $vatLabel,
                     };
                     if (! ctype_digit($category)) {
