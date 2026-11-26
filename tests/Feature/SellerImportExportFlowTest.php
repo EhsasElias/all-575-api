@@ -40,7 +40,7 @@ final class SellerImportExportFlowTest extends TestCase
         return [$seller, $branch, $category];
     }
 
-    private function csv(string $lang, int $categoryId, int $branchId, string $quantity): UploadedFile
+    private function csv(string $lang, int $categoryId, int $branchId, string $quantity, ?string $branchLabel = null): UploadedFile
     {
         $out = fopen('php://temp', 'w+');
         fwrite($out, "\xEF\xBB\xBF");
@@ -48,7 +48,7 @@ final class SellerImportExportFlowTest extends TestCase
         $vat = SellerImportTemplateLabels::vatOptions($lang)[0];
         fputcsv($out, [
             'FLOW-SKU-1', '', '', (string) $categoryId, 'منتج تجريبي', 'Test product',
-            '', '', '5.75', $vat, '', '', '', '', '', (string) $branchId, $quantity,
+            '', '', '5.75', $vat, '', '', '', '', '', $branchLabel ?? (string) $branchId, $quantity,
         ], ',', '"', '');
         rewind($out);
         $contents = stream_get_contents($out);
@@ -184,6 +184,23 @@ final class SellerImportExportFlowTest extends TestCase
             @unlink($temp);
             @unlink($source);
         }
+    }
+
+    public function test_branch_name_and_id_from_excel_dropdown_are_accepted(): void
+    {
+        [$seller, $branch, $category] = $this->sellerAccess();
+
+        $this->post('/api/v1/seller/products/import', [
+            'seller_id' => $seller->id,
+            'file' => $this->csv('en', $category->id, $branch->id, '4', 'Branch name (#'.$branch->id.')'),
+        ])->assertCreated()->assertJsonPath('data.stock_records_created', 1);
+
+        $variantId = DB::table('product_variants')->where('sku', 'FLOW-SKU-1')->value('id');
+        $this->assertDatabaseHas('branch_stock', [
+            'branch_id' => $branch->id,
+            'variant_id' => $variantId,
+            'on_hand' => 4,
+        ]);
     }
 
     public function test_invalid_quantity_does_not_create_product_or_stock(): void
