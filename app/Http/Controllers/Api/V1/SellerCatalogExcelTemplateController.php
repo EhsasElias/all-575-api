@@ -80,7 +80,11 @@ final class SellerCatalogExcelTemplateController extends Controller
                             ->orWhereColumn('seller_staff_access.branch_id', 'branches.id');
                     });
             })
-            ->orderBy('id')->limit(1000)->pluck('id')->map(fn ($id): string => (string) $id)->all();
+            ->orderBy('id')->limit(1000)->get(['id', 'name_ar', 'name_en'])
+            ->map(static function ($branch) use ($language): string {
+                $name = trim((string) ($language === 'ar' ? $branch->name_ar : $branch->name_en));
+                return ($name !== '' ? $name : ($language === 'ar' ? 'فرع' : ($language === 'fr' ? 'Succursale' : 'Branch'))).' (#'.$branch->id.')';
+            })->all();
         $lists = ['R' => $categories, 'S' => $storeOptions, 'T' => $vatOptions, 'U' => $branches];
         $rows = '<row r="1" ht="34" customHeight="1">';
         foreach ($headers as $index => $header) {
