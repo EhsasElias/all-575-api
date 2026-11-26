@@ -111,7 +111,7 @@ final class SellerCatalogImportPreviewTest extends TestCase
         $category = Category::factory()->create();
         $template = $this->get('/api/v1/seller/products/import/template.csv')->assertOk()->getContent();
         $headers = str_getcsv(trim(substr($template, 3)), escape: '\\');
-        $row = ['TEST-TEMPLATE-001', '', '', $category->id, 'منتج اختبار', 'Test Product', '', '', '5.75', 'standard', '', '', '', '', ''];
+        $row = ['TEST-TEMPLATE-001', '', '', $category->id, 'منتج اختبار', 'Test Product', '', '', '5.75', 'standard', '', '', '', '', '', '', ''];
         $xlsx = (new XlsxWriter)->download($headers, [$row], 'products.xlsx')->getFile();
         $uploads = [
             UploadedFile::fake()->createWithContent('products.csv', rtrim($template)."\n".implode(',', $row)."\n"),

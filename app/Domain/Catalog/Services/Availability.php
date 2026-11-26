@@ -73,6 +73,56 @@ final class Availability
             ->all();
     }
 
+    /**
+     * Available units across active branches, without restricting the shopper to a delivery zone.
+     *
+     * @param  list<int>  $variantIds
+     * @return array<int, int>
+     */
+    public function forVariantsAllBranches(array $variantIds): array
+    {
+        if ($variantIds === []) {
+            return [];
+        }
+
+        return DB::table('branch_stock')
+            ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
+            ->join('product_variants', 'product_variants.id', '=', 'branch_stock.variant_id')
+            ->where('branches.is_active', true)
+            ->where('product_variants.is_active', true)
+            ->whereIn('branch_stock.variant_id', $variantIds)
+            ->groupBy('branch_stock.variant_id')
+            ->selectRaw('branch_stock.variant_id, SUM(CASE WHEN branch_stock.on_hand > branch_stock.reserved THEN branch_stock.on_hand - branch_stock.reserved ELSE 0 END) as available')
+            ->pluck('available', 'variant_id')
+            ->map(fn (mixed $units): int => max(0, (int) $units))
+            ->all();
+    }
+
+    /**
+     * Available units across active branches and active variants, regardless of delivery zone.
+     *
+     * @param  list<int>  $productIds
+     * @return array<int, int>
+     */
+    public function forProductsAllBranches(array $productIds): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+
+        return DB::table('branch_stock')
+            ->join('branches', 'branches.id', '=', 'branch_stock.branch_id')
+            ->join('product_variants', 'product_variants.id', '=', 'branch_stock.variant_id')
+            ->where('branches.is_active', true)
+            ->where('product_variants.is_active', true)
+            ->whereIn('product_variants.product_id', $productIds)
+            ->groupBy('product_variants.product_id')
+            ->selectRaw('product_variants.product_id, SUM(CASE WHEN branch_stock.on_hand > branch_stock.reserved THEN branch_stock.on_hand - branch_stock.reserved ELSE 0 END) as available')
+            ->pluck('available', 'product_id')
+            ->map(fn (mixed $units): int => max(0, (int) $units))
+            ->all();
+    }
+
     public static function status(?int $available): string
     {
         return match (true) {

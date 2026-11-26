@@ -28,6 +28,8 @@ use App\Http\Controllers\Api\V1\SellerStockAdjustmentController;
 use App\Http\Controllers\Api\V1\SellerStockCreationController;
 use App\Http\Controllers\Api\V1\SellerStoreProfileController;
 use App\Http\Controllers\Api\V1\SellerWorkspaceController;
+use App\Support\SellerImportTemplateLabels;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -90,13 +92,13 @@ Route::middleware(['auth:sanctum', 'abilities:seller', 'active'])
         Route::post('category-requests', [SellerCategoryManagementController::class, 'requestCategory'])->middleware('throttle:5,1');
         Route::get('products', [SellerCatalogWorkspaceController::class, 'products']);
         Route::get('products/code-lookup', SellerProductCodeLookupController::class)->middleware('throttle:30,1');
-        Route::get('products/import/template.csv', function (): Response {
-            // Headers mirror the seller's Add Product form. Store is chosen at import time.
-            $header = "رمز SKU (إجباري),الباركود (اختياري),المتجر (اختياري),التصنيف (إجباري),اسم المنتج بالعربية (إجباري),اسم المنتج بالإنجليزية (إجباري),الوصف بالعربية (اختياري),الوصف بالإنجليزية (اختياري),السعر بالريال (1–100) (إجباري),فئة الضريبة (إجباري),اسم وحدة البيع بالعربية (اختياري),اسم وحدة البيع بالإنجليزية (اختياري),رابط صورة المنتج HTTPS (اختياري),صورة داخل Excel (اختياري),السبب النظامي للضريبة (إجباري للصفرية والمعفاة)\r\n";
+        Route::get('products/import/template.csv', function (Request $request): Response {
+            $language = SellerImportTemplateLabels::language($request->query('lang', $request->header('Accept-Language')));
+            $header = implode(',', SellerImportTemplateLabels::headers($language))."\r\n";
 
             return response("\xEF\xBB\xBF".$header, 200, [
                 'Content-Type' => 'text/csv; charset=UTF-8',
-                'Content-Disposition' => 'attachment; filename="seller-products-template.csv"',
+                'Content-Disposition' => 'attachment; filename="seller-products-template-'.$language.'.csv"',
             ]);
         })->middleware('throttle:30,1');
         Route::get('products/import/template.xlsx', SellerCatalogExcelTemplateController::class)->middleware('throttle:10,1');
