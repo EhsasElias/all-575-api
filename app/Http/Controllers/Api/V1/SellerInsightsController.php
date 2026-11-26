@@ -206,6 +206,7 @@ final class SellerInsightsController extends Controller
     private function localizedExport(array $columns, array $rows, string $locale): array
     {
         $arabic = $locale === 'ar';
+        $french = $locale === 'fr';
         $names = [
             'Order' => 'رقم الطلب', 'Date' => 'تاريخ الطلب', 'Branch' => 'الفرع',
             'Status' => 'الحالة', 'Subtotal SAR' => 'السعر قبل الخصم (ر.س)',
@@ -218,6 +219,23 @@ final class SellerInsightsController extends Controller
             'On hand' => 'المخزون الفعلي', 'Reserved' => 'الكمية المحجوزة',
             'Available' => 'المتاح للبيع',
         ];
+        $frenchNames = [
+            'Order' => 'Numéro de commande', 'Date' => 'Date de commande',
+            'Branch' => 'Succursale', 'Status' => 'État',
+            'Subtotal SAR' => 'Sous-total (SAR)', 'Discount SAR' => 'Remise (SAR)',
+            'Merchandise SAR' => 'Valeur des marchandises (SAR)',
+            'Product ID' => 'Identifiant produit', 'Arabic name' => 'Nom arabe',
+            'English name' => 'Nom anglais', 'Units' => 'Unités vendues',
+            'Branch ID' => 'Identifiant succursale', 'Orders' => 'Commandes',
+            'Delivered merchandise SAR' => 'Marchandises livrées (SAR)',
+            'SKU' => 'SKU', 'Product' => 'Produit', 'On hand' => 'Stock physique',
+            'Reserved' => 'Réservé', 'Available' => 'Disponible',
+        ];
+        $frenchStatuses = [
+            'awaiting_seller' => 'En attente du vendeur', 'preparing' => 'En préparation',
+            'ready' => 'Prête', 'on_the_way' => 'En livraison',
+            'delivered' => 'Livrée', 'cancelled' => 'Annulée',
+        ];
         $statuses = [
             'awaiting_seller' => 'بانتظار البائع', 'preparing' => 'قيد التجهيز',
             'ready' => 'جاهز', 'on_the_way' => 'في الطريق',
@@ -229,15 +247,14 @@ final class SellerInsightsController extends Controller
             'delivered' => 'Delivered', 'cancelled' => 'Cancelled',
         ];
         $statusIndex = array_search('Status', $columns, true);
-        $outputColumns = $arabic
-            ? array_map(static fn (string $column): string => $names[$column] ?? $column, $columns)
-            : $columns;
-        $outputRows = array_map(static function (array $row) use ($statusIndex, $arabic, $statuses, $englishStatuses): array {
+        $translations = $arabic ? $names : ($french ? $frenchNames : []);
+        $outputColumns = array_map(static fn (string $column): string => $translations[$column] ?? $column, $columns);
+        $outputRows = array_map(static function (array $row) use ($statusIndex, $arabic, $french, $statuses, $frenchStatuses, $englishStatuses): array {
             if ($statusIndex !== false && isset($row[$statusIndex])) {
                 $code = (string) $row[$statusIndex];
                 $row[$statusIndex] = $arabic
                     ? ($statuses[$code] ?? $code)
-                    : ($englishStatuses[$code] ?? $code);
+                    : ($french ? ($frenchStatuses[$code] ?? $code) : ($englishStatuses[$code] ?? $code));
             }
 
             return $row;
@@ -252,7 +269,11 @@ final class SellerInsightsController extends Controller
         $filters = $this->filters($request);
         [$columns, $rows] = $this->rows($request, $filters, 5000);
         $locale = $request->input('lang', $request->header('Accept-Language', 'ar'));
-        $locale = str_starts_with(strtolower((string) $locale), 'ar') ? 'ar' : 'en';
+        $locale = match (substr(strtolower((string) $locale), 0, 2)) {
+            'ar' => 'ar',
+            'fr' => 'fr',
+            default => 'en',
+        };
         [$columns, $rows] = $this->localizedExport($columns, $rows, $locale);
         $filename = 'seller-'.$filters['metric'].'-'.$filters['from'].'-'.$filters['to'].'.'.$format;
         if ($format === 'xlsx') {
