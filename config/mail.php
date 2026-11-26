@@ -115,4 +115,10 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    // Configure an actual monitored mailbox before displaying a support address.
+    // Also used as Reply-To on account verification emails.
+    'support' => [
+        'address' => env('MAIL_SUPPORT_ADDRESS', ''),
+    ],
+
 ];
