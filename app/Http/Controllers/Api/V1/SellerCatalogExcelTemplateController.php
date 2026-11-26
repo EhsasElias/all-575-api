@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Support\SellerImportTemplateLabels;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -16,18 +17,6 @@ use ZipArchive;
  */
 final class SellerCatalogExcelTemplateController extends Controller
 {
-    private const HEADERS = [
-        'رمز SKU (إجباري)', 'الباركود (اختياري)', 'المتجر (اختياري)',
-        'التصنيف (إجباري)', 'اسم المنتج بالعربية (إجباري)',
-        'اسم المنتج بالإنجليزية (إجباري)', 'الوصف بالعربية (اختياري)',
-        'الوصف بالإنجليزية (اختياري)', 'السعر بالريال (1–100) (إجباري)',
-        'فئة الضريبة (إجباري)',
-        'اسم وحدة البيع بالعربية (اختياري)', 'اسم وحدة البيع بالإنجليزية (اختياري)',
-        'رابط صورة المنتج HTTPS (اختياري)', 'صورة داخل Excel (اختياري)',
-        'السبب النظامي للضريبة (إجباري للصفرية والمعفاة)',
-        'الفرع للمخزون (إجباري عند إدخال كمية)', 'الكمية في المخزون (اختياري)',
-    ];
-
     private static function xml(string $value): string
     {
         return htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
@@ -42,6 +31,8 @@ final class SellerCatalogExcelTemplateController extends Controller
     public function __invoke(Request $request): BinaryFileResponse
     {
         $userId = $request->user()->id;
+        $language = SellerImportTemplateLabels::language($request->query('lang', $request->header('Accept-Language')));
+        $headers = SellerImportTemplateLabels::headers($language);
         $sellers = DB::table('sellers')
             ->where('status', 'approved')
             ->whereExists(function ($query) use ($userId): void {
@@ -51,7 +42,7 @@ final class SellerCatalogExcelTemplateController extends Controller
                     ->where('seller_staff_access.is_active', true)
                     ->whereIn('seller_staff_access.role', ['owner', 'branch_manager']);
             })
-            ->orderBy('id')->limit(100)->get(['id', 'name_ar']);
+            ->orderBy('id')->limit(100)->get(['id', 'name_ar', 'name_en']);
         abort_if($sellers->isEmpty(), 403);
 
         $categoryRecords = DB::table('categories')->where('is_active', true)
@@ -64,16 +55,16 @@ final class SellerCatalogExcelTemplateController extends Controller
                 }
             }
         }
-        $categories = $categoryRecords->map(static function ($category) use ($counts): string {
-            $name = trim((string) $category->name_ar);
+        $categories = $categoryRecords->map(static function ($category) use ($counts, $language): string {
+            $name = trim((string) ($language === 'ar' ? $category->name_ar : $category->name_en));
 
             return $name !== '' && ($counts[$name] ?? 0) === 1 ? $name : (string) $category->id;
         })->all();
-        $storeOptions = $sellers->map(fn ($seller): string => trim((string) $seller->name_ar) !== '' ? $seller->name_ar : (string) $seller->id
+        $storeOptions = $sellers->map(fn ($seller): string => trim((string) ($language === 'ar' ? $seller->name_ar : $seller->name_en)) !== '' ? ($language === 'ar' ? $seller->name_ar : $seller->name_en) : (string) $seller->id
         )->all();
         // Zero-rated/exempt selections must have a legal basis in column O;
         // the importer enforces this before creating reviewable drafts.
-        $vatOptions = ['قياسية (15%)', 'صفرية (0%)', 'معفى من الضريبة'];
+        $vatOptions = SellerImportTemplateLabels::vatOptions($language);
         // Use branch IDs in the dropdown so equal branch names cannot assign stock to the wrong location.
         $branches = DB::table('branches')
             ->whereIn('seller_id', $sellers->pluck('id')->all())
@@ -92,7 +83,7 @@ final class SellerCatalogExcelTemplateController extends Controller
             ->orderBy('id')->limit(1000)->pluck('id')->map(fn ($id): string => (string) $id)->all();
         $lists = ['R' => $categories, 'S' => $storeOptions, 'T' => $vatOptions, 'U' => $branches];
         $rows = '<row r="1" ht="34" customHeight="1">';
-        foreach (self::HEADERS as $index => $header) {
+        foreach ($headers as $index => $header) {
             $rows .= self::cell(chr(65 + $index).'1', $header, 1);
         }
         $rows .= '</row>';
@@ -131,7 +122,7 @@ final class SellerCatalogExcelTemplateController extends Controller
         $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'.
             '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'.
             '<dimension ref="A1:U'.($count + 1).'"/>'.
-            '<sheetViews><sheetView workbookViewId="0" rightToLeft="1"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'.
+            '<sheetViews><sheetView workbookViewId="0" rightToLeft="'.($language === 'ar' ? '1' : '0').'"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'.
             '<sheetFormatPr defaultRowHeight="23"/><cols>'.
             '<col min="1" max="2" width="24" customWidth="1"/>'.
             '<col min="3" max="4" width="22" customWidth="1"/>'.
@@ -183,7 +174,7 @@ final class SellerCatalogExcelTemplateController extends Controller
             $zip->addFromString('xl/workbook.xml', '<?xml version="1.0"?>'.
                 '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '.
                 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'.
-                '<sheets><sheet name="المنتجات" sheetId="1" r:id="rId1"/></sheets></workbook>');
+                '<sheets><sheet name="'.($language === 'ar' ? 'المنتجات' : ($language === 'fr' ? 'Produits' : 'Products')).'" sheetId="1" r:id="rId1"/></sheets></workbook>');
             $zip->addFromString('xl/_rels/workbook.xml.rels', '<?xml version="1.0"?>'.
                 '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'.
                 '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'.
@@ -195,7 +186,7 @@ final class SellerCatalogExcelTemplateController extends Controller
             $zip->close();
         }
 
-        return response()->download($file, 'seller-products-template.xlsx', [
+        return response()->download($file, 'seller-products-template-'.$language.'.xlsx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Cache-Control' => 'no-store',
         ])->deleteFileAfterSend(true);
