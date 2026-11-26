@@ -132,7 +132,7 @@ final class SuperAdminMetricController extends Controller
     }
 
     /** @param list<string> $columns
-     *  @return list<string>
+     * @return list<string>
      */
     private function exportHeaders(array $columns, Request $request): array
     {

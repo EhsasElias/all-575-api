@@ -83,6 +83,7 @@ final class SellerCatalogExcelTemplateController extends Controller
             ->orderBy('id')->limit(1000)->get(['id', 'name_ar', 'name_en'])
             ->map(static function ($branch) use ($language): string {
                 $name = trim((string) ($language === 'ar' ? $branch->name_ar : $branch->name_en));
+
                 return ($name !== '' ? $name : ($language === 'ar' ? 'فرع' : ($language === 'fr' ? 'Succursale' : 'Branch'))).' (#'.$branch->id.')';
             })->all();
         $lists = ['R' => $categories, 'S' => $storeOptions, 'T' => $vatOptions, 'U' => $branches];
